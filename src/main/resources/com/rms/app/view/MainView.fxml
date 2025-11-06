@@ -17,15 +17,18 @@
             <menus>
                 <Menu text="File">
                     <items>
+
                         <MenuItem onAction="#handleNewProject" text="New Project..." accelerator="Ctrl+N"/>
                         <MenuItem onAction="#handleOpenProject" text="Open Project..." accelerator="Ctrl+O"/>
                         <MenuItem text="Exit"/>
                     </items>
+
                 </Menu>
                 <Menu text="Edit"/>
                 <Menu text="Settings">
                     <items>
                         <MenuItem onAction="#handleOpenFormBuilder" text="Artifact Types (Form Builder)"/>
+
                     </items>
                 </Menu>
                 <Menu text="Help"/>
@@ -36,12 +39,13 @@
     <left>
         <VBox minWidth="200" prefWidth="250" styleClass="sidebar">
             <Label styleClass="sidebar-title" text="Project Explorer"/>
+
             <TreeView fx:id="projectTreeView" VBox.vgrow="ALWAYS"/>
         </VBox>
     </left>
 
     <center>
-        <TabPane fx:id="mainTabPane" styleClass="center-pane" tabClosingPolicy="UNAVAILABLE"/>
+        <TabPane fx:id="mainTabPane" styleClass="center-pane"/>
     </center>
 
     <right>
@@ -52,7 +56,9 @@
     </right>
 
     <bottom>
-        <Label fx:id="statusLabel" style="-fx-padding: 4px; -fx-background-color: #3c3f41;"
+
+        <Label fx:id="statusLabel" style="-fx-padding: 4px;
+ -fx-background-color: #3c3f41;"
                text="Status: Ready" BorderPane.alignment="CENTER_LEFT"/>
     </bottom>
 </BorderPane>

@@ -64,9 +64,7 @@ public class MainViewModel {
         this.openTabs.add(welcomeTab);
 
         /**
-         * [SỬA LỖI UX] Thêm listener để tự động refresh TreeView khi có file mới.
-         * Lắng nghe service state, nếu status có chữ "Đã lưu",
-         * chúng ta sẽ refresh lại cây.
+         * Thêm listener để tự động refresh TreeView khi có file mới.
          */
         projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
             if (newMsg != null && newMsg.startsWith("Đã lưu")) {
@@ -76,7 +74,7 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI] Hàm refresh cây thư mục (TreeView).
+     * Hàm refresh cây thư mục (TreeView).
      */
     private void refreshProjectTree() {
         File projectDir = projectStateService.getCurrentProjectDirectory();
@@ -114,9 +112,16 @@ public class MainViewModel {
     public void createNewArtifact(String templateName) {
         try {
             ArtifactTemplate template = templateService.loadTemplate(templateName);
+
+            /**
+             * [SỬA LỖI UX] Khi tạo mới, hệ thống cũng nên kiểm tra
+             * các tab đã mở để tránh trùng lặp. Tuy nhiên, logic
+             * này thường phức tạp hơn (ví dụ: mở file mới có tên trùng)
+             * nên tạm thời ta chỉ tập trung vào openArtifact.
+             */
             Tab newTab = viewManager.openArtifactTab(template);
             this.openTabs.add(newTab);
-            mainTabPane.getSelectionModel().select(newTab); // Focus tab mới
+            mainTabPane.getSelectionModel().select(newTab);
 
         } catch (IOException e) {
             logger.error("Không thể tải template: " + templateName, e);
@@ -133,9 +138,20 @@ public class MainViewModel {
             return;
         }
 
-        try {
-            String id = fileName.replace(".json", "");
+        String id = fileName.replace(".json", "");
 
+        /**
+         * [SỬA LỖI UX] Kiểm tra xem tab đã mở chưa
+         */
+        for (Tab tab : openTabs) {
+            if (tab.getText().equals(id)) {
+                mainTabPane.getSelectionModel().select(tab);
+                logger.info("Tab cho {} đã mở, chuyển sang tab này.", id);
+                return;
+            }
+        }
+
+        try {
             /**
              * 1. Load dữ liệu artifact
              */
@@ -153,7 +169,7 @@ public class MainViewModel {
             }
 
             /**
-             * 3. Mở tab bằng hàm (mới)
+             * 3. Mở tab
              */
             Tab newTab = viewManager.openArtifactTab(artifact, template);
             this.openTabs.add(newTab);
@@ -175,9 +191,6 @@ public class MainViewModel {
 
             projectStateService.setCurrentProjectDirectory(directory);
 
-            /**
-             * Lần load cây đầu tiên
-             */
             refreshProjectTree();
 
             projectStateService.setStatusMessage("Đã mở dự án: " + config.getProjectName());
