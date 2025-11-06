@@ -12,6 +12,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files; // Thêm import
+import java.nio.file.Path; // Thêm import
+import java.util.ArrayList; // Thêm import
+import java.util.List; // Thêm import
+import java.util.stream.Collectors; // Thêm import
+import java.util.stream.Stream; // Thêm import
 
 public class TemplateServiceImpl implements ITemplateService {
 
@@ -19,9 +25,11 @@ public class TemplateServiceImpl implements ITemplateService {
     private final ObjectMapper objectMapper;
     private final IProjectStateService projectStateService;
 
+    private static final String TEMPLATE_SUFFIX = ".template.json"; // Thêm hằng số
+
     @Inject
-    public TemplateServiceImpl(IProjectStateService projectStateService) { // SỬA
-        this.projectStateService = projectStateService; // SỬA
+    public TemplateServiceImpl(IProjectStateService projectStateService) {
+        this.projectStateService = projectStateService;
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
@@ -41,9 +49,8 @@ public class TemplateServiceImpl implements ITemplateService {
     }
 
     private String getTemplateFileName(String templateName) {
-        // Tên file theo convention [TemplateName].template.json
         String safeName = templateName.toLowerCase().replaceAll("\\s+", "_");
-        return safeName + ".template.json";
+        return safeName + TEMPLATE_SUFFIX;
     }
 
     @Override
@@ -52,7 +59,6 @@ public class TemplateServiceImpl implements ITemplateService {
         File templateFile = new File(configDir, getTemplateFileName(template.getTemplateName()));
 
         logger.info("Đang lưu template: {}", templateFile.getPath());
-        // 9.0. Chuyển đổi thiết kế Form GUI thành code cấu hình
         objectMapper.writeValue(templateFile, template);
     }
 
@@ -66,5 +72,36 @@ public class TemplateServiceImpl implements ITemplateService {
         }
 
         return objectMapper.readValue(templateFile, ArtifactTemplate.class);
+    }
+
+    /**
+     * [THÊM MỚI] Triển khai hàm loadAllTemplateNames
+     */
+    @Override
+    public List<String> loadAllTemplateNames() throws IOException {
+        File configDir = getConfigDirectory();
+        List<String> templateNames = new ArrayList<>();
+
+        try (Stream<Path> paths = Files.walk(configDir.toPath(), 1)) {
+            List<Path> templateFiles = paths
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(TEMPLATE_SUFFIX))
+                    .collect(Collectors.toList());
+
+            for (Path templateFile : templateFiles) {
+                try {
+                    /**
+                     * Đọc file template chỉ để lấy tên (templateName)
+                     */
+                    ArtifactTemplate template = objectMapper.readValue(templateFile.toFile(), ArtifactTemplate.class);
+                    if (template != null && template.getTemplateName() != null) {
+                        templateNames.add(template.getTemplateName());
+                    }
+                } catch (IOException e) {
+                    logger.error("Không thể đọc template file: {}", templateFile, e);
+                }
+            }
+        }
+        return templateNames;
     }
 }

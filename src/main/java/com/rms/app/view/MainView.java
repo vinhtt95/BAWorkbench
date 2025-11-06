@@ -12,35 +12,35 @@ import javafx.stage.Stage;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ContextMenu;
 import com.rms.app.service.IProjectStateService;
+import com.rms.app.service.ITemplateService; // Thêm import
 import java.io.File;
+import java.io.IOException; // Thêm import
+import java.util.List; // Thêm import
 
 public class MainView {
 
-    // 1. FXML Controls
     @FXML private TreeView<String> projectTreeView;
     @FXML private TabPane mainTabPane;
     @FXML private Accordion rightAccordion;
     @FXML private Label statusLabel;
 
-    // 2. ViewModel
     private final MainViewModel viewModel;
     private final IProjectStateService projectStateService;
+    private final ITemplateService templateService; // Thêm service
 
     @Inject
-    public MainView(MainViewModel viewModel, IProjectStateService projectStateService) {
+    public MainView(MainViewModel viewModel, IProjectStateService projectStateService, ITemplateService templateService) { // Cập nhật constructor
         this.viewModel = viewModel;
         this.projectStateService = projectStateService;
+        this.templateService = templateService; // Thêm service
     }
 
-    // 3. Initialize
     @FXML
     public void initialize() {
-        // Binding
         projectTreeView.rootProperty().bind(viewModel.projectRootProperty());
         statusLabel.textProperty().bind(projectStateService.statusMessageProperty());
         statusLabel.textProperty().bind(viewModel.statusMessageProperty());
 
-        // Đồng bộ TabPane với danh sách trong ViewModel
         mainTabPane.getTabs().setAll(viewModel.getOpenTabs());
         viewModel.getOpenTabs().addListener((ListChangeListener<Tab>) c -> {
             while (c.next()) {
@@ -61,29 +61,45 @@ public class MainView {
     private void setupTreeViewContextMenu() {
         ContextMenu treeContextMenu = new ContextMenu();
 
-        // 1.0. BA kích hoạt (Trigger) use case (click chuột phải)
         Menu newMenu = new Menu("New Artifact");
 
-        // TODO: Đọc các template có sẵn từ ITemplateService thay vì hardcode
-        // (Đây là "lát cắt dọc" của Ngày 10)
-        MenuItem newUseCaseItem = new MenuItem("Use Case");
-        newUseCaseItem.setOnAction(e -> viewModel.createNewArtifact("Use Case"));
+        /**
+         * [SỬA LỖI 3] Đọc template động thay vì hard-code
+         * Thêm listener để menu tự cập nhật khi dự án được mở
+         */
+        projectStateService.currentProjectDirectoryProperty().addListener((obs, oldDir, newDir) -> {
+            newMenu.getItems().clear();
+            if (newDir != null) {
+                try {
+                    List<String> templateNames = templateService.loadAllTemplateNames();
+                    if (templateNames.isEmpty()) {
+                        newMenu.getItems().add(new MenuItem("(Không tìm thấy template nào)"));
+                    } else {
+                        for (String templateName : templateNames) {
+                            MenuItem item = new MenuItem(templateName);
+                            item.setOnAction(e -> viewModel.createNewArtifact(templateName));
+                            newMenu.getItems().add(item);
+                        }
+                    }
+                } catch (IOException e) {
+                    newMenu.getItems().add(new MenuItem("(Lỗi tải template)"));
+                }
+            } else {
+                newMenu.getItems().add(new MenuItem("(Mở dự án để xem template)"));
+            }
+        });
 
-        MenuItem newRequirementItem = new MenuItem("Requirement");
-        newRequirementItem.setOnAction(e -> viewModel.createNewArtifact("Requirement"));
-
-        newMenu.getItems().addAll(newUseCaseItem, newRequirementItem);
+        /**
+         * Kích hoạt lần đầu (trường hợp rỗng)
+         */
+        newMenu.getItems().add(new MenuItem("(Mở dự án để xem template)"));
         treeContextMenu.getItems().add(newMenu);
 
         projectTreeView.setContextMenu(treeContextMenu);
     }
 
-    // --- Event Handlers (Gọi ViewModel) ---
-
     @FXML
     private void handleNewProject() {
-        // 2.0. Hệ thống hiển thị cửa sổ
-        // (Sử dụng Dialog đơn giản)
         TextInputDialog nameDialog = new TextInputDialog("MyProject");
         nameDialog.setTitle("New Project");
         nameDialog.setHeaderText("Enter Project Name:");
@@ -102,13 +118,11 @@ public class MainView {
 
     @FXML
     private void handleOpenProject() {
-        // 2.0. Hệ thống hiển thị một cửa sổ chọn thư mục
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Open RMS Project");
         File selectedDirectory = directoryChooser.showDialog(getStage());
 
         if (selectedDirectory != null) {
-            // 4.0. BA nhấn "Open" (logic được xử lý bởi showDialog)
             viewModel.openProject(selectedDirectory);
         }
     }

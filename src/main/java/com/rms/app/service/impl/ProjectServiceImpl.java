@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream; // Thêm import
 
 public class ProjectServiceImpl implements IProjectService {
 
@@ -30,7 +31,6 @@ public class ProjectServiceImpl implements IProjectService {
     public boolean createProject(String projectName, File directory) throws IOException {
         logger.info("Đang tạo dự án mới: {} tại {}", projectName, directory.getPath());
 
-        // 5.0. Hệ thống tạo cấu trúc thư mục chuẩn
         File configDir = new File(directory, CONFIG_DIR);
         File artifactsDir = new File(directory, ARTIFACTS_DIR);
 
@@ -38,14 +38,12 @@ public class ProjectServiceImpl implements IProjectService {
             throw new IOException("Không thể tạo thư mục dự án.");
         }
 
-        // 6.0. Hệ thống khởi tạo các file cấu hình mặc định
         ProjectConfig config = new ProjectConfig();
         config.setProjectName(projectName);
 
         File configFile = new File(configDir, CONFIG_FILE);
         objectMapper.writeValue(configFile, config);
 
-        // Tạo file .gitignore
         createGitIgnore(directory.toPath());
 
         return true;
@@ -55,21 +53,17 @@ public class ProjectServiceImpl implements IProjectService {
     public ProjectConfig openProject(File directory) throws IOException {
         logger.info("Đang mở dự án tại: {}", directory.getPath());
 
-        // 5.0. Hệ thống quét thư mục đã chọn, tìm file cấu hình
         File configFile = new File(directory, CONFIG_DIR + File.separator + CONFIG_FILE);
 
         if (!configFile.exists() || !configFile.isFile()) {
-            // 5.1. Hệ thống không tìm thấy file cấu hình
             throw new IOException("Thư mục đã chọn không phải là một dự án RMS hợp lệ.");
         }
 
-        // 6.0. Hệ thống tải (load) toàn bộ cấu hình
         return objectMapper.readValue(configFile, ProjectConfig.class);
     }
 
     @Override
     public TreeItem<String> buildProjectTree(File projectRoot) {
-        // 5.0. Logic đọc cấu trúc thư mục và hiển thị lên TreeView
         TreeItem<String> root = new TreeItem<>(projectRoot.getName());
         root.setExpanded(true);
 
@@ -78,7 +72,22 @@ public class ProjectServiceImpl implements IProjectService {
             TreeItem<String> artifactsNode = new TreeItem<>(ARTIFACTS_DIR);
             artifactsNode.setExpanded(true);
             root.getChildren().add(artifactsNode);
-            // TODO: Quét sâu hơn để tìm các file .json
+
+            /**
+             * [SỬA LỖI 2] Bổ sung logic quét file .json
+             */
+            try (Stream<Path> paths = Files.walk(artifactsDir.toPath(), 1)) {
+                paths.filter(Files::isRegularFile)
+                        .filter(path -> path.toString().endsWith(".json"))
+                        .forEach(jsonFile -> {
+                            String fileName = jsonFile.getFileName().toString();
+                            TreeItem<String> fileNode = new TreeItem<>(fileName);
+                            artifactsNode.getChildren().add(fileNode);
+                        });
+            } catch (IOException e) {
+                logger.error("Không thể quét thư mục Artifacts", e);
+                artifactsNode.getChildren().add(new TreeItem<>("Lỗi khi tải..."));
+            }
         }
 
         return root;

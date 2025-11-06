@@ -2,21 +2,21 @@ package com.rms.app.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import com.rms.app.model.Artifact;
 import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.FlowStep;
 import com.rms.app.service.IRenderService;
+import com.rms.app.service.ISearchService;
 import com.rms.app.view.FlowBuilderControl;
 import com.rms.app.viewmodel.ArtifactViewModel;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,15 +26,22 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-// Triển khai logic render Form
+/**
+ * Triển khai logic render Form động (UC-DEV-01)
+ * và logic Autocomplete (UC-DEV-02).
+ */
 public class RenderServiceImpl implements IRenderService {
 
     private static final Logger logger = LoggerFactory.getLogger(RenderServiceImpl.class);
     private final Injector injector;
+    private final ISearchService searchService;
+    private final ContextMenu autocompletePopup;
 
     @Inject
     public RenderServiceImpl(Injector injector) {
         this.injector = injector;
+        this.searchService = injector.getInstance(ISearchService.class);
+        this.autocompletePopup = new ContextMenu();
     }
 
     @Override
@@ -44,14 +51,11 @@ public class RenderServiceImpl implements IRenderService {
             return nodes;
         }
 
-        // Render các trường (fields) cơ bản trước
         nodes.add(createFieldGroup("ID", new TextField(viewModel.getId()) {{ setEditable(false); }}));
         nodes.add(createFieldGroup("Name", new TextField() {{
             textProperty().bindBidirectional(viewModel.nameProperty());
         }}));
 
-
-        // 10.0. Logic đọc .json... tự động sinh control
         for (ArtifactTemplate.FieldTemplate field : template.getFields()) {
             Node control = createControlForField(field, viewModel);
             if (control != null) {
@@ -61,9 +65,14 @@ public class RenderServiceImpl implements IRenderService {
         return nodes;
     }
 
+    /**
+     * Tạo control JavaFX tương ứng cho một FieldTemplate.
+     *
+     * @param field     Template của trường (field)
+     * @param viewModel ViewModel để bind dữ liệu
+     * @return Một Node (control) JavaFX
+     */
     private Node createControlForField(ArtifactTemplate.FieldTemplate field, ArtifactViewModel viewModel) {
-        // Lấy property tương ứng từ ViewModel (dùng Map)
-        // Property này sẽ được ViewModel tự động tạo
         var fieldProperty = viewModel.getFieldProperty(field.getName());
 
         switch (field.getType()) {
@@ -76,27 +85,24 @@ public class RenderServiceImpl implements IRenderService {
                 TextArea textArea = new TextArea();
                 textArea.setPrefRowCount(5);
                 textArea.textProperty().bindBidirectional((StringProperty) fieldProperty);
+                setupAutocomplete(textArea);
                 return textArea;
 
-            // 11.0. Mở rộng cho Dropdown và Linker
             case "Dropdown":
                 var stringPropDrop = (StringProperty) viewModel.getFieldProperty(field.getName());
                 ComboBox<String> comboBox = new ComboBox<>();
-                // TODO: Đọc 'options' từ field.getOptions() để đổ dữ liệu
                 comboBox.getItems().addAll("Option 1", "Option 2");
                 comboBox.valueProperty().bindBidirectional(stringPropDrop);
                 return comboBox;
 
             case "Linker (@ID)":
                 var stringPropLink = (StringProperty) viewModel.getFieldProperty(field.getName());
-                // TODO: (Ngày 16/17) Implement control Autocomplete tùy chỉnh
-                // Tạm thời render như TextField
                 TextField linkerField = new TextField();
-                linkerField.textProperty().bindBidirectional(stringPropLink);
+                linkerField.textProperty().bindBidirectional((StringProperty) stringPropLink);
                 linkerField.setPromptText("Gõ @ để tìm kiếm...");
+                setupAutocomplete(linkerField);
                 return linkerField;
 
-            // 14.0. Tích hợp Flow Builder vào FormRenderer
             case "Flow Builder":
                 try {
                     ObservableList<FlowStep> steps = viewModel.getFlowStepProperty(field.getName());
@@ -112,23 +118,86 @@ public class RenderServiceImpl implements IRenderService {
         }
     }
 
-    // Helper (Ngày 14)
+    /**
+     * Thêm logic Autocomplete (gợi ý @ID) vào một control (TextField hoặc TextArea).
+     *
+     * @param control Control (TextField, TextArea) cần thêm tính năng.
+     */
+    private void setupAutocomplete(final TextInputControl control) {
+        control.caretPositionProperty().addListener((obs, oldPos, newPos) -> {
+            String text = control.getText();
+            if (text.isEmpty()) {
+                autocompletePopup.hide();
+                return;
+            }
+
+            int atPos = text.lastIndexOf('@', newPos.intValue() - 1);
+            if (atPos == -1) {
+                autocompletePopup.hide();
+                return;
+            }
+
+            String queryPart = text.substring(atPos + 1, newPos.intValue());
+            if (queryPart.contains(" ") || queryPart.contains("\n")) {
+                autocompletePopup.hide();
+                return;
+            }
+
+            List<Artifact> results = searchService.search(queryPart);
+            if (results.isEmpty()) {
+                autocompletePopup.hide();
+                return;
+            }
+
+            autocompletePopup.getItems().clear();
+            for (Artifact artifact : results) {
+                String itemText = String.format("%s: %s", artifact.getId(), artifact.getName());
+                MenuItem item = new MenuItem(itemText);
+                item.setOnAction(e -> {
+                    String newText = text.substring(0, atPos) + "@" + artifact.getId() + " " + text.substring(newPos.intValue());
+                    control.setText(newText);
+                    control.positionCaret(atPos + artifact.getId().length() + 2);
+                    autocompletePopup.hide();
+                });
+                autocompletePopup.getItems().add(item);
+            }
+            autocompletePopup.show(control, Side.BOTTOM, 0, 0);
+        });
+
+        control.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                autocompletePopup.hide();
+            }
+        });
+    }
+
+    /**
+     * Tải FXML control FlowBuilderControl và inject data (list) vào.
+     *
+     * @param steps Danh sách các bước quy trình
+     * @return Node (control) FlowBuilder
+     * @throws IOException Nếu không thể tải FXML
+     */
     private Node loadFlowBuilderControl(ObservableList<FlowStep> steps) throws IOException {
         String fxmlPath = "/com/rms/app/view/FlowBuilderControl.fxml";
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
 
-        // Yêu cầu Guice tạo Controller
         loader.setControllerFactory(injector::getInstance);
         Parent controlRoot = loader.load();
 
-        // Lấy controller và truyền dữ liệu (list) vào
         FlowBuilderControl controller = loader.getController();
         controller.setData(steps);
 
         return controlRoot;
     }
 
-    // Helper tạo nhóm Label + Control
+    /**
+     * Helper tạo nhóm Label + Control cho Form.
+     *
+     * @param label   Nhãn của trường
+     * @param control Control (TextField, v.v.)
+     * @return Một VBox chứa Label và Control
+     */
     private Node createFieldGroup(String label, Node control) {
         VBox fieldGroup = new VBox(5);
         Label fieldLabel = new Label(label + ":");

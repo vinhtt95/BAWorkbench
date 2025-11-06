@@ -120,3 +120,29 @@ com.rms.app ├── MainApplication.java // (Điểm khởi động JavaFX, n�
 * **CẤM:** Không "nuốt" (swallow) exception (ví dụ: `catch (Exception e) {}`).
 * **BẮT BUỘC:** Phải log (ghi lại) exception.
 * **BẮT BUỘC:** ViewModel phải bắt các exception từ Service và phơi bày (expose) thông báo lỗi cho View (ví dụ: qua một `StringProperty errorProperty`) để hiển thị cho người dùng.
+
+### 4.6. Quy ước Comment (JavaDoc)
+* **BẮT BUỘC:** Chỉ sử dụng comment Javadoc (`/** ... */`) cho tất cả các bình luận (comment) trong mã nguồn.
+* **CẤM:** Tuyệt đối không sử dụng comment một dòng (`//`) hoặc comment khối (`/* ... */`).
+* **Quy tắc cho Javadoc:**
+    * **Class/Interface:** Mọi public class/interface PHẢI có Javadoc mô tả mục đích của lớp/interface đó.
+    * **Public Methods:** Mọi public method PHẢI có Javadoc mô tả chức năng, và PHẢI bao gồm các tag sau nếu có:
+        * `@param [tên_biến] [Mô tả]` - (Dùng cho mọi tham số đầu vào).
+        * `@return [Mô tả]` - (Mô tả giá trị trả về, trừ khi hàm là `void`).
+        * `@throws [Tên_Exception] [Lý do]` - (Mô tả các ngoại lệ (checked) có thể bị ném ra).
+    * **Private Methods:** Khuyến khích (Khả năng bảo trì - QA-01) viết Javadoc đơn giản (mô tả chức năng) cho các private method phức tạp để làm rõ logic nghiệp vụ.
+
+* **Ví dụ (Bắt buộc):**
+    ```java
+    /**
+     * Lưu một đối tượng (Artifact) vào file system.
+     *
+     * @param artifact Đối tượng cần lưu (không được null).
+     * @param overwrite Cờ (flag) cho biết có ghi đè file đã tồn tại hay không.
+     * @return ID của đối tượng đã lưu.
+     * @throws IOException Nếu xảy ra lỗi ghi file.
+     */
+    public String save(Artifact artifact, boolean overwrite) throws IOException {
+        // ... logic ...
+    }
+    ```

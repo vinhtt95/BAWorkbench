@@ -3,6 +3,7 @@ package com.rms.app.service;
 import com.rms.app.model.ArtifactTemplate;
 
 import java.io.IOException;
+import java.util.List; // Thêm import
 
 // Interface cho DIP (SOLID)
 public interface ITemplateService {
@@ -18,5 +19,11 @@ public interface ITemplateService {
      */
     ArtifactTemplate loadTemplate(String templateName) throws IOException;
 
-    // (Sẽ thêm các hàm khác như loadAllTemplates(), deleteTemplate()...)
+    /**
+     * [THÊM MỚI] Quét thư mục .config và trả về tên của tất cả template
+     *
+     * @return Danh sách tên các template (ví dụ: "Use Case", "Task")
+     * @throws IOException Nếu không thể đọc thư mục
+     */
+    List<String> loadAllTemplateNames() throws IOException;
 }
