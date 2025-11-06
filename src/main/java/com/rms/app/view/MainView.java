@@ -11,6 +11,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ContextMenu;
+import com.rms.app.service.IProjectStateService;
 import java.io.File;
 
 public class MainView {
@@ -23,12 +24,12 @@ public class MainView {
 
     // 2. ViewModel
     private final MainViewModel viewModel;
-    private final IViewManager viewManager;
+    private final IProjectStateService projectStateService;
 
     @Inject
-    public MainView(MainViewModel viewModel, IViewManager viewManager) {
+    public MainView(MainViewModel viewModel, IProjectStateService projectStateService) {
         this.viewModel = viewModel;
-        this.viewManager = viewManager;
+        this.projectStateService = projectStateService;
     }
 
     // 3. Initialize
@@ -36,7 +37,7 @@ public class MainView {
     public void initialize() {
         // Binding
         projectTreeView.rootProperty().bind(viewModel.projectRootProperty());
-        mainTabPane.getTabs().setAll(viewModel.getOpenTabs()); // Khởi tạo lần đầu
+        statusLabel.textProperty().bind(projectStateService.statusMessageProperty());
         statusLabel.textProperty().bind(viewModel.statusMessageProperty());
 
         // Đồng bộ TabPane với danh sách trong ViewModel
@@ -114,11 +115,7 @@ public class MainView {
 
     @FXML
     private void handleOpenFormBuilder() {
-        // 1.0. BA điều hướng đến "Project Settings" > "Artifact Types"
-        viewManager.openViewInNewTab(
-                "/com/rms/app/view/FormBuilderView.fxml",
-                "Form Builder"
-        );
+        viewModel.openFormBuilderTab();
     }
 
     private Stage getStage() {

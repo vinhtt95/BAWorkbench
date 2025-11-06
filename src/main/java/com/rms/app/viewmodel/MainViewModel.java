@@ -9,6 +9,7 @@ import com.rms.app.service.IViewManager;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import com.rms.app.service.IProjectStateService;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -35,14 +36,17 @@ public class MainViewModel {
     private final ObjectProperty<File> currentProjectDirectory;
     private final ITemplateService templateService;
     private final IViewManager viewManager;
+    private final IProjectStateService projectStateService;
 
     @Inject
     public MainViewModel(IProjectService projectService,
                          ITemplateService templateService,
-                         IViewManager viewManager) {
+                         IViewManager viewManager,
+                         IProjectStateService projectStateService) {
         this.projectService = projectService;
         this.templateService = templateService;
         this.viewManager = viewManager;
+        this.projectStateService = projectStateService;
 
         // Khởi tạo
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
@@ -72,7 +76,7 @@ public class MainViewModel {
             }
         } catch (IOException e) {
             logger.error("Lỗi tạo dự án", e);
-            statusMessage.set("Lỗi: " + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
 
@@ -81,13 +85,12 @@ public class MainViewModel {
         try {
             // 2.0. Hệ thống đọc file cấu hình template
             ArtifactTemplate template = templateService.loadTemplate(templateName);
-
-            // Yêu cầu ViewManager mở tab mới với template này
-            viewManager.openArtifactTab(template);
+            Tab newTab = viewManager.openArtifactTab(template);
+            this.openTabs.add(newTab);
 
         } catch (IOException e) {
             logger.error("Không thể tải template: " + templateName, e);
-            statusMessage.set("Lỗi: " + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
 
@@ -99,16 +102,15 @@ public class MainViewModel {
             ProjectConfig config = projectService.openProject(directory);
             currentProject.set(config);
 
-            // SỬA LỖI: Lưu lại thư mục dự án
-            this.currentProjectDirectory.set(directory);
+            projectStateService.setCurrentProjectDirectory(directory);
 
             TreeItem<String> rootNode = projectService.buildProjectTree(directory);
             projectRoot.set(rootNode);
 
-            statusMessage.set("Đã mở dự án: " + config.getProjectName());
+            projectStateService.setStatusMessage("Đã mở dự án: " + config.getProjectName());
         } catch (IOException e) {
             logger.error("Lỗi mở dự án", e);
-            statusMessage.set("Lỗi: " + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
 
@@ -118,6 +120,18 @@ public class MainViewModel {
     // SỬA LỖI: Getter cho Repository sử dụng
     public File getCurrentProjectDirectory() {
         return currentProjectDirectory.get();
+    }
+
+    // THÊM MỚI: Logic mở Form Builder (do MainView gọi)
+    public void openFormBuilderTab() {
+        try {
+            Tab newTab = viewManager.openViewInNewTab(
+                    "/com/rms/app/view/FormBuilderView.fxml", "Form Builder"
+            );
+            this.openTabs.add(newTab);
+        } catch (IOException e) {
+            // Lỗi đã được log bởi ViewManager
+        }
     }
 
     public ObjectProperty<TreeItem<String>> projectRootProperty() {

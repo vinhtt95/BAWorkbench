@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.inject.Inject;
 import com.rms.app.model.ArtifactTemplate;
+import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.ITemplateService;
 import com.rms.app.viewmodel.MainViewModel;
 import org.slf4j.Logger;
@@ -16,11 +17,11 @@ public class TemplateServiceImpl implements ITemplateService {
 
     private static final Logger logger = LoggerFactory.getLogger(TemplateServiceImpl.class);
     private final ObjectMapper objectMapper;
-    private final MainViewModel mainViewModel; // Dùng để lấy thư mục dự án hiện tại
+    private final IProjectStateService projectStateService;
 
     @Inject
-    public TemplateServiceImpl(MainViewModel mainViewModel) {
-        this.mainViewModel = mainViewModel;
+    public TemplateServiceImpl(IProjectStateService projectStateService) { // SỬA
+        this.projectStateService = projectStateService; // SỬA
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
@@ -28,7 +29,7 @@ public class TemplateServiceImpl implements ITemplateService {
      * Lấy thư mục .config của dự án đang mở
      */
     private File getConfigDirectory() throws IOException {
-        File projectRoot = mainViewModel.getCurrentProjectDirectory();
+        File projectRoot = projectStateService.getCurrentProjectDirectory();
         if (projectRoot == null) {
             throw new IOException("Không có dự án nào đang mở.");
         }

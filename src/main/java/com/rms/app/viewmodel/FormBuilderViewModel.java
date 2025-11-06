@@ -5,6 +5,7 @@ import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.service.ITemplateService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import com.rms.app.service.IProjectStateService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import org.slf4j.Logger;
@@ -18,7 +19,7 @@ public class FormBuilderViewModel {
     private static final Logger logger = LoggerFactory.getLogger(FormBuilderViewModel.class);
 
     private final ITemplateService templateService;
-    private final MainViewModel mainViewModel; // Để hiển thị status
+    private final IProjectStateService projectStateService;
 
     // Properties mà View sẽ bind vào
     public final StringProperty templateName = new SimpleStringProperty("New Template");
@@ -31,9 +32,9 @@ public class FormBuilderViewModel {
 
 
     @Inject
-    public FormBuilderViewModel(ITemplateService templateService, MainViewModel mainViewModel) {
+    public FormBuilderViewModel(ITemplateService templateService, IProjectStateService projectStateService) {
         this.templateService = templateService;
-        this.mainViewModel = mainViewModel;
+        this.projectStateService = projectStateService;
     }
 
     // Logic nghiệp vụ khi nhấn nút Save
@@ -46,11 +47,11 @@ public class FormBuilderViewModel {
         try {
             // 8.0. BA nhấn "Save"
             templateService.saveTemplate(template);
-            mainViewModel.statusMessageProperty().set("Đã lưu template: " + template.getTemplateName());
+            projectStateService.setStatusMessage("Đã lưu template: " + template.getTemplateName());
             logger.info("Lưu template thành công");
         } catch (IOException e) {
             logger.error("Lỗi lưu template", e);
-            mainViewModel.statusMessageProperty().set("Lỗi: " + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
 import com.rms.app.service.IArtifactRepository;
+import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.impl.ProjectServiceImpl;
 import com.rms.app.viewmodel.MainViewModel;
 import org.slf4j.Logger;
@@ -16,23 +17,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
-// SỬA LỖI: Triển khai logic còn thiếu (TODOs) của Ngày 6
+// Triển khai logic còn thiếu (TODOs) của Ngày 6
 public class JsonFileRepository implements IArtifactRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(JsonFileRepository.class);
 
     private final ObjectMapper objectMapper;
-    private final MainViewModel mainViewModel; // Để biết dự án hiện tại đang mở
+    private final IProjectStateService projectStateService;
 
     @Inject
-    public JsonFileRepository(MainViewModel mainViewModel) {
-        this.mainViewModel = mainViewModel;
+    public JsonFileRepository(IProjectStateService projectStateService) {
+        this.projectStateService = projectStateService;
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
-    // SỬA LỖI: Triển khai hàm helper
+    // Triển khai hàm helper
     private File getArtifactsRoot() throws IOException {
-        File projectRoot = mainViewModel.getCurrentProjectDirectory();
+        File projectRoot = projectStateService.getCurrentProjectDirectory();
         if (projectRoot == null) {
             throw new IOException("Không có dự án nào đang mở.");
         }

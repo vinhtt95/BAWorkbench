@@ -9,6 +9,7 @@ import javafx.beans.property.Property;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import com.rms.app.service.IProjectStateService;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,7 @@ public class ArtifactViewModel {
     private static final Logger logger = LoggerFactory.getLogger(ArtifactViewModel.class);
 
     private final IArtifactRepository artifactRepository;
-    private final MainViewModel mainViewModel;
+    private final IProjectStateService projectStateService;
 
     // Model (dữ liệu)
     private final Artifact artifact;
@@ -40,9 +41,9 @@ public class ArtifactViewModel {
     private final PauseTransition autoSaveTimer;
 
     @Inject
-    public ArtifactViewModel(IArtifactRepository artifactRepository, MainViewModel mainViewModel) {
+    public ArtifactViewModel(IArtifactRepository artifactRepository, IProjectStateService projectStateService) {
         this.artifactRepository = artifactRepository;
-        this.mainViewModel = mainViewModel;
+        this.projectStateService = projectStateService;
 
         // Khởi tạo một Artifact mới (cho UC-DEV-01 Tạo mới)
         this.artifact = new Artifact();
@@ -107,12 +108,12 @@ public class ArtifactViewModel {
             // 12.0. Hệ thống lưu dữ liệu Form vào file .json
             artifactRepository.save(artifact);
 
-            mainViewModel.statusMessageProperty().set("Đã lưu " + artifact.getId());
+            projectStateService.setStatusMessage("Đã lưu " + artifact.getId());
 
         } catch (IOException e) {
             // 1.0.E1: Lỗi Auto-save
             logger.error("Lỗi Auto-save", e);
-            mainViewModel.statusMessageProperty().set("Lỗi Auto-save: " + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi Auto-save: " + e.getMessage());
         }
     }
 

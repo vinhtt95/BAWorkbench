@@ -7,6 +7,7 @@ import com.rms.app.viewmodel.MainViewModel;
 import com.rms.app.model.ArtifactTemplate;
 import javafx.fxml.FXMLLoader;
 import com.rms.app.view.ArtifactView;
+import com.rms.app.service.IProjectStateService;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
@@ -21,13 +22,13 @@ public class ViewManagerImpl implements IViewManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ViewManagerImpl.class);
     private final Injector injector; // Dùng để load FXML Controller
-    private final MainViewModel mainViewModel; // Dùng để lấy TabPane
+    private final IProjectStateService projectStateService;
     private Stage primaryStage;
 
     @Inject
-    public ViewManagerImpl(Injector injector, MainViewModel mainViewModel) {
+    public ViewManagerImpl(Injector injector, IProjectStateService projectStateService) { // SỬA
         this.injector = injector;
-        this.mainViewModel = mainViewModel;
+        this.projectStateService = projectStateService; // SỬA
     }
 
     @Override
@@ -36,7 +37,7 @@ public class ViewManagerImpl implements IViewManager {
     }
 
     @Override
-    public void openViewInNewTab(String fxmlPath, String tabTitle) {
+    public Tab openViewInNewTab(String fxmlPath, String tabTitle) throws IOException {
         try {
             FXMLLoader loader = new FXMLLoader();
             URL fxmlLocation = getClass().getResource(fxmlPath);
@@ -50,19 +51,17 @@ public class ViewManagerImpl implements IViewManager {
             Tab newTab = new Tab(tabTitle);
             newTab.setContent(viewRoot);
 
-            // Thêm tab vào MainViewModel
-            mainViewModel.getOpenTabs().add(newTab);
-            // (Chúng ta cần cơ chế binding hoặc tham chiếu trực tiếp đến TabPane)
-            // (Tạm thời add vào ViewModel, MainView sẽ phải lắng nghe)
+            return newTab;
 
         } catch (IOException e) {
             logger.error("Không thể tải FXML: " + fxmlPath, e);
-            mainViewModel.statusMessageProperty().set("Lỗi: " + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
+            throw e;
         }
     }
 
     @Override
-    public void openArtifactTab(ArtifactTemplate template) {
+    public Tab openArtifactTab(ArtifactTemplate template) throws IOException {
         String fxmlPath = "/com/rms/app/view/ArtifactView.fxml";
         try {
             FXMLLoader loader = new FXMLLoader();
@@ -83,11 +82,12 @@ public class ViewManagerImpl implements IViewManager {
             // 4.0. Hệ thống hiển thị Form này ("Form View") trong một Tab mới
             Tab newTab = new Tab("New " + template.getPrefixId());
             newTab.setContent(viewRoot);
-            mainViewModel.getOpenTabs().add(newTab);
+            return newTab;
 
         } catch (IOException e) {
             logger.error("Không thể tải FXML: " + fxmlPath, e);
-            mainViewModel.statusMessageProperty().set("Lỗi: " + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
+            throw e;
         }
     }
 }
