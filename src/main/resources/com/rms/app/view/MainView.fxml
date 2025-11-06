@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.input.KeyCode?>
-<?import javafx.scene.input.KeyCodeCombination?>
-
 <?import javafx.scene.control.Accordion?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
@@ -20,16 +17,8 @@
             <menus>
                 <Menu text="File">
                     <items>
-                        <MenuItem onAction="#handleNewProject" text="New Project...">
-                            <accelerator>
-                                <KeyCodeCombination code="N" control="DOWN"/>
-                            </accelerator>
-                        </MenuItem>
-                        <MenuItem onAction="#handleOpenProject" text="Open Project...">
-                            <accelerator>
-                                <KeyCodeCombination code="O" control="DOWN"/>
-                            </accelerator>
-                        </MenuItem>
+                        <MenuItem onAction="#handleNewProject" text="New Project..." accelerator="Ctrl+N"/>
+                        <MenuItem onAction="#handleOpenProject" text="Open Project..." accelerator="Ctrl+O"/>
                         <MenuItem text="Exit"/>
                     </items>
                 </Menu>
