@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Accordion?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.rms.app.view.MainView">
+    <left>
+        <VBox minWidth="200" prefWidth="250" styleClass="sidebar">
+            <Label styleClass="sidebar-title" text="Project Explorer"/>
+            <TreeView fx:id="projectTreeView" VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </left>
+
+    <center>
+        <TabPane fx:id="mainTabPane" styleClass="center-pane"/>
+    </center>
+
+    <right>
+        <VBox minWidth="200" prefWidth="250" styleClass="sidebar">
+            <Label styleClass="sidebar-title" text="Contextual Info"/>
+            <Accordion fx:id="rightAccordion"/>
+        </VBox>
+    </right>
+</BorderPane>

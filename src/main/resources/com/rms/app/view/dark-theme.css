@@ -1,0 +1,82 @@
+/* Yêu cầu UI-03: Dark Mode Theme */
+.root {
+    -fx-base: #2b2b2b;
+    -fx-background: #2b2b2b;
+    -fx-control-inner-background: #3c3f41;
+    -fx-control-inner-background-alt: #3c3f41;
+    -fx-text-fill: #bbbbbb;
+    -fx-accent: #007bff; /* Màu nhấn (accent color) */
+    -fx-focus-color: #007bff;
+}
+
+/* --- Vỏ (Shell) --- */
+.sidebar {
+    -fx-background-color: #3c3f41;
+    -fx-padding: 5px;
+}
+.sidebar-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #999999;
+    -fx-padding: 4px 8px;
+}
+
+/* --- TreeView (Cột Trái) --- */
+.tree-view {
+    -fx-background-color: -fx-control-inner-background;
+}
+.tree-cell:focused {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: white;
+}
+
+/* --- TabPane (Cột Giữa) --- */
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #2b2b2b;
+}
+.tab {
+    -fx-background-color: #3c3f41;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.tab:selected {
+    -fx-background-color: #45494a;
+}
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: white;
+}
+.tab .tab-label {
+    -fx-text-fill: #bbbbbb;
+}
+.tab-pane:focused .tab:selected {
+    -fx-border-color: -fx-accent;
+    -fx-border-width: 0 0 2 0;
+}
+
+/* --- Controls --- */
+.label {
+    -fx-text-fill: #bbbbbb;
+}
+.text-field, .text-area {
+    -fx-background-color: #45494a;
+    -fx-text-fill: #bbbbbb;
+    -fx-prompt-text-fill: #888888;
+    -fx-border-color: #555555;
+    -fx-border-width: 1px;
+}
+.text-field:focused, .text-area:focused {
+    -fx-border-color: -fx-accent;
+}
+
+.button {
+    -fx-background-color: #45494a;
+    -fx-text-fill: #bbbbbb;
+    -fx-border-color: #555555;
+}
+.button:hover {
+    -fx-background-color: #55595a;
+}
+.button:pressed {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: white;
+}
