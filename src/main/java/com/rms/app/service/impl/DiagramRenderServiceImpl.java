@@ -25,6 +25,7 @@ import java.util.List;
 public class DiagramRenderServiceImpl implements IDiagramRenderService {
 
     private static final Logger logger = LoggerFactory.getLogger(DiagramRenderServiceImpl.class);
+    private static final String ERROR_MESSAGE = "PlantUML không thể render mã. Mã có thể bị lỗi cú pháp.";
 
     @Inject
     public DiagramRenderServiceImpl() {
@@ -43,7 +44,7 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
 
             String description = (desc != null) ? desc.getDescription() : "";
             if (desc == null || description.toLowerCase().contains("syntax error")) {
-                throw new IOException("PlantUML không thể render mã. Mã có thể bị lỗi cú pháp.");
+                throw new IOException(ERROR_MESSAGE);
             }
 
             byte[] pngData = pngStream.toByteArray();
@@ -55,7 +56,7 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
                 BufferedImage image = ImageIO.read(inStream);
 
                 if (image == null) {
-                    throw new IOException("Lỗi không xác định. ImageIO không thể đọc stream PNG.");
+                    throw new IOException(ERROR_MESSAGE);
                 }
                 return image;
             }
@@ -127,6 +128,10 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
         }
         return text.replace(":", "")
                 .replace(";", "")
+                .replace("!", "")
+                .replace("|", "")
+                .replace("(", "")
+                .replace(")", "")
                 .replace("\n", " ");
     }
 }
