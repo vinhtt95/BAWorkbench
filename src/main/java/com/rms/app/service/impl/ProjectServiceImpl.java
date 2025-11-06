@@ -66,11 +66,6 @@ public class ProjectServiceImpl implements IProjectService {
 
         ProjectConfig config = objectMapper.readValue(configFile, ProjectConfig.class);
 
-        /**
-         * Logic này sẽ chạy trên luồng nền (do IndexServiceImpl.java)
-         */
-        indexService.validateAndRebuildIndex();
-
         return config;
     }
 

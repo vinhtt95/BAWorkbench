@@ -4,15 +4,10 @@ import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
 import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.ProjectConfig;
-import com.rms.app.service.IArtifactRepository;
-import com.rms.app.service.IProjectService;
-import com.rms.app.service.ITemplateService;
-import com.rms.app.service.IViewManager;
+import com.rms.app.service.*;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
-import com.rms.app.service.IProjectStateService;
-import com.rms.app.service.ISearchService;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -42,6 +37,7 @@ public class MainViewModel {
     private final IProjectStateService projectStateService;
     private final IArtifactRepository artifactRepository;
     private final ISearchService searchService;
+    private final IIndexService indexService;
 
     private final ObservableList<String> currentBacklinks = FXCollections.observableArrayList();
 
@@ -51,13 +47,15 @@ public class MainViewModel {
                          IViewManager viewManager,
                          IProjectStateService projectStateService,
                          IArtifactRepository artifactRepository,
-                         ISearchService searchService) {
+                         ISearchService searchService,
+                         IIndexService indexService) {
         this.projectService = projectService;
         this.templateService = templateService;
         this.viewManager = viewManager;
         this.projectStateService = projectStateService;
         this.artifactRepository = artifactRepository;
         this.searchService = searchService;
+        this.indexService = indexService;
 
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
         this.openTabs = FXCollections.observableArrayList();
@@ -236,6 +234,7 @@ public class MainViewModel {
             currentProject.set(config);
 
             projectStateService.setCurrentProjectDirectory(directory);
+            indexService.validateAndRebuildIndex();
 
             refreshProjectTree();
 
