@@ -217,7 +217,7 @@ public class ArtifactViewModel {
      * [THÊM MỚI NGÀY 26]
      * Logic nghiệp vụ để sinh sơ đồ (UC-MOD-01)
      *
-     * @return Một Image (JavaFX) của sơ đồ
+     * @return Một Image (JavaFX) của sơ đồ, hoặc null nếu lỗi
      */
     public Image generateDiagram() {
         try {
@@ -234,7 +234,7 @@ public class ArtifactViewModel {
             }
 
             if (flowSteps.isEmpty()) {
-                logger.warn("Không tìm thấy dữ liệu Flow (FlowStep) trong artifact {}", artifact.getId());
+                logger.warn("Không tìm thấy dữ liệu Flow (FlowStep) trong artifact {}", (artifact != null ? artifact.getId() : "new"));
                 return null;
             }
 
@@ -244,11 +244,12 @@ public class ArtifactViewModel {
             return SwingFXUtils.toFXImage(awtImage, null);
 
         } catch (Exception e) {
-            logger.error("Không thể sinh sơ đồ cho {}: {}", artifact.getId(), e.getMessage());
+            logger.error("Không thể sinh sơ đồ cho {}: {}", (artifact != null ? artifact.getId() : "new"), e.getMessage());
             projectStateService.setStatusMessage("Lỗi render sơ đồ: " + e.getMessage());
             return null;
         }
     }
+
 
     /**
      * Getter cho ID (dùng bởi RenderService).

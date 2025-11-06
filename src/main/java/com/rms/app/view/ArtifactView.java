@@ -33,9 +33,6 @@ public class ArtifactView {
     private ArtifactTemplate templateToRender;
     private Artifact artifactToLoad;
 
-    /**
-     * Cờ (flag) để theo dõi trạng thái render (lazy-loading)
-     */
     private boolean diagramRendered = false;
 
     @Inject
