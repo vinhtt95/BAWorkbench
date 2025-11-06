@@ -28,9 +28,10 @@ public class GuiceModule extends AbstractModule {
         bind(IRenderService.class).to(RenderServiceImpl.class).in(Singleton.class);
         bind(ISearchService.class).to(SearchServiceImpl.class).in(Singleton.class);
 
+        bind(IIndexService.class).to(IndexServiceImpl.class).in(Singleton.class);
+
         // Repositories (DIP)
         bind(IArtifactRepository.class).to(JsonFileRepository.class).in(Singleton.class);
-
         bind(ISqliteIndexRepository.class).to(SqliteIndexRepository.class).in(Singleton.class);
     }
 }

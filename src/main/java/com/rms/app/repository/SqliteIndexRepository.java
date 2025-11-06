@@ -70,7 +70,13 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
     @Override
     public void insertArtifact(Artifact artifact) throws SQLException {
         // TODO (Ngày 19): Lấy 'status' từ artifact.getFields().get("Trạng thái")
-        String status = "Draft"; // Giả định
+        String status = "Draft"; // Mặc định
+        if (artifact.getFields() != null && artifact.getFields().containsKey("Trạng thái")) {
+            Object statusObj = artifact.getFields().get("Trạng thái");
+            if (statusObj != null) {
+                status = statusObj.toString();
+            }
+        }
 
         String sql = "INSERT OR REPLACE INTO artifacts (id, name, type, status) VALUES(?,?,?,?);";
 

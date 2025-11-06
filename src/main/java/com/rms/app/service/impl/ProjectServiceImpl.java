@@ -12,19 +12,23 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.Stream; // Thêm import
+import java.util.stream.Stream;
+import com.google.inject.Inject;
+import com.rms.app.service.IIndexService;
 
 public class ProjectServiceImpl implements IProjectService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
     private final ObjectMapper objectMapper;
+    private final IIndexService indexService;
 
     public static final String CONFIG_DIR = ".config";
     public static final String ARTIFACTS_DIR = "Artifacts";
     public static final String CONFIG_FILE = "project.json";
 
-    public ProjectServiceImpl() {
+    public ProjectServiceImpl(IIndexService indexService) {
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        this.indexService = indexService;
     }
 
     @Override
@@ -59,7 +63,14 @@ public class ProjectServiceImpl implements IProjectService {
             throw new IOException("Thư mục đã chọn không phải là một dự án RMS hợp lệ.");
         }
 
-        return objectMapper.readValue(configFile, ProjectConfig.class);
+        ProjectConfig config = objectMapper.readValue(configFile, ProjectConfig.class);
+
+        /**
+         * Logic này sẽ chạy trên luồng nền (do IndexServiceImpl.java)
+         */
+        indexService.validateAndRebuildIndex();
+
+        return config;
     }
 
     @Override
@@ -73,9 +84,6 @@ public class ProjectServiceImpl implements IProjectService {
             artifactsNode.setExpanded(true);
             root.getChildren().add(artifactsNode);
 
-            /**
-             * [SỬA LỖI 2] Bổ sung logic quét file .json
-             */
             try (Stream<Path> paths = Files.walk(artifactsDir.toPath(), 1)) {
                 paths.filter(Files::isRegularFile)
                         .filter(path -> path.toString().endsWith(".json"))
@@ -106,9 +114,12 @@ public class ProjectServiceImpl implements IProjectService {
                         "target/\n" +
                         "*.log\n" +
                         "\n" +
+                        "# [THÊM MỚI NGÀY 19] Bỏ qua file CSDL Chỉ mục (C-11)\n" +
+                        "/.config/index.db\n" +
+                        "\n" +
                         "# Dữ liệu .json là Source of Truth (Git-Friendly Mirror là .md)\n" +
                         "# Chúng ta nên commit cả hai, nhưng nếu chỉ muốn commit .md, ta có thể ignore .json\n" +
-                        "*.json\n";
+                        "# *.json\n";
 
         Files.writeString(projectRoot.resolve(".gitignore"), gitIgnoreContent);
     }
