@@ -11,6 +11,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TreeItem;
@@ -206,6 +207,14 @@ public class MainViewModel {
      */
     public void openProject(File directory) {
         try {
+            if (mainTabPane != null) {
+                mainTabPane.getTabs().clear();
+                Tab welcomeTab = new Tab("Welcome");
+                welcomeTab.setContent(new Label("Chào mừng đến với RMS v1.0"));
+                mainTabPane.getTabs().add(welcomeTab);
+                mainTabPane.getSelectionModel().select(welcomeTab);
+            }
+
             ProjectConfig config = projectService.openProject(directory);
             currentProject.set(config);
 

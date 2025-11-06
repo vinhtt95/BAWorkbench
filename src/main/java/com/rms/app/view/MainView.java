@@ -122,38 +122,62 @@ public class MainView {
         });
     }
 
+    /**
+     * [SỬA ĐỔI] Tách logic build Context Menu
+     */
     private void setupTreeViewContextMenu() {
         ContextMenu treeContextMenu = new ContextMenu();
-
         Menu newMenu = new Menu("New Artifact");
 
+        /**
+         * Listener 1: Cập nhật khi Mở/Đóng dự án
+         */
         projectStateService.currentProjectDirectoryProperty().addListener((obs, oldDir, newDir) -> {
-            newMenu.getItems().clear();
-            if (newDir != null) {
-                try {
-                    List<String> templateNames = templateService.loadAllTemplateNames();
-                    if (templateNames.isEmpty()) {
-                        newMenu.getItems().add(new MenuItem("(Không tìm thấy template nào)"));
-                    } else {
-                        for (String templateName : templateNames) {
-                            MenuItem item = new MenuItem(templateName);
-                            item.setOnAction(e -> viewModel.createNewArtifact(templateName));
-                            newMenu.getItems().add(item);
-                        }
-                    }
-                } catch (IOException e) {
-                    newMenu.getItems().add(new MenuItem("(Lỗi tải template)"));
-                }
-            } else {
-                newMenu.getItems().add(new MenuItem("(Mở dự án để xem template)"));
+            rebuildNewArtifactMenu(newMenu);
+        });
+
+        /**
+         * [SỬA LỖI 1] Listener 2: Cập nhật khi Template được lưu
+         */
+        projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
+            if (newMsg != null && newMsg.startsWith("Đã lưu template")) {
+                rebuildNewArtifactMenu(newMenu);
             }
         });
 
-        newMenu.getItems().add(new MenuItem("(Mở dự án để xem template)"));
+        rebuildNewArtifactMenu(newMenu);
         treeContextMenu.getItems().add(newMenu);
 
         projectTreeView.setContextMenu(treeContextMenu);
     }
+
+    /**
+     * [THÊM MỚI] Hàm helper để rebuild menu "New Artifact"
+     *
+     * @param newMenu Menu (MenuItem) cần được xây dựng lại
+     */
+    private void rebuildNewArtifactMenu(Menu newMenu) {
+        newMenu.getItems().clear();
+        if (projectStateService.getCurrentProjectDirectory() != null) {
+            try {
+                List<String> templateNames = templateService.loadAllTemplateNames();
+                if (templateNames.isEmpty()) {
+                    newMenu.getItems().add(new MenuItem("(Không tìm thấy template nào)"));
+                } else {
+                    for (String templateName : templateNames) {
+                        MenuItem item = new MenuItem(templateName);
+                        item.setOnAction(e -> viewModel.createNewArtifact(templateName));
+                        newMenu.getItems().add(item);
+                    }
+                }
+            } catch (IOException e) {
+                newMenu.getItems().add(new MenuItem("(Lỗi tải template)"));
+            }
+        } else {
+            newMenu.getItems().add(new MenuItem("(Mở dự án để xem template)"));
+        }
+    }
+
 
     @FXML
     private void handleNewProject() {
