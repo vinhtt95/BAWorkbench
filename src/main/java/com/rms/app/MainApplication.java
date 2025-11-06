@@ -18,7 +18,6 @@ public class MainApplication extends Application {
 
     @Override
     public void init() throws Exception {
-        // Khởi tạo Guice Injector
         this.injector = Guice.createInjector(new GuiceModule());
     }
 
@@ -26,12 +25,12 @@ public class MainApplication extends Application {
     public void start(Stage primaryStage) throws IOException {
         FXMLLoader loader = new FXMLLoader();
 
-        // Lấy FXML View từ resources
-        URL fxmlLocation = getClass().getResource("/com/rms/app/view/MainView.fxml");
+        // SỬA LỖI: (Theo góp ý của bạn)
+        // Thay đổi đường dẫn FXML từ tuyệt đối sang tương đối (relative)
+        // để nạp từ "com/rms/app" (vị trí của class này)
+        URL fxmlLocation = getClass().getResource("view/MainView.fxml");
         loader.setLocation(fxmlLocation);
 
-        // Yêu cầu Guice tạo Controller (thay vì dùng new)
-        // Điều này cho phép @Inject hoạt động trong Controller
         loader.setControllerFactory(injector::getInstance);
 
         Parent root = loader.load();
@@ -40,8 +39,9 @@ public class MainApplication extends Application {
 
         Scene scene = new Scene(root, 1280, 720);
 
-        // Áp dụng Dark Theme (Ngày 3)
-        URL cssLocation = getClass().getResource("/com/rms/app/view/dark-theme.css");
+        // SỬA LỖI: (Theo góp ý của bạn)
+        // Thay đổi đường dẫn CSS sang tương đối
+        URL cssLocation = getClass().getResource("view/dark-theme.css");
         if (cssLocation != null) {
             scene.getStylesheets().add(cssLocation.toExternalForm());
         } else {

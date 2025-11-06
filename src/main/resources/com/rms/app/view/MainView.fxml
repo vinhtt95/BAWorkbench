@@ -1,15 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.input.KeyCode?>
+<?import javafx.scene.input.KeyCodeCombination?>
+
 <?import javafx.scene.control.Accordion?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.rms.app.view.MainView">
+            fx:controller="com.rms.app.view.MainView" prefHeight="800" prefWidth="1280">
+    <top>
+        <MenuBar>
+            <menus>
+                <Menu text="File">
+                    <items>
+                        <MenuItem onAction="#handleNewProject" text="New Project...">
+                            <accelerator>
+                                <KeyCodeCombination code="N" control="DOWN"/>
+                            </accelerator>
+                        </MenuItem>
+                        <MenuItem onAction="#handleOpenProject" text="Open Project...">
+                            <accelerator>
+                                <KeyCodeCombination code="O" control="DOWN"/>
+                            </accelerator>
+                        </MenuItem>
+                        <MenuItem text="Exit"/>
+                    </items>
+                </Menu>
+                <Menu text="Edit"/>
+                <Menu text="Help"/>
+            </menus>
+        </MenuBar>
+    </top>
+
     <left>
         <VBox minWidth="200" prefWidth="250" styleClass="sidebar">
             <Label styleClass="sidebar-title" text="Project Explorer"/>
@@ -18,7 +47,7 @@
     </left>
 
     <center>
-        <TabPane fx:id="mainTabPane" styleClass="center-pane"/>
+        <TabPane fx:id="mainTabPane" styleClass="center-pane" tabClosingPolicy="UNAVAILABLE"/>
     </center>
 
     <right>
@@ -27,4 +56,9 @@
             <Accordion fx:id="rightAccordion"/>
         </VBox>
     </right>
+
+    <bottom>
+        <Label fx:id="statusLabel" style="-fx-padding: 4px; -fx-background-color: #3c3f41;"
+               text="Status: Ready" BorderPane.alignment="CENTER_LEFT"/>
+    </bottom>
 </BorderPane>
