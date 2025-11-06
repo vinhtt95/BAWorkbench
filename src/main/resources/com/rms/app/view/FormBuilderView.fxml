@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Pos?> <BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+                                           fx:controller="com.rms.app.view.FormBuilderView">
+    <top>
+        <VBox style="-fx-border-color: -fx-base; -fx-border-width: 0 0 1 0; -fx-padding: 10;">
+
+            <HBox spacing="10" alignment="CENTER_LEFT"> <Label text="Template Name:"/>
+                <TextField fx:id="templateNameField" prefWidth="200" HBox.hgrow="NEVER"/>
+                <Label text="Prefix ID:"/>
+                <TextField fx:id="prefixIdField" prefWidth="80" HBox.hgrow="NEVER"/>
+                <Pane HBox.hgrow="ALWAYS"/>
+                <Button onAction="#handleSaveTemplate" text="Save Template"/>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <SplitPane dividerPositions="0.2, 0.8">
+            <VBox styleClass="sidebar">
+                <Label styleClass="sidebar-title" text="Toolbox"/>
+                <ListView fx:id="toolboxListView"/>
+            </VBox>
+
+            <ScrollPane fitToWidth="true" fitToHeight="true">
+                <VBox fx:id="formPreviewBox" spacing="10" style="-fx-padding: 10;">
+                    <Label text="Kéo các trường từ Toolbox thả vào đây"/>
+                </VBox>
+            </ScrollPane>
+
+            <VBox styleClass="sidebar">
+                <Label styleClass="sidebar-title" text="Properties"/>
+                <GridPane fx:id="propertiesPane" vgap="5" hgap="5">
+                    <padding>
+                        <Insets top="5" right="5" bottom="5" left="5"/>
+                    </padding>
+                </GridPane>
+            </VBox>
+        </SplitPane>
+    </center>
+</BorderPane>

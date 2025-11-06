@@ -23,6 +23,11 @@
                     </items>
                 </Menu>
                 <Menu text="Edit"/>
+                <Menu text="Settings">
+                    <items>
+                        <MenuItem onAction="#handleOpenFormBuilder" text="Artifact Types (Form Builder)"/>
+                    </items>
+                </Menu>
                 <Menu text="Help"/>
             </menus>
         </MenuBar>

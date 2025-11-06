@@ -7,6 +7,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import com.rms.app.service.IViewManager;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -23,6 +24,11 @@ public class MainApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws IOException {
+
+        // Khởi tạo ViewManager (service cần Stage chính)
+        IViewManager viewManager = injector.getInstance(IViewManager.class);
+        viewManager.initialize(primaryStage);
+
         FXMLLoader loader = new FXMLLoader();
 
         // SỬA LỖI: (Theo góp ý của bạn)
