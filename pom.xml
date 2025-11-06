@@ -85,13 +85,12 @@
                         <option>--add-opens=javafx.graphics/javafx.scene.input=javafx.fxml</option>
                         <option>--add-opens=javafx.controls/javafx.scene.control=javafx.fxml</option>
 
-                        <option>--add-opens=com.rms.app.config=com.google.guice</option>
-                        <option>--add-opens=com.rms.app.repository=com.google.guice</option>
-                        <option>--add-opens=com.rms.app.service.impl=com.google.guice</option>
-                        <option>--add-opens=com.rms.app.viewmodel=com.google.guice</option>
-                        <option>--add-opens=com.rms.app.view=com.google.guice</option>
-
-                        <option>--add-opens=com.rms.app.view=javafx.fxml</option>
+                        <option>--add-opens=ALL-UNNAMED/com.rms.app.config=com.google.guice</option>
+                        <option>--add-opens=ALL-UNNAMED/com.rms.app.repository=com.google.guice</option>
+                        <option>--add-opens=ALL-UNNAMED/com.rms.app.service.impl=com.google.guice</option>
+                        <option>--add-opens=ALL-UNNAMED/com.rms.app.viewmodel=com.google.guice</option>
+                        <option>--add-opens=ALL-UNNAMED/com.rms.app.view=com.google.guice</option>
+                        <option>--add-opens=ALL-UNNAMED/com.rms.app.view=javafx.fxml</option>
                     </options>
 
                 </configuration>
