@@ -77,7 +77,6 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
     public String generatePlantUmlCode(List<FlowStep> flowSteps) {
         StringBuilder sb = new StringBuilder();
         sb.append("@startuml\n");
-        sb.append("!theme vibrant\n\n");
         sb.append("start\n\n");
 
         generateRecursiveSteps(sb, flowSteps);

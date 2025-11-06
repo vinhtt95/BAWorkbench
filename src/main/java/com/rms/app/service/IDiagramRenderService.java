@@ -23,7 +23,6 @@ public interface IDiagramRenderService {
     BufferedImage render(String plantUmlCode) throws IOException;
 
     /**
-     * [THÊM MỚI NGÀY 25]
      * Chuyển đổi dữ liệu Flow (List<FlowStep>) thành mã PlantUML.
      * Tham chiếu UC-MOD-01 [vinhtt95/baworkbench/BAWorkbench-c5a6f74b866bd635fc341b1b5b0b13160f7ba9a1/Requirement/UseCases/UC-MOD-01.md]
      *

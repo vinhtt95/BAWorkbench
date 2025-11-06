@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
 
-<BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1">
-    <center>
-        <ScrollPane fitToWidth="true" style="-fx-padding: 10;">
-            <VBox fx:id="formContainer" spacing="5"/>
-        </ScrollPane>
-    </center>
-</BorderPane>
+<TabPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+         fx:id="artifactTabPane" tabClosingPolicy="UNAVAILABLE">
+    <tabs>
+        <Tab text="Form View">
+            <ScrollPane fitToWidth="true" style="-fx-padding: 10;">
+                <VBox fx:id="formContainer" spacing="15"/>
+            </ScrollPane>
+        </Tab>
+        <Tab text="Diagram View" fx:id="diagramTab">
+            <StackPane style="-fx-background-color: -fx-control-inner-background;">
+                <ImageView fx:id="diagramImageView" preserveRatio="true"/>
+            </StackPane>
+        </Tab>
+    </tabs>
+</TabPane>

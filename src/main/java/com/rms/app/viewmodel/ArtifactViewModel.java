@@ -4,9 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
-import com.rms.app.model.ArtifactTemplate; // Thêm import
+import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.FlowStep;
 import com.rms.app.service.IArtifactRepository;
+import com.rms.app.service.IDiagramRenderService;
 import com.rms.app.service.IProjectStateService;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.Property;
@@ -15,9 +16,12 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.image.Image;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +39,7 @@ public class ArtifactViewModel {
     private final IArtifactRepository artifactRepository;
     private final IProjectStateService projectStateService;
     private final ObjectMapper objectMapper;
+    private final IDiagramRenderService diagramRenderService;
 
     /**
      * Model (dữ liệu)
@@ -42,7 +47,7 @@ public class ArtifactViewModel {
     private Artifact artifact;
 
     /**
-     * [SỬA LỖI] Lưu prefix (ví dụ: "UC") của template
+     * Lưu prefix (ví dụ: "UC") của template
      */
     private String templatePrefix;
 
@@ -55,7 +60,7 @@ public class ArtifactViewModel {
     /**
      * Map này lưu các Property (StringProperty, ObjectProperty, v.v.)
      */
-    private final Map<String, Property<?>> dynamicFields = new HashMap<>();
+    public final Map<String, Property<?>> dynamicFields = new HashMap<>();
 
     /**
      * Timer cho logic Auto-save (Ngày 12)
@@ -63,9 +68,12 @@ public class ArtifactViewModel {
     private final PauseTransition autoSaveTimer;
 
     @Inject
-    public ArtifactViewModel(IArtifactRepository artifactRepository, IProjectStateService projectStateService) {
+    public ArtifactViewModel(IArtifactRepository artifactRepository,
+                             IProjectStateService projectStateService,
+                             IDiagramRenderService diagramRenderService) {
         this.artifactRepository = artifactRepository;
         this.projectStateService = projectStateService;
+        this.diagramRenderService = diagramRenderService;
         this.objectMapper = new ObjectMapper();
 
         this.id = new SimpleStringProperty("Đang chờ lưu...");
@@ -78,7 +86,7 @@ public class ArtifactViewModel {
     }
 
     /**
-     * [SỬA LỖI] Nạp dữ liệu (nếu có) VÀ template (luôn có) vào ViewModel.
+     * Nạp dữ liệu (nếu có) VÀ template (luôn có) vào ViewModel.
      * Được gọi bởi ArtifactView.initialize().
      *
      * @param template       Template (form) của artifact
@@ -90,38 +98,29 @@ public class ArtifactViewModel {
             return;
         }
 
-        this.templatePrefix = template.getPrefixId(); // Lưu prefix
+        this.templatePrefix = template.getPrefixId();
 
         if (loadedArtifact != null) {
-            /**
-             * Nếu là Mở file: Nạp dữ liệu từ artifact đã load
-             */
             this.artifact = loadedArtifact;
             this.id.set(artifact.getId());
             this.name.set(artifact.getName());
 
-            /**
-             * Tái tạo (pre-populate) dynamicFields
-             */
             if (artifact.getFields() != null) {
                 for (Map.Entry<String, Object> entry : artifact.getFields().entrySet()) {
                     String key = entry.getKey();
                     Object value = entry.getValue();
 
                     if (value instanceof List) {
-                        getFlowStepProperty(key); // Gọi để tạo và nạp list
+                        getFlowStepProperty(key);
                     } else {
-                        getFieldProperty(key); // Gọi để tạo và nạp string
+                        getFieldProperty(key);
                     }
                 }
             }
         } else {
-            /**
-             * Nếu là Tạo mới: Khởi tạo artifact rỗng
-             */
             this.artifact = new Artifact();
             this.artifact.setFields(new HashMap<>());
-            this.artifact.setArtifactType(this.templatePrefix); // Gán prefix ngay
+            this.artifact.setArtifactType(this.templatePrefix);
         }
     }
 
@@ -190,12 +189,9 @@ public class ArtifactViewModel {
         logger.debug("Kích hoạt Auto-save...");
         try {
             if (artifact.getId() == null) {
-                /**
-                 * Nếu là lần lưu đầu tiên (Tạo mới)
-                 */
                 String newId = this.templatePrefix + "-" + System.currentTimeMillis();
                 artifact.setId(newId);
-                artifact.setArtifactType(this.templatePrefix); // [SỬA LỖI]
+                artifact.setArtifactType(this.templatePrefix);
                 id.set(newId);
             }
 
@@ -214,6 +210,43 @@ public class ArtifactViewModel {
         } catch (IOException e) {
             logger.error("Lỗi Auto-save", e);
             projectStateService.setStatusMessage("Lỗi Auto-save: " + e.getMessage());
+        }
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 26]
+     * Logic nghiệp vụ để sinh sơ đồ (UC-MOD-01)
+     *
+     * @return Một Image (JavaFX) của sơ đồ
+     */
+    public Image generateDiagram() {
+        try {
+            List<FlowStep> flowSteps = new ArrayList<>();
+
+            for (Map.Entry<String, Object> entry : artifact.getFields().entrySet()) {
+                if (entry.getValue() instanceof List) {
+                    flowSteps = objectMapper.convertValue(
+                            entry.getValue(),
+                            new TypeReference<List<FlowStep>>() {}
+                    );
+                    break;
+                }
+            }
+
+            if (flowSteps.isEmpty()) {
+                logger.warn("Không tìm thấy dữ liệu Flow (FlowStep) trong artifact {}", artifact.getId());
+                return null;
+            }
+
+            String plantUmlCode = diagramRenderService.generatePlantUmlCode(flowSteps);
+            BufferedImage awtImage = diagramRenderService.render(plantUmlCode);
+
+            return SwingFXUtils.toFXImage(awtImage, null);
+
+        } catch (Exception e) {
+            logger.error("Không thể sinh sơ đồ cho {}: {}", artifact.getId(), e.getMessage());
+            projectStateService.setStatusMessage("Lỗi render sơ đồ: " + e.getMessage());
+            return null;
         }
     }
 

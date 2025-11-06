@@ -102,7 +102,6 @@ public class DiagramRenderServiceImplTest {
         flow.add(stepIf);
 
         String expectedCode = "@startuml\n" +
-                "!theme vibrant\n\n" +
                 "start\n\n" +
                 "|User|\n" +
                 ":Enters credentials;\n" +
