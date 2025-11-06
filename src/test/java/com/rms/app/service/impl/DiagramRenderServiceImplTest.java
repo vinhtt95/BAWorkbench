@@ -3,16 +3,20 @@ package com.rms.app.service.impl;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.rms.app.config.GuiceModule;
+import com.rms.app.model.FlowStep;
 import com.rms.app.service.IDiagramRenderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Kịch bản Test cho Kế hoạch Ngày 24.
- * [vinhtt95/baworkbench/BAWorkbench-2a75437b2f00dec4dc0db5edab2feb8ec0100d6f/Requirement/ImplementPlan.md]
+ * Kịch bản Test cho Kế hoạch Ngày 24 & 25.
+ * [vinhtt95/baworkbench/BAWorkbench-c5a6f74b866bd635fc341b1b5b0b13160f7ba9a1/Requirement/ImplementPlan.md]
  */
 public class DiagramRenderServiceImplTest {
 
@@ -68,5 +72,49 @@ public class DiagramRenderServiceImplTest {
         }, "Phải ném ra IOException khi mã rỗng");
 
         assertTrue(exception.getMessage().contains("Mã PlantUML không được rỗng."));
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 25]
+     * Test kịch bản sinh mã PlantUML từ Flow (UC-MOD-01)
+     * [vinhtt95/baworkbench/BAWorkbench-c5a6f74b866bd635fc341b1b5b0b13160f7ba9a1/Requirement/ImplementPlan.md]
+     */
+    @Test
+    public void testGeneratePlantUmlCode_WithIfAndNestedSteps() {
+        List<FlowStep> flow = new ArrayList<>();
+
+        FlowStep step1 = new FlowStep();
+        step1.setActor("User");
+        step1.setAction("Enters credentials");
+        flow.add(step1);
+
+        FlowStep stepIf = new FlowStep();
+        stepIf.setLogicType("IF");
+        stepIf.setAction("Credentials valid?");
+
+        List<FlowStep> nestedSteps = new ArrayList<>();
+        FlowStep stepIfYes = new FlowStep();
+        stepIfYes.setActor("System");
+        stepIfYes.setAction("Redirect to Dashboard");
+        nestedSteps.add(stepIfYes);
+
+        stepIf.setNestedSteps(nestedSteps);
+        flow.add(stepIf);
+
+        String expectedCode = "@startuml\n" +
+                "!theme vibrant\n\n" +
+                "start\n\n" +
+                "|User|\n" +
+                ":Enters credentials;\n" +
+                "if (Credentials valid?) then (yes)\n" +
+                "|System|\n" +
+                ":Redirect to Dashboard;\n" +
+                "endif\n" +
+                "\nstop\n" +
+                "@enduml\n";
+
+        String generatedCode = diagramRenderService.generatePlantUmlCode(flow);
+
+        assertEquals(expectedCode, generatedCode, "Mã PlantUML sinh ra không khớp");
     }
 }
