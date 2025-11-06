@@ -22,6 +22,12 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
     private static final Logger logger = LoggerFactory.getLogger(SqliteIndexRepository.class);
     private String connectionString = null;
 
+    /**
+     * Tạo kết nối đến CSDL SQLite.
+     *
+     * @return một đối tượng Connection
+     * @throws SQLException Nếu không thể kết nối
+     */
     private Connection connect() throws SQLException {
         if (connectionString == null) {
             throw new SQLException("Database chưa được khởi tạo. Phải gọi initializeDatabase() trước.");
@@ -45,7 +51,9 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         String createLinksTable = "CREATE TABLE IF NOT EXISTS links ("
                 + " fromId TEXT NOT NULL,"
                 + " toId TEXT NOT NULL,"
-                + " PRIMARY KEY (fromId, toId)"
+                + " PRIMARY KEY (fromId, toId),"
+                + " FOREIGN KEY(fromId) REFERENCES artifacts(id) ON DELETE CASCADE,"
+                + " FOREIGN KEY(toId) REFERENCES artifacts(id) ON DELETE CASCADE"
                 + ");";
 
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
@@ -69,8 +77,7 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public void insertArtifact(Artifact artifact) throws SQLException {
-        // TODO (Ngày 19): Lấy 'status' từ artifact.getFields().get("Trạng thái")
-        String status = "Draft"; // Mặc định
+        String status = "Draft";
         if (artifact.getFields() != null && artifact.getFields().containsKey("Trạng thái")) {
             Object statusObj = artifact.getFields().get("Trạng thái");
             if (statusObj != null) {
@@ -100,17 +107,65 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         }
     }
 
+    /**
+     * [THÊM MỚI NGÀY 20] Xóa một artifact khỏi bảng 'artifacts'.
+     *
+     * @param artifactId ID của artifact cần xóa
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    @Override
+    public void deleteArtifact(String artifactId) throws SQLException {
+        String sql = "DELETE FROM artifacts WHERE id = ?;";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, artifactId);
+            pstmt.executeUpdate();
+        }
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 20] Xóa tất cả các liên kết (links) TỪ một artifact.
+     *
+     * @param artifactId ID của artifact (nguồn link)
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    @Override
+    public void deleteLinksForArtifact(String artifactId) throws SQLException {
+        String sql = "DELETE FROM links WHERE fromId = ?;";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, artifactId);
+            pstmt.executeUpdate();
+        }
+    }
+
+
     @Override
     public List<Artifact> queryArtifacts(String query) throws SQLException {
-        // (Sẽ triển khai logic cho Ngày 21)
-        logger.warn("queryArtifacts() chưa được triển khai đầy đủ.");
+        logger.warn("queryArtifacts() chưa được triển khai đầy đủ (Kế hoạch Ngày 21).");
         return new ArrayList<>();
     }
 
+    /**
+     * [THÊM MỚI NGÀY 20] Triển khai logic Ngày 22 (cần cho Ngày 20)
+     */
     @Override
     public List<Artifact> queryBacklinks(String artifactId) throws SQLException {
-        // (Sẽ triển khai logic cho Ngày 22)
-        logger.warn("queryBacklinks() chưa được triển khai đầy đủ.");
-        return new ArrayList<>();
+        List<Artifact> results = new ArrayList<>();
+        String sql = "SELECT a.id, a.name, a.type FROM artifacts a "
+                + "JOIN links l ON a.id = l.fromId "
+                + "WHERE l.toId = ?;";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, artifactId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Artifact artifact = new Artifact();
+                artifact.setId(rs.getString("id"));
+                artifact.setName(rs.getString("name"));
+                artifact.setArtifactType(rs.getString("type"));
+                results.add(artifact);
+            }
+        }
+        return results;
     }
 }

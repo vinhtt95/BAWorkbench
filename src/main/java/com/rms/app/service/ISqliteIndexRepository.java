@@ -45,6 +45,22 @@ public interface ISqliteIndexRepository {
     void insertLink(String fromId, String toId) throws SQLException;
 
     /**
+     * [THÊM MỚI NGÀY 20] Xóa một artifact khỏi bảng 'artifacts'.
+     *
+     * @param artifactId ID của artifact cần xóa
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    void deleteArtifact(String artifactId) throws SQLException;
+
+    /**
+     * [THÊM MỚI NGÀY 20] Xóa tất cả các liên kết (links) TỪ một artifact.
+     *
+     * @param artifactId ID của artifact (nguồn link)
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    void deleteLinksForArtifact(String artifactId) throws SQLException;
+
+    /**
      * Truy vấn chỉ mục (dùng cho Autocomplete).
      *
      * @param query Từ khóa tìm kiếm

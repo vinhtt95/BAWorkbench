@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
 import com.rms.app.service.IArtifactRepository;
+import com.rms.app.service.IIndexService;
 import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.impl.ProjectServiceImpl;
 import com.rms.app.viewmodel.MainViewModel;
@@ -26,10 +27,12 @@ public class JsonFileRepository implements IArtifactRepository {
 
     private final ObjectMapper objectMapper;
     private final IProjectStateService projectStateService;
+    private final IIndexService indexService;
 
     @Inject
-    public JsonFileRepository(IProjectStateService projectStateService) {
+    public JsonFileRepository(IProjectStateService projectStateService, IIndexService indexService) {
         this.projectStateService = projectStateService;
+        this.indexService = indexService;
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
@@ -78,6 +81,12 @@ public class JsonFileRepository implements IArtifactRepository {
         Path mdPath = new File(subDir, artifact.getId() + ".md").toPath();
         String mdContent = generateMarkdown(artifact);
         Files.writeString(mdPath, mdContent);
+
+        /**
+         * [THÊM MỚI NGÀY 20] Hoàn thành Triple-Write (F-DEV-05)
+         * [vinhtt95/baworkbench/BAWorkbench-b81f6c2eab10596eeb739d9111f5ef0610b2666e/Requirement/Functional Requirements Document.md]
+         */
+        indexService.updateArtifactInIndex(artifact);
     }
 
     /**
@@ -108,10 +117,26 @@ public class JsonFileRepository implements IArtifactRepository {
     @Override
     public void delete(String relativePath) throws IOException {
         File jsonFile = getArtifactFile(relativePath);
+        String id = jsonFile.getName().replace(".json", "");
+
+        /**
+         * [THÊM MỚI NGÀY 20] Kiểm tra Toàn vẹn (F-DEV-10, F-DEV-11)
+         * [vinhtt95/baworkbench/BAWorkbench-b81f6c2eab10596eeb739d9111f5ef0610b2666e/Requirement/Functional Requirements Document.md]
+         */
+        if (indexService.hasBacklinks(id)) {
+            logger.warn("Ngăn chặn xóa {}: Artifact đang có liên kết ngược.", id);
+            throw new IOException("Không thể xóa " + id + ". Đối tượng đang được liên kết bởi các artifact khác.");
+        }
+
         File mdFile = getArtifactFile(relativePath.replace(".json", ".md"));
 
         Files.deleteIfExists(jsonFile.toPath());
         Files.deleteIfExists(mdFile.toPath());
-        logger.debug("Đã xóa: {} (và file .md)", jsonFile.getPath());
+        logger.debug("Đã xóa file: {} (và file .md)", jsonFile.getPath());
+
+        /**
+         * [THÊM MỚI NGÀY 20] Xóa khỏi CSDL Chỉ mục
+         */
+        indexService.deleteArtifactFromIndex(id);
     }
 }
