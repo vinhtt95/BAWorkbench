@@ -40,7 +40,7 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
         }
 
         /**
-         * [THÊM MỚI THEO YÊU CẦU] In (log) mã PlantUML ra console.
+         * [THEO YÊU CẦU] In (log) mã PlantUML ra console.
          * Bạn có thể xem mã này trong console log của ứng dụng
          * để debug xem cú pháp đã đúng hay chưa.
          */
@@ -54,7 +54,7 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
             DiagramDescription desc = reader.outputImage(pngStream, 0);
 
             String description = (desc != null) ? desc.getDescription() : "";
-            if (desc == null || description.toLowerCase().contains("syntax error")) {
+            if (desc == null || (description != null && description.toLowerCase().contains("syntax error"))) {
                 logger.error("Lỗi cú pháp PlantUML. Mã được sinh ra đã được log ở trên.");
                 throw new IOException(ERROR_MESSAGE);
             }
@@ -83,22 +83,40 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
     }
 
     /**
-     * [CẬP NHẬT NGÀY 25 - SỬA LỖI LẦN 2]
+     * [CẬP NHẬT NGÀY 25 - SỬA LỖI LẦN 3]
      * Triển khai logic sinh mã PlantUML từ FlowSteps
      *
-     * SỬA LỖI: Cú pháp Sơ đồ Hoạt động (Activity Diagram) yêu cầu
-     * chỉ "switch" (chuyển) swimlane khi actor thay đổi.
+     * SỬA LỖI: Tuân thủ cú pháp Sơ đồ Hoạt động:
+     * 1. Quét (Scan) tất cả actor
+     * 2. Khai báo (Define) tất cả swimlane
+     * 3. Bắt đầu (start)
+     * 4. Chuyển đổi (Switch) swimlane và in hành động (action)
      */
     @Override
     public String generatePlantUmlCode(List<FlowStep> flowSteps) {
         StringBuilder sb = new StringBuilder();
-        sb.append("@startuml\n");
-        sb.append("start\n\n");
+        sb.append("@startuml\n\n");
 
-        // [SỬA LỖI] Giai đoạn 1: Loại bỏ việc khai báo actor trước.
+        // --- Giai đoạn 1: Quét (Scan) ---
+        // Dùng LinkedHashSet để giữ thứ tự và loại bỏ trùng lặp.
+        Set<String> actors = new LinkedHashSet<>();
+        collectActors(flowSteps, actors);
 
-        // [SỬA LỖI] Giai đoạn 2: Render các bước,
-        // truyền vào một "actor" (trạng thái) rỗng ban đầu.
+        // --- Giai đoạn 2: Khai báo (Define) ---
+        // Khai báo TẤT CẢ các swimlane TRƯỚC KHI "start"
+        if (actors.isEmpty()) {
+            logger.warn("Không tìm thấy actor nào trong flow. Sơ đồ có thể render không chính xác.");
+        } else {
+            for (String actor : actors) {
+                sb.append("|").append(escapeString(actor)).append("|\n");
+            }
+        }
+
+        // --- Giai đoạn 3: Bắt đầu (Start) ---
+        sb.append("\nstart\n\n");
+
+        // --- Giai đoạn 4: Chuyển đổi (Switch) và Render ---
+        // Truyền vào một "actor" (trạng thái) rỗng ban đầu.
         generateRecursiveSteps(sb, flowSteps, "");
 
         sb.append("\nstop\n");
@@ -106,11 +124,32 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
         return sb.toString();
     }
 
+    /**
+     * [SỬA LỖI] Helper đệ quy để THU THẬP tất cả các tên actor
+     *
+     * @param steps Danh sách các bước
+     * @param actors Set (tập hợp) để lưu trữ tên actor
+     */
+    private void collectActors(List<FlowStep> steps, Set<String> actors) {
+        if (steps == null) return;
+        for (FlowStep step : steps) {
+            // "Logic" (từ IF) không phải là một swimlane
+            if (step.getActor() != null && !step.getActor().isEmpty() && !"Logic".equalsIgnoreCase(step.getActor())) {
+                actors.add(step.getActor());
+            }
+
+            // Quét đệ quy vào các bước lồng nhau
+            if ("IF".equals(step.getLogicType())) {
+                if (step.getNestedSteps() != null) {
+                    collectActors(step.getNestedSteps(), actors);
+                }
+            }
+        }
+    }
 
     /**
-     * Helper đệ quy để xử lý các bước, bao gồm cả IF-THEN lồng nhau.
-     * [SỬA LỖI LẦN 2]: Helper này giờ sẽ "stateful" (có trạng thái),
-     * nó ghi nhớ actor hiện tại là ai.
+     * Helper đệ quy để RENDER các bước.
+     * [SỬA LỖI LẦN 3]: Helper này "stateful", nó ghi nhớ actor hiện tại.
      *
      * @param sb           Đối tượng StringBuilder để xây dựng chuỗi
      * @param steps        Danh sách các bước (có thể lồng nhau)
@@ -142,7 +181,7 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
                 sb.append("endif\n");
             } else {
                 // Xử lý hành động (action) thông thường
-                if (actor != null && !actor.isEmpty() && !actor.equals(lastActor)) {
+                if (actor != null && !actor.isEmpty() && !actor.equalsIgnoreCase("Logic") && !actor.equals(lastActor)) {
                     // [SỬA LỖI] Chỉ "switch" (chuyển) swimlane
                     // NẾU actor của bước NÀY khác với actor của bước TRƯỚC.
                     sb.append("|").append(escapeString(actor)).append("|\n");
