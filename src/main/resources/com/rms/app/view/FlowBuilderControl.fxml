@@ -4,14 +4,14 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox spacing="10" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.rms.app.view.FlowBuilderControl">
+<VBox spacing="10" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1">
     <children>
         <TableView fx:id="stepsTableView" editable="true" prefHeight="300">
             <columns>
                 <TableColumn fx:id="stepActorColumn" prefWidth="150" text="Actor"/>
                 <TableColumn fx:id="stepActionColumn" prefWidth="400" text="Action / Logic"/>
             </columns>
+
             <columnResizePolicy>
                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
             </columnResizePolicy>
@@ -21,6 +21,7 @@
             <Button onAction="#handleAddStep" text="Add Step"/>
             <Button onAction="#handleAddLogic" text="Add If/Then"/>
             <Button onAction="#handleRemoveStep" text="Remove Selected" styleClass="button-danger"/>
+
             <Pane HBox.hgrow="ALWAYS"/>
             <Button onAction="#handleMoveUp" text="Move Up"/>
             <Button onAction="#handleMoveDown" text="Move Down"/>

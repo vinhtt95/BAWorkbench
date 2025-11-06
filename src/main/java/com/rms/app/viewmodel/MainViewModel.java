@@ -1,10 +1,10 @@
 package com.rms.app.viewmodel;
 
 import com.google.inject.Inject;
-import com.rms.app.model.Artifact; // Thêm import
+import com.rms.app.model.Artifact;
 import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.ProjectConfig;
-import com.rms.app.service.IArtifactRepository; // Thêm import
+import com.rms.app.service.IArtifactRepository;
 import com.rms.app.service.IProjectService;
 import com.rms.app.service.ITemplateService;
 import com.rms.app.service.IViewManager;
@@ -38,19 +38,19 @@ public class MainViewModel {
     private final ITemplateService templateService;
     private final IViewManager viewManager;
     private final IProjectStateService projectStateService;
-    private final IArtifactRepository artifactRepository; // Thêm import
+    private final IArtifactRepository artifactRepository;
 
     @Inject
     public MainViewModel(IProjectService projectService,
                          ITemplateService templateService,
                          IViewManager viewManager,
                          IProjectStateService projectStateService,
-                         IArtifactRepository artifactRepository) { // Cập nhật constructor
+                         IArtifactRepository artifactRepository) {
         this.projectService = projectService;
         this.templateService = templateService;
         this.viewManager = viewManager;
         this.projectStateService = projectStateService;
-        this.artifactRepository = artifactRepository; // Thêm import
+        this.artifactRepository = artifactRepository;
 
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
         this.openTabs = FXCollections.observableArrayList();
@@ -62,6 +62,33 @@ public class MainViewModel {
         Tab welcomeTab = new Tab("Welcome");
         welcomeTab.setContent(new javafx.scene.control.Label("Chào mừng đến với RMS v1.0"));
         this.openTabs.add(welcomeTab);
+
+        /**
+         * [SỬA LỖI UX] Thêm listener để tự động refresh TreeView khi có file mới.
+         * Lắng nghe service state, nếu status có chữ "Đã lưu",
+         * chúng ta sẽ refresh lại cây.
+         */
+        projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
+            if (newMsg != null && newMsg.startsWith("Đã lưu")) {
+                refreshProjectTree();
+            }
+        });
+    }
+
+    /**
+     * [THÊM MỚI] Hàm refresh cây thư mục (TreeView).
+     */
+    private void refreshProjectTree() {
+        File projectDir = projectStateService.getCurrentProjectDirectory();
+        if (projectDir != null) {
+            try {
+                TreeItem<String> rootNode = projectService.buildProjectTree(projectDir);
+                projectRoot.set(rootNode);
+                logger.debug("Project tree refreshed.");
+            } catch (Exception e) {
+                logger.error("Lỗi tự động refresh cây thư mục", e);
+            }
+        }
     }
 
     /**
@@ -87,8 +114,9 @@ public class MainViewModel {
     public void createNewArtifact(String templateName) {
         try {
             ArtifactTemplate template = templateService.loadTemplate(templateName);
-            Tab newTab = viewManager.openArtifactTab(template); // Gọi hàm cũ
+            Tab newTab = viewManager.openArtifactTab(template);
             this.openTabs.add(newTab);
+            mainTabPane.getSelectionModel().select(newTab); // Focus tab mới
 
         } catch (IOException e) {
             logger.error("Không thể tải template: " + templateName, e);
@@ -97,7 +125,7 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI] Logic mở Artifact đã tồn tại
+     * Logic mở Artifact đã tồn tại
      */
     public void openArtifact(String fileName) {
         if (fileName == null || !fileName.endsWith(".json")) {
@@ -129,7 +157,7 @@ public class MainViewModel {
              */
             Tab newTab = viewManager.openArtifactTab(artifact, template);
             this.openTabs.add(newTab);
-            mainTabPane.getSelectionModel().select(newTab); // Tự động focus tab mới
+            mainTabPane.getSelectionModel().select(newTab);
 
         } catch (IOException e) {
             logger.error("Lỗi mở artifact: " + fileName, e);
@@ -147,8 +175,10 @@ public class MainViewModel {
 
             projectStateService.setCurrentProjectDirectory(directory);
 
-            TreeItem<String> rootNode = projectService.buildProjectTree(directory);
-            projectRoot.set(rootNode);
+            /**
+             * Lần load cây đầu tiên
+             */
+            refreshProjectTree();
 
             projectStateService.setStatusMessage("Đã mở dự án: " + config.getProjectName());
         } catch (IOException e) {
@@ -156,6 +186,7 @@ public class MainViewModel {
             projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
+
 
     public File getCurrentProjectDirectory() {
         return currentProjectDirectory.get();
@@ -184,9 +215,6 @@ public class MainViewModel {
         return statusMessage;
     }
 
-    /**
-     * [THÊM MỚI] Cần tham chiếu đến TabPane để focus tab
-     */
     private TabPane mainTabPane;
     public void setMainTabPane(TabPane mainTabPane) {
         this.mainTabPane = mainTabPane;

@@ -74,10 +74,6 @@ public class RenderServiceImpl implements IRenderService {
      */
     private Node createControlForField(ArtifactTemplate.FieldTemplate field, ArtifactViewModel viewModel) {
 
-        /**
-         * [SỬA LỖI 2] Xử lý Flow Builder riêng biệt TRƯỚC KHI
-         * gọi getFieldProperty để tránh xung đột map.
-         */
         if ("Flow Builder".equals(field.getType())) {
             try {
                 ObservableList<FlowStep> steps = viewModel.getFlowStepProperty(field.getName());
@@ -88,9 +84,6 @@ public class RenderServiceImpl implements IRenderService {
             }
         }
 
-        /**
-         * Logic cũ (hiện đã an toàn)
-         */
         var fieldProperty = viewModel.getFieldProperty(field.getName());
 
         switch (field.getType()) {
@@ -191,10 +184,30 @@ public class RenderServiceImpl implements IRenderService {
         String fxmlPath = "/com/rms/app/view/FlowBuilderControl.fxml";
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
 
-        loader.setControllerFactory(injector::getInstance);
+        /**
+         * [SỬA LỖI] Thay đổi cách nạp FXML
+         * Thay vì dùng setControllerFactory (gây lỗi @FXML null)
+         * chúng ta dùng setController (giống ViewManagerImpl)
+         */
+
+        /**
+         * 1. Yêu cầu Guice tạo Controller
+         */
+        FlowBuilderControl controller = injector.getInstance(FlowBuilderControl.class);
+
+        /**
+         * 2. Set controller này cho FXML
+         */
+        loader.setController(controller);
+
+        /**
+         * 3. Load (lúc này FXML sẽ inject @FXML vào 'controller')
+         */
         Parent controlRoot = loader.load();
 
-        FlowBuilderControl controller = loader.getController();
+        /**
+         * 4. Gọi setData (lúc này @FXML đã được inject)
+         */
         controller.setData(steps);
 
         return controlRoot;
