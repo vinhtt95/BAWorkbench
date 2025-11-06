@@ -12,16 +12,12 @@ import com.rms.app.view.FlowBuilderControl;
 public class GuiceModule extends AbstractModule {
     @Override
     protected void configure() {
-        // Bind State (NEW)
         bind(IProjectStateService.class).to(ProjectStateServiceImpl.class).in(Singleton.class);
 
-        // ViewModels
         bind(MainViewModel.class).in(Singleton.class);
 
-        // Views/Controls (Cho FXML)
         bind(FlowBuilderControl.class);
 
-        // Services (DIP)
         bind(IProjectService.class).to(ProjectServiceImpl.class).in(Singleton.class);
         bind(ITemplateService.class).to(TemplateServiceImpl.class).in(Singleton.class);
         bind(IViewManager.class).to(ViewManagerImpl.class).in(Singleton.class);
@@ -30,7 +26,6 @@ public class GuiceModule extends AbstractModule {
 
         bind(IIndexService.class).to(IndexServiceImpl.class).in(Singleton.class);
 
-        // Repositories (DIP)
         bind(IArtifactRepository.class).to(JsonFileRepository.class).in(Singleton.class);
         bind(ISqliteIndexRepository.class).to(SqliteIndexRepository.class).in(Singleton.class);
     }

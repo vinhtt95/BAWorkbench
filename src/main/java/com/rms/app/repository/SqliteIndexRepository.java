@@ -107,12 +107,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         }
     }
 
-    /**
-     * [THÊM MỚI NGÀY 20] Xóa một artifact khỏi bảng 'artifacts'.
-     *
-     * @param artifactId ID của artifact cần xóa
-     * @throws SQLException Nếu lỗi CSDL
-     */
     @Override
     public void deleteArtifact(String artifactId) throws SQLException {
         String sql = "DELETE FROM artifacts WHERE id = ?;";
@@ -122,12 +116,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         }
     }
 
-    /**
-     * [THÊM MỚI NGÀY 20] Xóa tất cả các liên kết (links) TỪ một artifact.
-     *
-     * @param artifactId ID của artifact (nguồn link)
-     * @throws SQLException Nếu lỗi CSDL
-     */
     @Override
     public void deleteLinksForArtifact(String artifactId) throws SQLException {
         String sql = "DELETE FROM links WHERE fromId = ?;";
@@ -137,16 +125,33 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         }
     }
 
-
+    /**
+     * [CẬP NHẬT NGÀY 21] Triển khai logic query
+     * Tìm kiếm ID hoặc Name
+     */
     @Override
     public List<Artifact> queryArtifacts(String query) throws SQLException {
-        logger.warn("queryArtifacts() chưa được triển khai đầy đủ (Kế hoạch Ngày 21).");
-        return new ArrayList<>();
+        List<Artifact> results = new ArrayList<>();
+        String sql = "SELECT id, name, type FROM artifacts "
+                + "WHERE id LIKE ? OR name LIKE ? LIMIT 10;";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            String wildcardQuery = "%" + query.replace("@", "") + "%";
+            pstmt.setString(1, wildcardQuery);
+            pstmt.setString(2, wildcardQuery);
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Artifact artifact = new Artifact();
+                artifact.setId(rs.getString("id"));
+                artifact.setName(rs.getString("name"));
+                artifact.setArtifactType(rs.getString("type"));
+                results.add(artifact);
+            }
+        }
+        return results;
     }
 
-    /**
-     * [THÊM MỚI NGÀY 20] Triển khai logic Ngày 22 (cần cho Ngày 20)
-     */
     @Override
     public List<Artifact> queryBacklinks(String artifactId) throws SQLException {
         List<Artifact> results = new ArrayList<>();
