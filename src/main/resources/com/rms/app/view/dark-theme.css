@@ -1,24 +1,46 @@
-/* Yêu cầu UI-03: Dark Mode Theme */
+/**
+ * [CẬP NHẬT] Yêu cầu UI-03: Dark Mode Theme (Làm lại theo phong cách Gemini)
+ *
+ * - Nền tối hơn, gần như đen (#1E1F20)
+ * - Các control và cột bên có sắc độ tương tự, ít tương phản
+ * - Văn bản lớn hơn (17px)
+ * - Border mảnh, màu xám nhẹ (#3c3f41) để phân tách
+ * - Giao diện phẳng, hiện đại, dịu mắt
+ */
 .root {
-    -fx-base: #2b2b2b;
-    -fx-background: #2b2b2b;
-    -fx-control-inner-background: #3c3f41;
-    -fx-control-inner-background-alt: #3c3f41;
-    -fx-text-fill: #bbbbbb;
-    -fx-accent: #007bff; /* Màu nhấn (accent color) */
+    -fx-base: #1E1F20;
+    -fx-background: #1E1F20; /* Nền chính (tối) */
+
+    /* Nền cho các control nhập liệu (TextBox, TreeView) */
+    -fx-control-inner-background: #2a2b2e;
+    -fx-control-inner-background-alt: #2a2b2e;
+
+    -fx-text-fill: #E3E3E3; /* Màu chữ sáng, rõ nét */
+    -fx-accent: #007bff;
     -fx-focus-color: #007bff;
-    -fx-font-size: 16;
+
+    -fx-font-size: 17; /* Văn bản lớn hơn */
 }
 
-/* --- Vỏ (Shell) --- */
+/* --- Vỏ (Shell) & Cột bên --- */
 .sidebar {
-    -fx-background-color: #3c3f41;
+    -fx-background-color: -fx-base; /* Tông màu nền chính */
     -fx-padding: 5px;
+
+    /* Border mảnh, xám nhẹ để phân tách */
+    -fx-border-color: #3c3f41;
+    -fx-border-width: 0 1px 0 0; /* Chỉ kẻ viền bên phải */
 }
+
+/* Cột bên phải */
+.sidebar:right {
+    -fx-border-width: 0 0 0 1px; /* Chỉ kẻ viền bên trái */
+}
+
 .sidebar-title {
-    -fx-font-size: 14px;
+    -fx-font-size: 15px; /* Kích thước tiêu đề cột */
     -fx-font-weight: bold;
-    -fx-text-fill: #999999;
+    -fx-text-fill: #AEAEAE; /* Màu chữ tiêu đề (ít nổi bật hơn) */
     -fx-padding: 4px 8px;
 }
 
@@ -26,56 +48,74 @@
 .tree-view {
     -fx-background-color: -fx-control-inner-background;
 }
+.tree-cell {
+    -fx-padding: 6px; /* Tăng khoảng cách cho dễ thở */
+}
 .tree-cell:focused {
     -fx-background-color: -fx-accent;
     -fx-text-fill: white;
 }
 
 /* --- TabPane (Cột Giữa) --- */
+.tab-pane {
+    /* Nền của TabPane khớp với nền chính */
+    -fx-background-color: -fx-base;
+}
 .tab-pane .tab-header-area .tab-header-background {
-    -fx-background-color: #2b2b2b;
+    -fx-background-color: -fx-base;
+    /* Border mảnh phân tách với menubar */
+    -fx-border-color: #3c3f41;
+    -fx-border-width: 1px 0 0 0;
 }
 .tab {
-    -fx-background-color: #3c3f41;
+    -fx-background-color: -fx-base;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
+    -fx-padding: 8px 12px; /* Tăng padding cho tab */
 }
 .tab:selected {
-    -fx-background-color: #45494a;
+    -fx-background-color: #2a2b2e; /* Nền của tab được chọn */
+    -fx-border-color: -fx-accent;
+    -fx-border-width: 0 0 2px 0; /* Chỉ viền dưới */
 }
 .tab-pane .tab:selected .tab-label {
     -fx-text-fill: white;
 }
 .tab .tab-label {
-    -fx-text-fill: #bbbbbb;
+    -fx-text-fill: #AEAEAE; /* Chữ tab chưa chọn */
 }
-.tab-pane:focused .tab:selected {
-    -fx-border-color: -fx-accent;
-    -fx-border-width: 0 0 2 0;
+.tab:hover {
+    -fx-background-color: #2a2b2e;
 }
 
 /* --- Controls --- */
 .label {
-    -fx-text-fill: #bbbbbb;
+    -fx-text-fill: #E3E3E3;
 }
 .text-field, .text-area {
-    -fx-background-color: #45494a;
-    -fx-text-fill: #bbbbbb;
+    -fx-background-color: #2a2b2e;
+    -fx-text-fill: #E3E3E3;
     -fx-prompt-text-fill: #888888;
-    -fx-border-color: #555555;
+
+    /* Border nhẹ, phẳng */
+    -fx-border-color: #3c3f41;
     -fx-border-width: 1px;
+    -fx-border-radius: 4px;
 }
 .text-field:focused, .text-area:focused {
     -fx-border-color: -fx-accent;
+    -fx-border-width: 1.5px;
 }
 
 .button {
-    -fx-background-color: #45494a;
-    -fx-text-fill: #bbbbbb;
-    -fx-border-color: #555555;
+    -fx-background-color: #3c3f41; /* Nền nút xám hơn */
+    -fx-text-fill: #E3E3E3;
+    -fx-border-color: transparent;
+    -fx-border-radius: 4px;
+    -fx-padding: 6px 12px;
 }
 .button:hover {
-    -fx-background-color: #55595a;
+    -fx-background-color: #4a4d50;
 }
 .button:pressed {
     -fx-background-color: -fx-accent;
