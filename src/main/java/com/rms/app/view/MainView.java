@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 public class MainView {
 
@@ -85,8 +86,6 @@ public class MainView {
                     String artifactId = selected.split(":")[0].trim();
 
                     logger.warn("Điều hướng Backlink chưa được triển khai đầy đủ để hỗ trợ cấu trúc thư mục con.");
-                    // TODO: Logic điều hướng backlink cần biết đường dẫn tương đối,
-                    // hiện tại chúng ta chỉ có ID. Tạm thời gọi hàm cũ.
                     viewModel.openArtifact(artifactId + ".json");
                 }
             }
@@ -106,16 +105,11 @@ public class MainView {
 
                     if (fileName.endsWith(".json")) {
 
-                        String relativePath = fileName;
-                        TreeItem<String> parent = selectedItem.getParent();
-
-                        while(parent != null && !parent.getValue().equals(ProjectServiceImpl.ARTIFACTS_DIR) && !parent.getValue().equals(projectTreeView.getRoot().getValue())) {
-                            relativePath = parent.getValue() + File.separator + relativePath;
-                            parent = parent.getParent();
+                        String relativePath = getSelectedArtifactPath(selectedItem);
+                        if (relativePath != null) {
+                            logger.info("Đang mở artifact: " + relativePath);
+                            viewModel.openArtifact(relativePath);
                         }
-
-                        logger.info("Đang mở artifact: " + relativePath);
-                        viewModel.openArtifact(relativePath);
                     }
                 }
             }
@@ -123,22 +117,16 @@ public class MainView {
     }
 
     /**
-     * [SỬA ĐỔI] Tách logic build Context Menu
+     * Cập nhật Context Menu để thêm logic Xóa (Delete)
      */
     private void setupTreeViewContextMenu() {
         ContextMenu treeContextMenu = new ContextMenu();
         Menu newMenu = new Menu("New Artifact");
 
-        /**
-         * Listener 1: Cập nhật khi Mở/Đóng dự án
-         */
         projectStateService.currentProjectDirectoryProperty().addListener((obs, oldDir, newDir) -> {
             rebuildNewArtifactMenu(newMenu);
         });
 
-        /**
-         * [SỬA LỖI 1] Listener 2: Cập nhật khi Template được lưu
-         */
         projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
             if (newMsg != null && newMsg.startsWith("Đã lưu template")) {
                 rebuildNewArtifactMenu(newMenu);
@@ -146,9 +134,49 @@ public class MainView {
         });
 
         rebuildNewArtifactMenu(newMenu);
-        treeContextMenu.getItems().add(newMenu);
+
+        /**
+         * [THÊM MỚI NGÀY 23] Thêm MenuItem "Delete"
+         */
+        MenuItem deleteItem = new MenuItem("Delete");
+        deleteItem.setOnAction(e -> handleDeleteArtifact());
+
+        treeContextMenu.getItems().addAll(newMenu, new SeparatorMenuItem(), deleteItem);
 
         projectTreeView.setContextMenu(treeContextMenu);
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 23] Logic Xử lý Xóa
+     */
+    @FXML
+    private void handleDeleteArtifact() {
+        TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
+        if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
+            showErrorAlert("Lỗi Xóa", "Vui lòng chọn một file artifact (.json) để xóa.");
+            return;
+        }
+
+        String relativePath = getSelectedArtifactPath(selectedItem);
+        if (relativePath == null) return;
+
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Xác nhận Xóa");
+        confirmAlert.setHeaderText("Bạn có chắc muốn xóa " + selectedItem.getValue() + "?");
+        confirmAlert.setContentText("Hành động này không thể hoàn tác.");
+
+        Optional<ButtonType> result = confirmAlert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                viewModel.deleteArtifact(relativePath);
+            } catch (IOException e) {
+                /**
+                 * [NGÀY 23] Bắt lỗi vi phạm toàn vẹn từ Repository
+                 * Tham chiếu F-DEV-11
+                 */
+                showErrorAlert("Lỗi Toàn vẹn Dữ liệu", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -176,6 +204,41 @@ public class MainView {
         } else {
             newMenu.getItems().add(new MenuItem("(Mở dự án để xem template)"));
         }
+    }
+
+    /**
+     * [THÊM MỚI] Helper lấy đường dẫn tương đối
+     *
+     * @param selectedItem Mục (item) được chọn trong TreeView
+     * @return Đường dẫn tương đối (ví dụ: "UC/UC001.json")
+     */
+    private String getSelectedArtifactPath(TreeItem<String> selectedItem) {
+        if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
+            return null;
+        }
+
+        String relativePath = selectedItem.getValue();
+        TreeItem<String> parent = selectedItem.getParent();
+
+        while (parent != null && !parent.getValue().equals(ProjectServiceImpl.ARTIFACTS_DIR) && !parent.getValue().equals(projectTreeView.getRoot().getValue())) {
+            relativePath = parent.getValue() + File.separator + relativePath;
+            parent = parent.getParent();
+        }
+        return relativePath;
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 23] Helper hiển thị Alert Lỗi
+     *
+     * @param title   Tiêu đề của Alert
+     * @param content Nội dung lỗi
+     */
+    private void showErrorAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
 

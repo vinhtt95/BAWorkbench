@@ -203,6 +203,33 @@ public class MainViewModel {
     }
 
     /**
+     * [THÊM MỚI NGÀY 23] Logic nghiệp vụ Xóa Artifact
+     *
+     * @param relativePath Đường dẫn tương đối của file cần xóa
+     * @throws IOException Nếu xóa thất bại (ví dụ: do vi phạm toàn vẹn)
+     */
+    public void deleteArtifact(String relativePath) throws IOException {
+        artifactRepository.delete(relativePath);
+        refreshProjectTree();
+
+        String id = new File(relativePath).getName().replace(".json", "");
+
+        Tab tabToClose = null;
+        for (Tab tab : mainTabPane.getTabs()) {
+            if (tab.getText().equals(id)) {
+                tabToClose = tab;
+                break;
+            }
+        }
+        if (tabToClose != null) {
+            mainTabPane.getTabs().remove(tabToClose);
+        }
+
+        projectStateService.setStatusMessage("Đã xóa: " + id);
+    }
+
+
+    /**
      * Logic nghiệp vụ cho UC-PM-02
      */
     public void openProject(File directory) {
