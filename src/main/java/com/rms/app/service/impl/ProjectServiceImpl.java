@@ -26,6 +26,7 @@ public class ProjectServiceImpl implements IProjectService {
     public static final String ARTIFACTS_DIR = "Artifacts";
     public static final String CONFIG_FILE = "project.json";
 
+    @Inject
     public ProjectServiceImpl(IIndexService indexService) {
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         this.indexService = indexService;
