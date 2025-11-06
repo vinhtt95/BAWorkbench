@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.Stream;
 import com.google.inject.Inject;
 import com.rms.app.service.IIndexService;
 
@@ -80,22 +79,35 @@ public class ProjectServiceImpl implements IProjectService {
             artifactsNode.setExpanded(true);
             root.getChildren().add(artifactsNode);
 
-            try (Stream<Path> paths = Files.walk(artifactsDir.toPath(), 1)) {
-                paths.filter(Files::isRegularFile)
-                        .filter(path -> path.toString().endsWith(".json"))
-                        .forEach(jsonFile -> {
-                            String fileName = jsonFile.getFileName().toString();
-                            TreeItem<String> fileNode = new TreeItem<>(fileName);
-                            artifactsNode.getChildren().add(fileNode);
-                        });
-            } catch (IOException e) {
-                logger.error("Không thể quét thư mục Artifacts", e);
-                artifactsNode.getChildren().add(new TreeItem<>("Lỗi khi tải..."));
-            }
+            addNodesRecursively(artifactsDir, artifactsNode);
         }
 
         return root;
     }
+
+    /**
+     * Hàm quét đệ quy để xây dựng TreeView
+     *
+     * @param dir    Thư mục hiện tại để quét
+     * @param parent Nút (node) cha trong TreeView
+     */
+    private void addNodesRecursively(File dir, TreeItem<String> parent) {
+        File[] files = dir.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                TreeItem<String> dirNode = new TreeItem<>(file.getName());
+                dirNode.setExpanded(true);
+                parent.getChildren().add(dirNode);
+                addNodesRecursively(file, dirNode);
+            } else if (file.getName().endsWith(".json")) {
+                TreeItem<String> fileNode = new TreeItem<>(file.getName());
+                parent.getChildren().add(fileNode);
+            }
+        }
+    }
+
 
     private void createGitIgnore(Path projectRoot) throws IOException {
         String gitIgnoreContent =

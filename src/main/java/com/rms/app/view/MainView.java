@@ -12,13 +12,19 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.ContextMenu;
 import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.ITemplateService;
+import com.rms.app.service.impl.ProjectServiceImpl;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
 public class MainView {
+
+    private static final Logger logger = LoggerFactory.getLogger(MainView.class);
 
     @FXML private TreeView<String> projectTreeView;
     @FXML private TabPane mainTabPane;
@@ -63,39 +69,53 @@ public class MainView {
         backlinksListView.setItems(viewModel.getCurrentBacklinks());
         TitledPane backlinksPane = new TitledPane("Backlinks (Liên kết ngược)", backlinksListView);
 
-        // Thêm vào Accordion ở Cột Phải
         rightAccordion.getPanes().add(backlinksPane);
-        rightAccordion.setExpandedPane(backlinksPane); // Mở sẵn pane này
+        rightAccordion.setExpandedPane(backlinksPane);
 
-        // Thêm listener lắng nghe sự kiện đổi tab
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             viewModel.updateBacklinks(newTab);
         });
 
-        // Cập nhật cho tab "Welcome" (tab đầu tiên)
         viewModel.updateBacklinks(mainTabPane.getSelectionModel().getSelectedItem());
 
-        // Thêm listener double-click để điều hướng (Giống UC-DEV-02)
         backlinksListView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 String selected = backlinksListView.getSelectionModel().getSelectedItem();
                 if (selected != null && selected.contains(":")) {
                     String artifactId = selected.split(":")[0].trim();
-                    // Gọi hàm openArtifact (cần thêm .json để khớp logic)
+
+                    logger.warn("Điều hướng Backlink chưa được triển khai đầy đủ để hỗ trợ cấu trúc thư mục con.");
+                    // TODO: Logic điều hướng backlink cần biết đường dẫn tương đối,
+                    // hiện tại chúng ta chỉ có ID. Tạm thời gọi hàm cũ.
                     viewModel.openArtifact(artifactId + ".json");
                 }
             }
         });
     }
 
+    /**
+     * Cập nhật listener để xây dựng đường dẫn tương đối
+     */
     private void setupTreeViewClickListener() {
         projectTreeView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
+
                 if (selectedItem != null && selectedItem.isLeaf()) {
                     String fileName = selectedItem.getValue();
+
                     if (fileName.endsWith(".json")) {
-                        viewModel.openArtifact(fileName);
+
+                        String relativePath = fileName;
+                        TreeItem<String> parent = selectedItem.getParent();
+
+                        while(parent != null && !parent.getValue().equals(ProjectServiceImpl.ARTIFACTS_DIR) && !parent.getValue().equals(projectTreeView.getRoot().getValue())) {
+                            relativePath = parent.getValue() + File.separator + relativePath;
+                            parent = parent.getParent();
+                        }
+
+                        logger.info("Đang mở artifact: " + relativePath);
+                        viewModel.openArtifact(relativePath);
                     }
                 }
             }

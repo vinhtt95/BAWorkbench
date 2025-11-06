@@ -62,9 +62,6 @@ public class MainViewModel {
 
         this.currentProjectDirectory = new SimpleObjectProperty<>(null);
 
-        /**
-         * Thêm listener để tự động refresh TreeView khi có file mới.
-         */
         projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
             if (newMsg != null && newMsg.startsWith("Đã lưu")) {
                 refreshProjectTree();
@@ -134,7 +131,6 @@ public class MainViewModel {
         try {
             boolean success = projectService.createProject(projectName, directory);
             if (success) {
-                this.currentProjectDirectory.set(directory);
                 openProject(directory);
                 statusMessage.set("Tạo dự án mới thành công: " + projectName);
             }
@@ -165,18 +161,17 @@ public class MainViewModel {
 
     /**
      * Logic mở Artifact đã tồn tại
+     *
+     * @param relativePath Đường dẫn tương đối (ví dụ: "UC/UC001.json")
      */
-    public void openArtifact(String fileName) {
-        if (fileName == null || !fileName.endsWith(".json")) {
-            logger.warn("Bỏ qua mở file không hợp lệ: {}", fileName);
+    public void openArtifact(String relativePath) {
+        if (relativePath == null || !relativePath.endsWith(".json")) {
+            logger.warn("Bỏ qua mở file không hợp lệ: {}", relativePath);
             return;
         }
 
-        String id = fileName.replace(".json", "");
+        String id = new File(relativePath).getName().replace(".json", "");
 
-        /**
-         * [SỬA LỖI UX] Kiểm tra xem tab đã mở chưa
-         */
         for (Tab tab : mainTabPane.getTabs()) {
             if (tab.getText().equals(id)) {
                 mainTabPane.getSelectionModel().select(tab);
@@ -186,31 +181,22 @@ public class MainViewModel {
         }
 
         try {
-            /**
-             * 1. Load dữ liệu artifact
-             */
-            Artifact artifact = artifactRepository.load(id);
+            Artifact artifact = artifactRepository.load(relativePath);
             if (artifact == null) {
-                throw new IOException("Không tìm thấy artifact: " + id);
+                throw new IOException("Không tìm thấy artifact: " + relativePath);
             }
 
-            /**
-             * 2. Load template (form) tương ứng
-             */
             ArtifactTemplate template = templateService.loadTemplateByPrefix(artifact.getArtifactType());
             if (template == null) {
                 throw new IOException("Không tìm thấy template cho loại: " + artifact.getArtifactType());
             }
 
-            /**
-             * 3. Mở tab
-             */
             Tab newTab = viewManager.openArtifactTab(artifact, template);
             this.mainTabPane.getTabs().add(newTab);
             mainTabPane.getSelectionModel().select(newTab);
 
         } catch (IOException e) {
-            logger.error("Lỗi mở artifact: " + fileName, e);
+            logger.error("Lỗi mở artifact: " + relativePath, e);
             projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
@@ -248,9 +234,7 @@ public class MainViewModel {
             this.mainTabPane.getTabs().add(newTab);
             mainTabPane.getSelectionModel().select(newTab);
         } catch (IOException e) {
-            /**
-             * Lỗi đã được log bởi ViewManager
-             */
+            logger.error("Không thể tải FormBuilderView", e);
         }
     }
 

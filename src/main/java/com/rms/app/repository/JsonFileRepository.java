@@ -17,7 +17,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
-// Triển khai logic còn thiếu (TODOs) của Ngày 6
+/**
+ * Triển khai logic còn thiếu (TODOs) của Ngày 6
+ */
 public class JsonFileRepository implements IArtifactRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(JsonFileRepository.class);
@@ -31,7 +33,9 @@ public class JsonFileRepository implements IArtifactRepository {
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
-    // Triển khai hàm helper
+    /**
+     * Triển khai hàm helper
+     */
     private File getArtifactsRoot() throws IOException {
         File projectRoot = projectStateService.getCurrentProjectDirectory();
         if (projectRoot == null) {
@@ -44,14 +48,12 @@ public class JsonFileRepository implements IArtifactRepository {
         return artifactsDir;
     }
 
-    private File getFileForArtifact(String id) throws IOException {
+    /**
+     * Helper mới để lấy file bằng đường dẫn tương đối
+     */
+    private File getArtifactFile(String relativePath) throws IOException {
         File artifactsDir = getArtifactsRoot();
-        return new File(artifactsDir, id + ".json");
-    }
-
-    private Path getArtifactPath(String id, String extension) throws IOException {
-        File artifactsDir = getArtifactsRoot();
-        return new File(artifactsDir, id + extension).toPath();
+        return new File(artifactsDir, relativePath);
     }
 
     @Override
@@ -60,21 +62,27 @@ public class JsonFileRepository implements IArtifactRepository {
             throw new IOException("Artifact hoặc Artifact ID không được null.");
         }
 
-        Path jsonPath = getArtifactPath(artifact.getId(), ".json");
+        String artifactType = artifact.getArtifactType();
+        if (artifactType == null || artifactType.isEmpty()) {
+            throw new IOException("ArtifactType không được rỗng để lưu vào thư mục con.");
+        }
+
+        File subDir = new File(getArtifactsRoot(), artifactType);
+        subDir.mkdirs();
+
+        Path jsonPath = new File(subDir, artifact.getId() + ".json").toPath();
         logger.debug("Đang lưu file: {}", jsonPath);
 
-        // C-05: Dữ liệu PHẢI được lưu dưới dạng file .json (Source of Truth)
         objectMapper.writeValue(jsonPath.toFile(), artifact);
 
-        // NGÀY 13: Logic Dual-Write (Git-Friendly)
-        // C-06: Một file .md PHẢI được tự động sinh ra
-
-        Path mdPath = getArtifactPath(artifact.getId(), ".md");
+        Path mdPath = new File(subDir, artifact.getId() + ".md").toPath();
         String mdContent = generateMarkdown(artifact);
         Files.writeString(mdPath, mdContent);
     }
 
-    // Helper tạo nội dung Markdown (đơn giản)
+    /**
+     * Helper tạo nội dung Markdown (đơn giản)
+     */
     private String generateMarkdown(Artifact artifact) {
         StringBuilder sb = new StringBuilder();
         sb.append("# ").append(artifact.getId()).append(": ").append(artifact.getName()).append("\n\n");
@@ -89,21 +97,21 @@ public class JsonFileRepository implements IArtifactRepository {
 
 
     @Override
-    public Artifact load(String id) throws IOException {
-        Path jsonPath = getArtifactPath(id, ".json");
-        if (!Files.exists(jsonPath)) {
-            throw new IOException("File không tồn tại: " + id + ".json");
+    public Artifact load(String relativePath) throws IOException {
+        File fileToLoad = getArtifactFile(relativePath);
+        if (!fileToLoad.exists()) {
+            throw new IOException("File không tồn tại: " + relativePath);
         }
-        return objectMapper.readValue(jsonPath.toFile(), Artifact.class);
+        return objectMapper.readValue(fileToLoad, Artifact.class);
     }
 
     @Override
-    public void delete(String id) throws IOException {
-        Path jsonPath = getArtifactPath(id, ".json");
-        Path mdPath = getArtifactPath(id, ".md");
+    public void delete(String relativePath) throws IOException {
+        File jsonFile = getArtifactFile(relativePath);
+        File mdFile = getArtifactFile(relativePath.replace(".json", ".md"));
 
-        Files.deleteIfExists(jsonPath);
-        Files.deleteIfExists(mdPath);
-        logger.debug("Đã xóa: {} (và file .md)", jsonPath);
+        Files.deleteIfExists(jsonFile.toPath());
+        Files.deleteIfExists(mdFile.toPath());
+        logger.debug("Đã xóa: {} (và file .md)", jsonFile.getPath());
     }
 }
