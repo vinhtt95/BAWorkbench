@@ -3,11 +3,9 @@ package com.rms.app.config;
 import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
 import com.rms.app.repository.JsonFileRepository;
-import com.rms.app.service.IArtifactRepository;
-import com.rms.app.service.IProjectService;
-import com.rms.app.service.ITemplateService;
-import com.rms.app.service.IViewManager;
+import com.rms.app.service.*;
 import com.rms.app.service.impl.ProjectServiceImpl;
+import com.rms.app.service.impl.RenderServiceImpl;
 import com.rms.app.service.impl.TemplateServiceImpl;
 import com.rms.app.service.impl.ViewManagerImpl;
 import com.rms.app.viewmodel.MainViewModel;
@@ -23,6 +21,7 @@ public class GuiceModule extends AbstractModule {
         bind(IProjectService.class).to(ProjectServiceImpl.class).in(Singleton.class);
         bind(ITemplateService.class).to(TemplateServiceImpl.class).in(Singleton.class);
         bind(IViewManager.class).to(ViewManagerImpl.class).in(Singleton.class);
+        bind(IRenderService.class).to(RenderServiceImpl.class).in(Singleton.class);
 
         // Bind Repositories (DIP)
         bind(IArtifactRepository.class).to(JsonFileRepository.class).in(Singleton.class);

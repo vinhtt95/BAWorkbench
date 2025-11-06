@@ -31,11 +31,13 @@
             <artifactId>javafx-web</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>5.1.0</version>
+            <version>7.0.0</version>
         </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -80,18 +82,6 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>com.rms.app.MainApplication</mainClass>
-
-                    <options>
-                        <option>--add-opens=javafx.graphics/javafx.scene.input=javafx.fxml</option>
-                        <option>--add-opens=javafx.controls/javafx.scene.control=javafx.fxml</option>
-
-                        <option>--add-opens=ALL-UNNAMED/com.rms.app.config=com.google.guice</option>
-                        <option>--add-opens=ALL-UNNAMED/com.rms.app.repository=com.google.guice</option>
-                        <option>--add-opens=ALL-UNNAMED/com.rms.app.service.impl=com.google.guice</option>
-                        <option>--add-opens=ALL-UNNAMED/com.rms.app.viewmodel=com.google.guice</option>
-                        <option>--add-opens=ALL-UNNAMED/com.rms.app.view=com.google.guice</option>
-                        <option>--add-opens=ALL-UNNAMED/com.rms.app.view=javafx.fxml</option>
-                    </options>
 
                 </configuration>
             </plugin>

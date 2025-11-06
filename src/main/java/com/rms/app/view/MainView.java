@@ -9,7 +9,8 @@ import javafx.scene.control.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ContextMenu;
 import java.io.File;
 
 public class MainView {
@@ -51,7 +52,29 @@ public class MainView {
             }
         });
 
+        setupTreeViewContextMenu();
+
         System.out.println("MainView initialized. ViewModel is: " + viewModel);
+    }
+
+    private void setupTreeViewContextMenu() {
+        ContextMenu treeContextMenu = new ContextMenu();
+
+        // 1.0. BA kích hoạt (Trigger) use case (click chuột phải)
+        Menu newMenu = new Menu("New Artifact");
+
+        // TODO: Đọc các template có sẵn từ ITemplateService thay vì hardcode
+        // (Đây là "lát cắt dọc" của Ngày 10)
+        MenuItem newUseCaseItem = new MenuItem("Use Case");
+        newUseCaseItem.setOnAction(e -> viewModel.createNewArtifact("Use Case"));
+
+        MenuItem newRequirementItem = new MenuItem("Requirement");
+        newRequirementItem.setOnAction(e -> viewModel.createNewArtifact("Requirement"));
+
+        newMenu.getItems().addAll(newUseCaseItem, newRequirementItem);
+        treeContextMenu.getItems().add(newMenu);
+
+        projectTreeView.setContextMenu(treeContextMenu);
     }
 
     // --- Event Handlers (Gọi ViewModel) ---

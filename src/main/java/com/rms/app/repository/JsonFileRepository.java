@@ -9,10 +9,12 @@ import com.rms.app.service.impl.ProjectServiceImpl;
 import com.rms.app.viewmodel.MainViewModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import com.rms.app.model.Artifact;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 
 // SỬA LỖI: Triển khai logic còn thiếu (TODOs) của Ngày 6
 public class JsonFileRepository implements IArtifactRepository {
@@ -41,47 +43,66 @@ public class JsonFileRepository implements IArtifactRepository {
         return artifactsDir;
     }
 
-    // SỬA LỖI: Triển khai hàm helper
     private File getFileForArtifact(String id) throws IOException {
         File artifactsDir = getArtifactsRoot();
         return new File(artifactsDir, id + ".json");
     }
 
-    // SỬA LỖI: Triển khai hàm save
+    private Path getArtifactPath(String id, String extension) throws IOException {
+        File artifactsDir = getArtifactsRoot();
+        return new File(artifactsDir, id + extension).toPath();
+    }
+
     @Override
     public void save(Artifact artifact) throws IOException {
         if (artifact == null || artifact.getId() == null) {
             throw new IOException("Artifact hoặc Artifact ID không được null.");
         }
 
-        File file = getFileForArtifact(artifact.getId());
-        logger.debug("Đang lưu file: {}", file.getPath());
+        Path jsonPath = getArtifactPath(artifact.getId(), ".json");
+        logger.debug("Đang lưu file: {}", jsonPath);
 
         // C-05: Dữ liệu PHẢI được lưu dưới dạng file .json (Source of Truth)
-        objectMapper.writeValue(file, artifact);
+        objectMapper.writeValue(jsonPath.toFile(), artifact);
 
-        // TODO: Triển khai Dual-Write (Ngày 13)
+        // NGÀY 13: Logic Dual-Write (Git-Friendly)
         // C-06: Một file .md PHẢI được tự động sinh ra
-        logger.warn("Hàm save() (phần .md) chưa được implement (Ngày 13).");
+
+        Path mdPath = getArtifactPath(artifact.getId(), ".md");
+        String mdContent = generateMarkdown(artifact);
+        Files.writeString(mdPath, mdContent);
     }
 
-    // SỬA LỖI: Triển khai hàm load
+    // Helper tạo nội dung Markdown (đơn giản)
+    private String generateMarkdown(Artifact artifact) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# ").append(artifact.getId()).append(": ").append(artifact.getName()).append("\n\n");
+
+        for (Map.Entry<String, Object> entry : artifact.getFields().entrySet()) {
+            sb.append("## ").append(entry.getKey()).append("\n");
+            sb.append(entry.getValue() != null ? entry.getValue().toString() : "*N/A*");
+            sb.append("\n\n");
+        }
+        return sb.toString();
+    }
+
+
     @Override
     public Artifact load(String id) throws IOException {
-        File file = getFileForArtifact(id);
-        if (!file.exists()) {
+        Path jsonPath = getArtifactPath(id, ".json");
+        if (!Files.exists(jsonPath)) {
             throw new IOException("File không tồn tại: " + id + ".json");
         }
-        return objectMapper.readValue(file, Artifact.class);
+        return objectMapper.readValue(jsonPath.toFile(), Artifact.class);
     }
 
-    // SỬA LỖI: Triển khai hàm delete
     @Override
     public void delete(String id) throws IOException {
-        File jsonFile = getFileForArtifact(id);
-        // TODO: Xóa cả file .md khi implement Dual-Write
+        Path jsonPath = getArtifactPath(id, ".json");
+        Path mdPath = getArtifactPath(id, ".md");
 
-        Files.deleteIfExists(jsonFile.toPath());
-        logger.debug("Đã xóa: {}", jsonFile.getPath());
+        Files.deleteIfExists(jsonPath);
+        Files.deleteIfExists(mdPath);
+        logger.debug("Đã xóa: {} (và file .md)", jsonPath);
     }
 }

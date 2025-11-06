@@ -1,8 +1,11 @@
 package com.rms.app.viewmodel;
 
 import com.google.inject.Inject;
+import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.ProjectConfig;
 import com.rms.app.service.IProjectService;
+import com.rms.app.service.ITemplateService;
+import com.rms.app.service.IViewManager;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -30,10 +33,16 @@ public class MainViewModel {
 
     // SỬA LỖI: Thêm property để lưu trữ thư mục gốc
     private final ObjectProperty<File> currentProjectDirectory;
+    private final ITemplateService templateService;
+    private final IViewManager viewManager;
 
     @Inject
-    public MainViewModel(IProjectService projectService) {
+    public MainViewModel(IProjectService projectService,
+                         ITemplateService templateService,
+                         IViewManager viewManager) {
         this.projectService = projectService;
+        this.templateService = templateService;
+        this.viewManager = viewManager;
 
         // Khởi tạo
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
@@ -63,6 +72,21 @@ public class MainViewModel {
             }
         } catch (IOException e) {
             logger.error("Lỗi tạo dự án", e);
+            statusMessage.set("Lỗi: " + e.getMessage());
+        }
+    }
+
+    // Logic cho "New Artifact" (Ngày 10)
+    public void createNewArtifact(String templateName) {
+        try {
+            // 2.0. Hệ thống đọc file cấu hình template
+            ArtifactTemplate template = templateService.loadTemplate(templateName);
+
+            // Yêu cầu ViewManager mở tab mới với template này
+            viewManager.openArtifactTab(template);
+
+        } catch (IOException e) {
+            logger.error("Không thể tải template: " + templateName, e);
             statusMessage.set("Lỗi: " + e.getMessage());
         }
     }
