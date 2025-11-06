@@ -1,0 +1,110 @@
+package com.rms.app.repository;
+
+import com.google.inject.Singleton;
+import com.rms.app.model.Artifact;
+import com.rms.app.service.ISqliteIndexRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Triển khai (implementation) logic I/O cho CSDL Chỉ mục (SQLite).
+ * Chỉ chịu trách nhiệm ĐỌC/GHI CSDL thô.
+ * Tham chiếu Kế hoạch Ngày 18 (Giai đoạn 4).
+ */
+@Singleton
+public class SqliteIndexRepository implements ISqliteIndexRepository {
+
+    private static final Logger logger = LoggerFactory.getLogger(SqliteIndexRepository.class);
+    private String connectionString = null;
+
+    private Connection connect() throws SQLException {
+        if (connectionString == null) {
+            throw new SQLException("Database chưa được khởi tạo. Phải gọi initializeDatabase() trước.");
+        }
+        return DriverManager.getConnection(connectionString);
+    }
+
+    @Override
+    public void initializeDatabase(File projectConfigDir) throws SQLException {
+        File dbFile = new File(projectConfigDir, "index.db");
+        this.connectionString = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+        logger.info("Đang khởi tạo CSDL Chỉ mục tại: {}", dbFile.getAbsolutePath());
+
+        String createArtifactsTable = "CREATE TABLE IF NOT EXISTS artifacts ("
+                + " id TEXT PRIMARY KEY,"
+                + " name TEXT NOT NULL,"
+                + " type TEXT,"
+                + " status TEXT"
+                + ");";
+
+        String createLinksTable = "CREATE TABLE IF NOT EXISTS links ("
+                + " fromId TEXT NOT NULL,"
+                + " toId TEXT NOT NULL,"
+                + " PRIMARY KEY (fromId, toId)"
+                + ");";
+
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            stmt.execute(createArtifactsTable);
+            stmt.execute(createLinksTable);
+            logger.info("Khởi tạo bảng 'artifacts' và 'links' thành công.");
+        }
+    }
+
+    @Override
+    public void clearIndex() throws SQLException {
+        String deleteLinks = "DELETE FROM links;";
+        String deleteArtifacts = "DELETE FROM artifacts;";
+
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            stmt.execute(deleteLinks);
+            stmt.execute(deleteArtifacts);
+            logger.info("Đã xóa sạch (clear) CSDL Chỉ mục.");
+        }
+    }
+
+    @Override
+    public void insertArtifact(Artifact artifact) throws SQLException {
+        // TODO (Ngày 19): Lấy 'status' từ artifact.getFields().get("Trạng thái")
+        String status = "Draft"; // Giả định
+
+        String sql = "INSERT OR REPLACE INTO artifacts (id, name, type, status) VALUES(?,?,?,?);";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, artifact.getId());
+            pstmt.setString(2, artifact.getName());
+            pstmt.setString(3, artifact.getArtifactType());
+            pstmt.setString(4, status);
+            pstmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public void insertLink(String fromId, String toId) throws SQLException {
+        String sql = "INSERT OR IGNORE INTO links (fromId, toId) VALUES(?,?);";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, fromId);
+            pstmt.setString(2, toId);
+            pstmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public List<Artifact> queryArtifacts(String query) throws SQLException {
+        // (Sẽ triển khai logic cho Ngày 21)
+        logger.warn("queryArtifacts() chưa được triển khai đầy đủ.");
+        return new ArrayList<>();
+    }
+
+    @Override
+    public List<Artifact> queryBacklinks(String artifactId) throws SQLException {
+        // (Sẽ triển khai logic cho Ngày 22)
+        logger.warn("queryBacklinks() chưa được triển khai đầy đủ.");
+        return new ArrayList<>();
+    }
+}

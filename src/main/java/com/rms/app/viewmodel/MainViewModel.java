@@ -12,6 +12,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import com.rms.app.service.IProjectStateService;
+import com.rms.app.service.ISearchService;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class MainViewModel {
 
@@ -39,18 +41,23 @@ public class MainViewModel {
     private final IViewManager viewManager;
     private final IProjectStateService projectStateService;
     private final IArtifactRepository artifactRepository;
+    private final ISearchService searchService;
+
+    private final ObservableList<String> currentBacklinks = FXCollections.observableArrayList();
 
     @Inject
     public MainViewModel(IProjectService projectService,
                          ITemplateService templateService,
                          IViewManager viewManager,
                          IProjectStateService projectStateService,
-                         IArtifactRepository artifactRepository) {
+                         IArtifactRepository artifactRepository,
+                         ISearchService searchService) {
         this.projectService = projectService;
         this.templateService = templateService;
         this.viewManager = viewManager;
         this.projectStateService = projectStateService;
         this.artifactRepository = artifactRepository;
+        this.searchService = searchService;
 
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
         this.openTabs = FXCollections.observableArrayList();
@@ -86,6 +93,45 @@ public class MainViewModel {
             } catch (Exception e) {
                 logger.error("Lỗi tự động refresh cây thư mục", e);
             }
+        }
+    }
+
+    /**
+     * Getter cho Backlinks
+     */
+    public ObservableList<String> getCurrentBacklinks() {
+        return currentBacklinks;
+    }
+
+    /**
+     * Logic cập nhật Backlinks khi đổi Tab
+     * (Sẽ được gọi bởi MainView)
+     */
+    public void updateBacklinks(Tab selectedTab) {
+        currentBacklinks.clear();
+        if (selectedTab == null || "Welcome".equals(selectedTab.getText())) {
+            currentBacklinks.add("(Chọn một artifact để xem)");
+            return;
+        }
+
+        String artifactId = selectedTab.getText();
+        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder")) {
+            currentBacklinks.add("(Không áp dụng)");
+            return;
+        }
+
+        try {
+            List<Artifact> backlinks = searchService.getBacklinks(artifactId);
+            if (backlinks.isEmpty()) {
+                currentBacklinks.add("(Không có liên kết ngược nào)");
+            } else {
+                for (Artifact backlink : backlinks) {
+                    currentBacklinks.add(backlink.getId() + ": " + backlink.getName());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Lỗi khi tải backlinks cho {}: {}", artifactId, e.getMessage());
+            currentBacklinks.add("(Lỗi khi tải backlinks)");
         }
     }
 

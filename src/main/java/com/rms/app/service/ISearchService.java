@@ -21,5 +21,12 @@ public interface ISearchService {
      */
     List<Artifact> search(String query);
 
-    // (Sẽ thêm getBacklinks(String id) ở Ngày 21)
+    /**
+     * [THÊM MỚI NGÀY 17] Tìm tất cả các artifact liên kết (link) đến artifactId này.
+     * Tham chiếu UC-MOD-03.
+     *
+     * @param artifactId ID của artifact (ví dụ: "UC001")
+     * @return Danh sách các Artifacts có chứa link "@UC001"
+     */
+    List<Artifact> getBacklinks(String artifactId);
 }

@@ -13,8 +13,8 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.ContextMenu;
 import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.ITemplateService;
-import javafx.scene.input.MouseButton; // Thêm import
-import javafx.scene.input.MouseEvent; // Thêm import
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -39,7 +39,7 @@ public class MainView {
 
     @FXML
     public void initialize() {
-        viewModel.setMainTabPane(mainTabPane); // Thêm dòng này
+        viewModel.setMainTabPane(mainTabPane);
 
         projectTreeView.rootProperty().bind(viewModel.projectRootProperty());
         statusLabel.textProperty().bind(projectStateService.statusMessageProperty());
@@ -58,14 +58,45 @@ public class MainView {
         });
 
         setupTreeViewContextMenu();
-        setupTreeViewClickListener(); // Thêm hàm (Sửa Lỗi 1)
+        setupTreeViewClickListener();
+        setupBacklinksPanel();
 
         System.out.println("MainView initialized. ViewModel is: " + viewModel);
     }
 
     /**
-     * [THÊM MỚI] Thêm listener cho double-click (Sửa Lỗi 1)
+     * Triển khai UI cho Backlinks
      */
+    private void setupBacklinksPanel() {
+        ListView<String> backlinksListView = new ListView<>();
+        backlinksListView.setItems(viewModel.getCurrentBacklinks());
+        TitledPane backlinksPane = new TitledPane("Backlinks (Liên kết ngược)", backlinksListView);
+
+        // Thêm vào Accordion ở Cột Phải
+        rightAccordion.getPanes().add(backlinksPane);
+        rightAccordion.setExpandedPane(backlinksPane); // Mở sẵn pane này
+
+        // Thêm listener lắng nghe sự kiện đổi tab
+        mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            viewModel.updateBacklinks(newTab);
+        });
+
+        // Cập nhật cho tab "Welcome" (tab đầu tiên)
+        viewModel.updateBacklinks(mainTabPane.getSelectionModel().getSelectedItem());
+
+        // Thêm listener double-click để điều hướng (Giống UC-DEV-02)
+        backlinksListView.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+                String selected = backlinksListView.getSelectionModel().getSelectedItem();
+                if (selected != null && selected.contains(":")) {
+                    String artifactId = selected.split(":")[0].trim();
+                    // Gọi hàm openArtifact (cần thêm .json để khớp logic)
+                    viewModel.openArtifact(artifactId + ".json");
+                }
+            }
+        });
+    }
+
     private void setupTreeViewClickListener() {
         projectTreeView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {

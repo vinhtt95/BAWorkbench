@@ -3,6 +3,7 @@ package com.rms.app.config;
 import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
 import com.rms.app.repository.JsonFileRepository;
+import com.rms.app.repository.SqliteIndexRepository;
 import com.rms.app.service.*;
 import com.rms.app.service.impl.*;
 import com.rms.app.viewmodel.MainViewModel;
@@ -29,5 +30,7 @@ public class GuiceModule extends AbstractModule {
 
         // Repositories (DIP)
         bind(IArtifactRepository.class).to(JsonFileRepository.class).in(Singleton.class);
+
+        bind(ISqliteIndexRepository.class).to(SqliteIndexRepository.class).in(Singleton.class);
     }
 }

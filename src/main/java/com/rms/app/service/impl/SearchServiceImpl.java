@@ -90,4 +90,38 @@ public class SearchServiceImpl implements ISearchService {
                 .limit(10) // Giới hạn 10 kết quả
                 .collect(Collectors.toList());
     }
+
+    /**
+     * [THÊM MỚI NGÀY 17] Triển khai logic getBacklinks (Phiên bản 1: Quét cache)
+     */
+    @Override
+    public List<Artifact> getBacklinks(String artifactId) {
+        if (artifactId == null || artifactId.isEmpty()) {
+            return new ArrayList<>();
+        }
+        // Định dạng liên kết chuẩn, ví dụ: "@UC001"
+        String fullLink = "@" + artifactId;
+        List<Artifact> results = new ArrayList<>();
+
+        for (Artifact artifact : artifactCache.values()) {
+            // Bỏ qua, không tự liên kết đến chính mình
+            if (artifact.getId().equals(artifactId)) {
+                continue;
+            }
+
+            if (artifact.getFields() != null) {
+                /**
+                 * Đây là phiên bản 1 (theo kế hoạch ngày 17), quét chậm.
+                 * Chúng ta chỉ cần kiểm tra xem chuỗi đại diện của map
+                 * có chứa ID liên kết hay không.
+                 * (Sẽ được tối ưu bằng SQLite ở Giai đoạn 5)
+                 */
+                String fieldsAsString = artifact.getFields().toString();
+                if (fieldsAsString.contains(fullLink)) {
+                    results.add(artifact);
+                }
+            }
+        }
+        return results;
+    }
 }
