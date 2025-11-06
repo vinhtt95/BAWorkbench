@@ -43,7 +43,7 @@ public class MainApplication extends Application {
 
         primaryStage.setTitle("Requirements Management System (RMS) v1.0");
 
-        Scene scene = new Scene(root, 1280, 720);
+        Scene scene = new Scene(root, 1680, 1200);
 
         // SỬA LỖI: (Theo góp ý của bạn)
         // Thay đổi đường dẫn CSS sang tương đối

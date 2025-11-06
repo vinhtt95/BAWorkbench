@@ -3,7 +3,6 @@ package com.rms.app.view;
 import com.google.inject.Inject;
 import com.rms.app.service.IViewManager;
 import com.rms.app.viewmodel.MainViewModel;
-import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.DirectoryChooser;
@@ -45,17 +44,9 @@ public class MainView {
         statusLabel.textProperty().bind(projectStateService.statusMessageProperty());
         statusLabel.textProperty().bind(viewModel.statusMessageProperty());
 
-        mainTabPane.getTabs().setAll(viewModel.getOpenTabs());
-        viewModel.getOpenTabs().addListener((ListChangeListener<Tab>) c -> {
-            while (c.next()) {
-                if (c.wasAdded()) {
-                    mainTabPane.getTabs().addAll(c.getAddedSubList());
-                }
-                if (c.wasRemoved()) {
-                    mainTabPane.getTabs().removeAll(c.getRemoved());
-                }
-            }
-        });
+        Tab welcomeTab = new Tab("Welcome");
+        welcomeTab.setContent(new javafx.scene.control.Label("Chào mừng đến với RMS v1.0"));
+        mainTabPane.getTabs().add(welcomeTab);
 
         setupTreeViewContextMenu();
         setupTreeViewClickListener();

@@ -27,7 +27,6 @@ public class MainViewModel {
     private final IProjectService projectService;
 
     private final ObjectProperty<TreeItem<String>> projectRoot;
-    private final ObservableList<Tab> openTabs;
     private final StringProperty statusMessage;
     private final ObjectProperty<ProjectConfig> currentProject;
 
@@ -58,15 +57,10 @@ public class MainViewModel {
         this.indexService = indexService;
 
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
-        this.openTabs = FXCollections.observableArrayList();
         this.statusMessage = new SimpleStringProperty("Sẵn sàng.");
         this.currentProject = new SimpleObjectProperty<>(null);
 
         this.currentProjectDirectory = new SimpleObjectProperty<>(null);
-
-        Tab welcomeTab = new Tab("Welcome");
-        welcomeTab.setContent(new javafx.scene.control.Label("Chào mừng đến với RMS v1.0"));
-        this.openTabs.add(welcomeTab);
 
         /**
          * Thêm listener để tự động refresh TreeView khi có file mới.
@@ -157,14 +151,10 @@ public class MainViewModel {
         try {
             ArtifactTemplate template = templateService.loadTemplate(templateName);
 
-            /**
-             * [SỬA LỖI UX] Khi tạo mới, hệ thống cũng nên kiểm tra
-             * các tab đã mở để tránh trùng lặp. Tuy nhiên, logic
-             * này thường phức tạp hơn (ví dụ: mở file mới có tên trùng)
-             * nên tạm thời ta chỉ tập trung vào openArtifact.
-             */
             Tab newTab = viewManager.openArtifactTab(template);
-            this.openTabs.add(newTab);
+
+            this.mainTabPane.getTabs().add(newTab);
+
             mainTabPane.getSelectionModel().select(newTab);
 
         } catch (IOException e) {
@@ -187,7 +177,7 @@ public class MainViewModel {
         /**
          * [SỬA LỖI UX] Kiểm tra xem tab đã mở chưa
          */
-        for (Tab tab : openTabs) {
+        for (Tab tab : mainTabPane.getTabs()) {
             if (tab.getText().equals(id)) {
                 mainTabPane.getSelectionModel().select(tab);
                 logger.info("Tab cho {} đã mở, chuyển sang tab này.", id);
@@ -216,7 +206,7 @@ public class MainViewModel {
              * 3. Mở tab
              */
             Tab newTab = viewManager.openArtifactTab(artifact, template);
-            this.openTabs.add(newTab);
+            this.mainTabPane.getTabs().add(newTab);
             mainTabPane.getSelectionModel().select(newTab);
 
         } catch (IOException e) {
@@ -255,7 +245,8 @@ public class MainViewModel {
             Tab newTab = viewManager.openViewInNewTab(
                     "/com/rms/app/view/FormBuilderView.fxml", "Form Builder"
             );
-            this.openTabs.add(newTab);
+            this.mainTabPane.getTabs().add(newTab);
+            mainTabPane.getSelectionModel().select(newTab);
         } catch (IOException e) {
             /**
              * Lỗi đã được log bởi ViewManager
@@ -265,9 +256,6 @@ public class MainViewModel {
 
     public ObjectProperty<TreeItem<String>> projectRootProperty() {
         return projectRoot;
-    }
-    public ObservableList<Tab> getOpenTabs() {
-        return openTabs;
     }
     public StringProperty statusMessageProperty() {
         return statusMessage;
