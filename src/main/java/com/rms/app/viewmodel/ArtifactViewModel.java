@@ -2,19 +2,21 @@ package com.rms.app.viewmodel;
 
 import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
-import com.rms.app.model.ArtifactTemplate;
+import com.rms.app.model.FlowStep;
 import com.rms.app.service.IArtifactRepository;
+import com.rms.app.service.IProjectStateService;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.Property;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import com.rms.app.service.IProjectStateService;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,39 +81,55 @@ public class ArtifactViewModel {
         });
     }
 
+    public ObservableList<FlowStep> getFlowStepProperty(String fieldName) {
+        Property<?> existing = dynamicFields.get(fieldName);
+        if (existing != null) {
+            return (ObservableList<FlowStep>) existing.getValue();
+        }
+
+        // Tạo mới nếu chưa có
+        ObservableList<FlowStep> list = FXCollections.observableArrayList();
+        SimpleListProperty<FlowStep> property = new SimpleListProperty<>(list);
+
+        // Kích hoạt auto-save khi list thay đổi
+        list.addListener((javafx.collections.ListChangeListener.Change<? extends FlowStep> c) -> triggerAutoSave());
+
+        dynamicFields.put(fieldName, property);
+        return list;
+    }
+
     private void triggerAutoSave() {
         // 9.0. (Auto-save) BA dừng nhập liệu
         autoSaveTimer.playFromStart();
     }
 
     private void saveArtifact() {
-        // 10.0. Hệ thống tự động kích hoạt lưu
         logger.debug("Kích hoạt Auto-save...");
-
         try {
-            // 1. Cập nhật ID nếu là lần lưu đầu tiên
             if (artifact.getId() == null) {
-                // 11.0. Hệ thống gán một ID duy nhất
                 // TODO: Logic tạo ID tốt hơn (dùng prefix từ template)
                 String newId = "NEW-" + System.currentTimeMillis();
                 artifact.setId(newId);
-                id.set(newId); // Cập nhật UI
+                artifact.setArtifactType("TEMP_TYPE"); // TODO: Lấy từ template
+                id.set(newId);
             }
 
-            // 2. Đồng bộ (sync) dữ liệu từ Properties -> Model (Artifact)
             artifact.setName(name.get());
+
+            // 15.0. Đảm bảo ViewModel cập nhật đúng cấu trúc Flow
             for (Map.Entry<String, Property<?>> entry : dynamicFields.entrySet()) {
-                artifact.getFields().put(entry.getKey(), entry.getValue().getValue());
+                if (entry.getValue() instanceof SimpleListProperty) {
+                    // Nếu là FlowStep list
+                    artifact.getFields().put(entry.getKey(), new ArrayList<>(((SimpleListProperty) entry.getValue()).get()));
+                } else {
+                    // Nếu là StringProperty
+                    artifact.getFields().put(entry.getKey(), entry.getValue().getValue());
+                }
             }
 
-            // 3. Gọi Repository để lưu
-            // 12.0. Hệ thống lưu dữ liệu Form vào file .json
             artifactRepository.save(artifact);
-
             projectStateService.setStatusMessage("Đã lưu " + artifact.getId());
-
         } catch (IOException e) {
-            // 1.0.E1: Lỗi Auto-save
             logger.error("Lỗi Auto-save", e);
             projectStateService.setStatusMessage("Lỗi Auto-save: " + e.getMessage());
         }
