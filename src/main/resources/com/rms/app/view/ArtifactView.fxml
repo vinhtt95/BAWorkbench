@@ -4,8 +4,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.rms.app.view.ArtifactView">
+<BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1">
     <center>
         <ScrollPane fitToWidth="true" style="-fx-padding: 10;">
             <VBox fx:id="formContainer" spacing="5"/>
