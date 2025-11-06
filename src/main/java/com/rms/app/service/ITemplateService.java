@@ -3,9 +3,11 @@ package com.rms.app.service;
 import com.rms.app.model.ArtifactTemplate;
 
 import java.io.IOException;
-import java.util.List; // Thêm import
+import java.util.List;
 
-// Interface cho DIP (SOLID)
+/**
+ * Interface cho DIP (SOLID)
+ */
 public interface ITemplateService {
 
     /**
@@ -20,10 +22,19 @@ public interface ITemplateService {
     ArtifactTemplate loadTemplate(String templateName) throws IOException;
 
     /**
-     * [THÊM MỚI] Quét thư mục .config và trả về tên của tất cả template
+     * Quét thư mục .config và trả về tên của tất cả template
      *
      * @return Danh sách tên các template (ví dụ: "Use Case", "Task")
      * @throws IOException Nếu không thể đọc thư mục
      */
     List<String> loadAllTemplateNames() throws IOException;
+
+    /**
+     * [THÊM MỚI] Tìm và tải một template bằng Prefix ID của nó (ví dụ: "UC").
+     *
+     * @param prefix Prefix ID (ví dụ: "UC", "BR")
+     * @return ArtifactTemplate tìm thấy, hoặc null nếu không tìm thấy
+     * @throws IOException Nếu xảy ra lỗi đọc file
+     */
+    ArtifactTemplate loadTemplateByPrefix(String prefix) throws IOException;
 }

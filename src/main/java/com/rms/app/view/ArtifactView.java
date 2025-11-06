@@ -1,6 +1,7 @@
 package com.rms.app.view;
 
 import com.google.inject.Inject;
+import com.rms.app.model.Artifact;
 import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.service.IRenderService;
 import com.rms.app.viewmodel.ArtifactViewModel;
@@ -10,18 +11,19 @@ import javafx.scene.layout.VBox;
 
 import java.util.List;
 
-
+/**
+ * "Dumb" View Controller cho ArtifactView.fxml.
+ * Chịu trách nhiệm render Form động.
+ */
 public class ArtifactView {
 
     @FXML private VBox formContainer;
 
-    // View này cần ViewModel của chính nó VÀ RenderService
     private final ArtifactViewModel viewModel;
     private final IRenderService renderService;
 
-    // Đây là "tham số" được truyền vào khi View được tạo
-    // (Chúng ta sẽ implement logic này trong IViewManager)
     private ArtifactTemplate templateToRender;
+    private Artifact artifactToLoad;
 
     @Inject
     public ArtifactView(ArtifactViewModel viewModel, IRenderService renderService) {
@@ -37,10 +39,25 @@ public class ArtifactView {
         this.templateToRender = template;
     }
 
+    /**
+     * Hàm này được IViewManager gọi (nếu là mở file)
+     */
+    public void setArtifact(Artifact artifact) {
+        this.artifactToLoad = artifact;
+    }
+
     @FXML
     public void initialize() {
+        /**
+         * [SỬA LỖI] Khởi tạo ViewModel với cả template (để biết prefix)
+         * và artifact (để biết data).
+         */
+        viewModel.initializeData(templateToRender, artifactToLoad);
+
         if (templateToRender != null) {
-            // 3.0. Hệ thống tự động sinh ra giao diện Form
+            /**
+             * Bây giờ, RenderService sẽ lấy dữ liệu đã load từ ViewModel
+             */
             List<Node> formNodes = renderService.renderForm(templateToRender, viewModel);
             formContainer.getChildren().addAll(formNodes);
         } else {

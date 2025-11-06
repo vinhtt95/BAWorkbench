@@ -1,8 +1,10 @@
 package com.rms.app.viewmodel;
 
 import com.google.inject.Inject;
+import com.rms.app.model.Artifact; // Thêm import
 import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.ProjectConfig;
+import com.rms.app.service.IArtifactRepository; // Thêm import
 import com.rms.app.service.IProjectService;
 import com.rms.app.service.ITemplateService;
 import com.rms.app.service.IViewManager;
@@ -14,6 +16,7 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TreeItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,35 +29,34 @@ public class MainViewModel {
     private static final Logger logger = LoggerFactory.getLogger(MainViewModel.class);
     private final IProjectService projectService;
 
-    // --- Properties cho View Binding ---
     private final ObjectProperty<TreeItem<String>> projectRoot;
     private final ObservableList<Tab> openTabs;
     private final StringProperty statusMessage;
     private final ObjectProperty<ProjectConfig> currentProject;
 
-    // SỬA LỖI: Thêm property để lưu trữ thư mục gốc
     private final ObjectProperty<File> currentProjectDirectory;
     private final ITemplateService templateService;
     private final IViewManager viewManager;
     private final IProjectStateService projectStateService;
+    private final IArtifactRepository artifactRepository; // Thêm import
 
     @Inject
     public MainViewModel(IProjectService projectService,
                          ITemplateService templateService,
                          IViewManager viewManager,
-                         IProjectStateService projectStateService) {
+                         IProjectStateService projectStateService,
+                         IArtifactRepository artifactRepository) { // Cập nhật constructor
         this.projectService = projectService;
         this.templateService = templateService;
         this.viewManager = viewManager;
         this.projectStateService = projectStateService;
+        this.artifactRepository = artifactRepository; // Thêm import
 
-        // Khởi tạo
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
         this.openTabs = FXCollections.observableArrayList();
         this.statusMessage = new SimpleStringProperty("Sẵn sàng.");
         this.currentProject = new SimpleObjectProperty<>(null);
 
-        // SỬA LỖI: Khởi tạo property
         this.currentProjectDirectory = new SimpleObjectProperty<>(null);
 
         Tab welcomeTab = new Tab("Welcome");
@@ -69,7 +71,6 @@ public class MainViewModel {
         try {
             boolean success = projectService.createProject(projectName, directory);
             if (success) {
-                // SỬA LỖI: Lưu lại thư mục dự án
                 this.currentProjectDirectory.set(directory);
                 openProject(directory);
                 statusMessage.set("Tạo dự án mới thành công: " + projectName);
@@ -80,16 +81,58 @@ public class MainViewModel {
         }
     }
 
-    // Logic cho "New Artifact" (Ngày 10)
+    /**
+     * Logic cho "New Artifact"
+     */
     public void createNewArtifact(String templateName) {
         try {
-            // 2.0. Hệ thống đọc file cấu hình template
             ArtifactTemplate template = templateService.loadTemplate(templateName);
-            Tab newTab = viewManager.openArtifactTab(template);
+            Tab newTab = viewManager.openArtifactTab(template); // Gọi hàm cũ
             this.openTabs.add(newTab);
 
         } catch (IOException e) {
             logger.error("Không thể tải template: " + templateName, e);
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
+        }
+    }
+
+    /**
+     * [THÊM MỚI] Logic mở Artifact đã tồn tại
+     */
+    public void openArtifact(String fileName) {
+        if (fileName == null || !fileName.endsWith(".json")) {
+            logger.warn("Bỏ qua mở file không hợp lệ: {}", fileName);
+            return;
+        }
+
+        try {
+            String id = fileName.replace(".json", "");
+
+            /**
+             * 1. Load dữ liệu artifact
+             */
+            Artifact artifact = artifactRepository.load(id);
+            if (artifact == null) {
+                throw new IOException("Không tìm thấy artifact: " + id);
+            }
+
+            /**
+             * 2. Load template (form) tương ứng
+             */
+            ArtifactTemplate template = templateService.loadTemplateByPrefix(artifact.getArtifactType());
+            if (template == null) {
+                throw new IOException("Không tìm thấy template cho loại: " + artifact.getArtifactType());
+            }
+
+            /**
+             * 3. Mở tab bằng hàm (mới)
+             */
+            Tab newTab = viewManager.openArtifactTab(artifact, template);
+            this.openTabs.add(newTab);
+            mainTabPane.getSelectionModel().select(newTab); // Tự động focus tab mới
+
+        } catch (IOException e) {
+            logger.error("Lỗi mở artifact: " + fileName, e);
             projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
@@ -114,15 +157,10 @@ public class MainViewModel {
         }
     }
 
-
-    // --- Getters (và Properties) cho View binding ---
-
-    // SỬA LỖI: Getter cho Repository sử dụng
     public File getCurrentProjectDirectory() {
         return currentProjectDirectory.get();
     }
 
-    // THÊM MỚI: Logic mở Form Builder (do MainView gọi)
     public void openFormBuilderTab() {
         try {
             Tab newTab = viewManager.openViewInNewTab(
@@ -130,7 +168,9 @@ public class MainViewModel {
             );
             this.openTabs.add(newTab);
         } catch (IOException e) {
-            // Lỗi đã được log bởi ViewManager
+            /**
+             * Lỗi đã được log bởi ViewManager
+             */
         }
     }
 
@@ -142,5 +182,13 @@ public class MainViewModel {
     }
     public StringProperty statusMessageProperty() {
         return statusMessage;
+    }
+
+    /**
+     * [THÊM MỚI] Cần tham chiếu đến TabPane để focus tab
+     */
+    private TabPane mainTabPane;
+    public void setMainTabPane(TabPane mainTabPane) {
+        this.mainTabPane = mainTabPane;
     }
 }

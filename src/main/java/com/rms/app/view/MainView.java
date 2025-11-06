@@ -12,10 +12,12 @@ import javafx.stage.Stage;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ContextMenu;
 import com.rms.app.service.IProjectStateService;
-import com.rms.app.service.ITemplateService; // Thêm import
+import com.rms.app.service.ITemplateService;
+import javafx.scene.input.MouseButton; // Thêm import
+import javafx.scene.input.MouseEvent; // Thêm import
 import java.io.File;
-import java.io.IOException; // Thêm import
-import java.util.List; // Thêm import
+import java.io.IOException;
+import java.util.List;
 
 public class MainView {
 
@@ -26,17 +28,19 @@ public class MainView {
 
     private final MainViewModel viewModel;
     private final IProjectStateService projectStateService;
-    private final ITemplateService templateService; // Thêm service
+    private final ITemplateService templateService;
 
     @Inject
-    public MainView(MainViewModel viewModel, IProjectStateService projectStateService, ITemplateService templateService) { // Cập nhật constructor
+    public MainView(MainViewModel viewModel, IProjectStateService projectStateService, ITemplateService templateService) {
         this.viewModel = viewModel;
         this.projectStateService = projectStateService;
-        this.templateService = templateService; // Thêm service
+        this.templateService = templateService;
     }
 
     @FXML
     public void initialize() {
+        viewModel.setMainTabPane(mainTabPane); // Thêm dòng này
+
         projectTreeView.rootProperty().bind(viewModel.projectRootProperty());
         statusLabel.textProperty().bind(projectStateService.statusMessageProperty());
         statusLabel.textProperty().bind(viewModel.statusMessageProperty());
@@ -54,8 +58,26 @@ public class MainView {
         });
 
         setupTreeViewContextMenu();
+        setupTreeViewClickListener(); // Thêm hàm (Sửa Lỗi 1)
 
         System.out.println("MainView initialized. ViewModel is: " + viewModel);
+    }
+
+    /**
+     * [THÊM MỚI] Thêm listener cho double-click (Sửa Lỗi 1)
+     */
+    private void setupTreeViewClickListener() {
+        projectTreeView.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+                TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
+                if (selectedItem != null && selectedItem.isLeaf()) {
+                    String fileName = selectedItem.getValue();
+                    if (fileName.endsWith(".json")) {
+                        viewModel.openArtifact(fileName);
+                    }
+                }
+            }
+        });
     }
 
     private void setupTreeViewContextMenu() {
@@ -63,10 +85,6 @@ public class MainView {
 
         Menu newMenu = new Menu("New Artifact");
 
-        /**
-         * [SỬA LỖI 3] Đọc template động thay vì hard-code
-         * Thêm listener để menu tự cập nhật khi dự án được mở
-         */
         projectStateService.currentProjectDirectoryProperty().addListener((obs, oldDir, newDir) -> {
             newMenu.getItems().clear();
             if (newDir != null) {
@@ -89,9 +107,6 @@ public class MainView {
             }
         });
 
-        /**
-         * Kích hoạt lần đầu (trường hợp rỗng)
-         */
         newMenu.getItems().add(new MenuItem("(Mở dự án để xem template)"));
         treeContextMenu.getItems().add(newMenu);
 

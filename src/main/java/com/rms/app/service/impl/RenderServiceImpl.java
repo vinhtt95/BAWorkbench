@@ -73,6 +73,24 @@ public class RenderServiceImpl implements IRenderService {
      * @return Một Node (control) JavaFX
      */
     private Node createControlForField(ArtifactTemplate.FieldTemplate field, ArtifactViewModel viewModel) {
+
+        /**
+         * [SỬA LỖI 2] Xử lý Flow Builder riêng biệt TRƯỚC KHI
+         * gọi getFieldProperty để tránh xung đột map.
+         */
+        if ("Flow Builder".equals(field.getType())) {
+            try {
+                ObservableList<FlowStep> steps = viewModel.getFlowStepProperty(field.getName());
+                return loadFlowBuilderControl(steps);
+            } catch (IOException e) {
+                logger.error("Không thể tải FlowBuilderControl.fxml", e);
+                return new Label("Lỗi khi tải Flow Builder");
+            }
+        }
+
+        /**
+         * Logic cũ (hiện đã an toàn)
+         */
         var fieldProperty = viewModel.getFieldProperty(field.getName());
 
         switch (field.getType()) {
@@ -102,15 +120,6 @@ public class RenderServiceImpl implements IRenderService {
                 linkerField.setPromptText("Gõ @ để tìm kiếm...");
                 setupAutocomplete(linkerField);
                 return linkerField;
-
-            case "Flow Builder":
-                try {
-                    ObservableList<FlowStep> steps = viewModel.getFlowStepProperty(field.getName());
-                    return loadFlowBuilderControl(steps);
-                } catch (IOException e) {
-                    logger.error("Không thể tải FlowBuilderControl.fxml", e);
-                    return new Label("Lỗi khi tải Flow Builder");
-                }
 
             default:
                 logger.warn("Loại field không xác định: {}", field.getType());

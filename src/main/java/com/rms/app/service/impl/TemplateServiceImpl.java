@@ -12,12 +12,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files; // Thêm import
-import java.nio.file.Path; // Thêm import
-import java.util.ArrayList; // Thêm import
-import java.util.List; // Thêm import
-import java.util.stream.Collectors; // Thêm import
-import java.util.stream.Stream; // Thêm import
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TemplateServiceImpl implements ITemplateService {
 
@@ -25,7 +25,7 @@ public class TemplateServiceImpl implements ITemplateService {
     private final ObjectMapper objectMapper;
     private final IProjectStateService projectStateService;
 
-    private static final String TEMPLATE_SUFFIX = ".template.json"; // Thêm hằng số
+    private static final String TEMPLATE_SUFFIX = ".template.json";
 
     @Inject
     public TemplateServiceImpl(IProjectStateService projectStateService) {
@@ -75,33 +75,59 @@ public class TemplateServiceImpl implements ITemplateService {
     }
 
     /**
-     * [THÊM MỚI] Triển khai hàm loadAllTemplateNames
+     * Quét tất cả file .template.json trong thư mục .config
      */
-    @Override
-    public List<String> loadAllTemplateNames() throws IOException {
+    private List<Path> getAllTemplateFiles() throws IOException {
         File configDir = getConfigDirectory();
-        List<String> templateNames = new ArrayList<>();
-
         try (Stream<Path> paths = Files.walk(configDir.toPath(), 1)) {
-            List<Path> templateFiles = paths
+            return paths
                     .filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(TEMPLATE_SUFFIX))
                     .collect(Collectors.toList());
+        }
+    }
 
-            for (Path templateFile : templateFiles) {
-                try {
-                    /**
-                     * Đọc file template chỉ để lấy tên (templateName)
-                     */
-                    ArtifactTemplate template = objectMapper.readValue(templateFile.toFile(), ArtifactTemplate.class);
-                    if (template != null && template.getTemplateName() != null) {
-                        templateNames.add(template.getTemplateName());
-                    }
-                } catch (IOException e) {
-                    logger.error("Không thể đọc template file: {}", templateFile, e);
+    @Override
+    public List<String> loadAllTemplateNames() throws IOException {
+        List<Path> templateFiles = getAllTemplateFiles();
+        List<String> templateNames = new ArrayList<>();
+
+        for (Path templateFile : templateFiles) {
+            try {
+                ArtifactTemplate template = objectMapper.readValue(templateFile.toFile(), ArtifactTemplate.class);
+                if (template != null && template.getTemplateName() != null) {
+                    templateNames.add(template.getTemplateName());
                 }
+            } catch (IOException e) {
+                logger.error("Không thể đọc template file: {}", templateFile, e);
             }
         }
         return templateNames;
+    }
+
+    /**
+     * [THÊM MỚI] Triển khai hàm loadTemplateByPrefix
+     */
+    @Override
+    public ArtifactTemplate loadTemplateByPrefix(String prefix) throws IOException {
+        if (prefix == null || prefix.isEmpty()) {
+            return null;
+        }
+
+        List<Path> templateFiles = getAllTemplateFiles();
+
+        for (Path templateFile : templateFiles) {
+            try {
+                ArtifactTemplate template = objectMapper.readValue(templateFile.toFile(), ArtifactTemplate.class);
+                if (template != null && prefix.equals(template.getPrefixId())) {
+                    return template;
+                }
+            } catch (IOException e) {
+                logger.error("Không thể đọc template file khi tìm prefix: {}", templateFile, e);
+            }
+        }
+
+        logger.warn("Không tìm thấy template nào cho prefix: {}", prefix);
+        return null;
     }
 }

@@ -2,6 +2,7 @@ package com.rms.app.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import com.rms.app.model.Artifact; // Thêm import
 import com.rms.app.service.IViewManager;
 import com.rms.app.viewmodel.MainViewModel;
 import com.rms.app.model.ArtifactTemplate;
@@ -21,14 +22,14 @@ import java.net.URL;
 public class ViewManagerImpl implements IViewManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ViewManagerImpl.class);
-    private final Injector injector; // Dùng để load FXML Controller
+    private final Injector injector;
     private final IProjectStateService projectStateService;
     private Stage primaryStage;
 
     @Inject
-    public ViewManagerImpl(Injector injector, IProjectStateService projectStateService) { // SỬA
+    public ViewManagerImpl(Injector injector, IProjectStateService projectStateService) {
         this.injector = injector;
-        this.projectStateService = projectStateService; // SỬA
+        this.projectStateService = projectStateService;
     }
 
     @Override
@@ -43,7 +44,6 @@ public class ViewManagerImpl implements IViewManager {
             URL fxmlLocation = getClass().getResource(fxmlPath);
             loader.setLocation(fxmlLocation);
 
-            // Yêu cầu Guice tạo Controller (quan trọng)
             loader.setControllerFactory(injector::getInstance);
 
             Parent viewRoot = loader.load();
@@ -62,25 +62,40 @@ public class ViewManagerImpl implements IViewManager {
 
     @Override
     public Tab openArtifactTab(ArtifactTemplate template) throws IOException {
+        /**
+         * Gọi hàm mới, truyền artifact là null
+         */
+        return openArtifactTab(null, template);
+    }
+
+    /**
+     * [THÊM MỚI] Triển khai hàm mở artifact đã có
+     */
+    @Override
+    public Tab openArtifactTab(Artifact artifact, ArtifactTemplate template) throws IOException {
         String fxmlPath = "/com/rms/app/view/ArtifactView.fxml";
         try {
             FXMLLoader loader = new FXMLLoader();
             URL fxmlLocation = getClass().getResource(fxmlPath);
             loader.setLocation(fxmlLocation);
 
-            // 1. Yêu cầu Guice tạo Controller (nhưng chưa @Inject)
             ArtifactView controller = injector.getInstance(ArtifactView.class);
 
-            // 2. Truyền tham số template VÀO controller
+            /**
+             * Truyền cả template VÀ artifact (có thể null) vào
+             */
             controller.setTemplate(template);
+            controller.setArtifact(artifact); // Sẽ là null nếu tạo mới
 
-            // 3. Set controller này cho FXML
             loader.setController(controller);
 
-            Parent viewRoot = loader.load(); // (Lúc này initialize() của ArtifactView sẽ chạy)
+            Parent viewRoot = loader.load();
 
-            // 4.0. Hệ thống hiển thị Form này ("Form View") trong một Tab mới
-            Tab newTab = new Tab("New " + template.getPrefixId());
+            /**
+             * Đặt tên Tab dựa trên artifact (nếu có) hoặc template (nếu mới)
+             */
+            String tabTitle = (artifact != null) ? artifact.getId() : "New " + template.getPrefixId();
+            Tab newTab = new Tab(tabTitle);
             newTab.setContent(viewRoot);
             return newTab;
 
