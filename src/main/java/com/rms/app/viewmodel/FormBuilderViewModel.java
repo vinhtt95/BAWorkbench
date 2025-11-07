@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
- * [CẬP NHẬT NGÀY 27 - SỬA LỖI GĐ 2]
  * "Brain" - Logic UI cho FormBuilderView
  * Đã nâng cấp để hỗ trợ Sửa (Edit) và Cột Properties.
  */
@@ -29,9 +28,6 @@ public class FormBuilderViewModel {
     public final ObservableList<String> templateNames = FXCollections.observableArrayList();
 
     // --- Properties cho Template Editor ---
-    /**
-     * [SỬA LỖI] Vẫn là SimpleObjectProperty
-     */
     private SimpleObjectProperty<ArtifactTemplate> currentTemplate = new SimpleObjectProperty<>(null);
     public final StringProperty templateName = new SimpleStringProperty();
     public final StringProperty prefixId = new SimpleStringProperty();
@@ -45,13 +41,11 @@ public class FormBuilderViewModel {
             "Dropdown",
             "Linker (@ID)",
             "Flow Builder",
-            "DatePicker" // [THÊM MỚI NGÀY 27] Hỗ trợ UC-MGT-01
+            "DatePicker",
+            "Figma Link" // [THÊM MỚI] UC-DEV-04 (Ngày 37)
     );
 
     // --- Properties cho Cột Properties (MỚI) ---
-    /**
-     * [SỬA LỖI] Vẫn là SimpleObjectProperty
-     */
     private SimpleObjectProperty<ArtifactTemplate.FieldTemplate> selectedField = new SimpleObjectProperty<>(null);
     public final StringProperty currentFieldName = new SimpleStringProperty();
     public final StringProperty currentFieldType = new SimpleStringProperty();
@@ -69,11 +63,7 @@ public class FormBuilderViewModel {
         this.projectStateService = projectStateService;
 
         /**
-         * [SỬA LỖI] Logic binding thủ công cho Cột Properties.
-         * Khi selectedField (POJO) thay đổi:
-         * 1. Hủy listener cũ (nếu có).
-         * 2. Cập nhật currentFieldName (StringProperty) từ POJO (newField.getName()).
-         * 3. Thêm listener mới: Khi currentFieldName (StringProperty) thay đổi -> Cập nhật POJO (newField.setName()).
+         * Logic binding thủ công cho Cột Properties.
          */
         selectedField.addListener((obs, oldField, newField) -> {
 
@@ -90,12 +80,9 @@ public class FormBuilderViewModel {
 
                 // 2. Tạo listener mới để cập nhật Model (POJO) TỪ ViewModel
                 nameUpdateListener = (o, oldVal, newVal) -> {
-                    // Phải kiểm tra lại newField vì nó nằm trong closure
                     if (newField != null) {
                         newField.setName(newVal); // Cập nhật POJO
 
-                        // [SỬA LỖI] Phải refresh lại List (Hack)
-                        // Vì List không biết bên trong FieldTemplate đã thay đổi
                         int index = currentFields.indexOf(newField);
                         if (index != -1) {
                             currentFields.set(index, newField);
@@ -114,7 +101,7 @@ public class FormBuilderViewModel {
     }
 
     /**
-     * [MỚI] Tải tất cả tên template vào danh sách
+     * Tải tất cả tên template vào danh sách
      */
     public void loadTemplateNames() {
         try {
@@ -127,7 +114,7 @@ public class FormBuilderViewModel {
     }
 
     /**
-     * [MỚI] Tải dữ liệu của một template khi chọn
+     * Tải dữ liệu của một template khi chọn
      *
      * @param name Tên template
      */
@@ -144,13 +131,9 @@ public class FormBuilderViewModel {
             ArtifactTemplate template = templateService.loadTemplate(name);
             currentTemplate.set(template);
 
-            // Tải dữ liệu vào các properties
             templateName.set(template.getTemplateName());
             prefixId.set(template.getPrefixId());
 
-            // [SỬA LỖI] Phải tạo danh sách (List) các POJO mới
-            // mà POJO này phải hỗ trợ JavaFX (FieldTemplate đã không làm)
-            // Tạm thời chấp nhận rủi ro khi dùng trực tiếp
             currentFields.setAll(template.getFields());
 
             selectField(null); // Bỏ chọn
@@ -162,7 +145,7 @@ public class FormBuilderViewModel {
     }
 
     /**
-     * [MỚI] Tạo một template mới (trống)
+     * Tạo một template mới (trống)
      */
     public void createNewTemplate() {
         ArtifactTemplate template = new ArtifactTemplate();
@@ -179,7 +162,7 @@ public class FormBuilderViewModel {
     }
 
     /**
-     * [MỚI] Được gọi bởi View khi một field trong preview được click
+     * Được gọi bởi View khi một field trong preview được click
      *
      * @param field Field được chọn
      */
@@ -188,16 +171,14 @@ public class FormBuilderViewModel {
     }
 
     /**
-     * [SỬA LỖI] Trả về ReadOnlyProperty.
-     * Cách sửa là chỉ cần return `selectedField` vì `SimpleObjectProperty`
-     * đã implement (thực thi) `ReadOnlyObjectProperty`.
+     * Trả về ReadOnlyProperty.
      */
     public ReadOnlyObjectProperty<ArtifactTemplate.FieldTemplate> selectedFieldProperty() {
         return selectedField;
     }
 
     /**
-     * [SỬA LỖI] Tương tự, chỉ cần return `currentTemplate`.
+     * Trả về ReadOnlyProperty.
      */
     public ReadOnlyObjectProperty<ArtifactTemplate> currentTemplateProperty() {
         return currentTemplate;
@@ -205,7 +186,7 @@ public class FormBuilderViewModel {
 
 
     /**
-     * [CẬP NHẬT] Logic nghiệp vụ khi nhấn nút Save
+     * Logic nghiệp vụ khi nhấn nút Save
      */
     public void saveTemplate() {
         ArtifactTemplate template = currentTemplate.get();
@@ -214,18 +195,15 @@ public class FormBuilderViewModel {
             return;
         }
 
-        // Cập nhật dữ liệu từ Properties về Model
         template.setTemplateName(templateName.get());
         template.setPrefixId(prefixId.get());
         template.setFields(new ArrayList<>(currentFields)); // Chuyển đổi ObservableList thành List
 
         try {
-            // 8.0. BA nhấn "Save"
             templateService.saveTemplate(template);
             projectStateService.setStatusMessage("Đã lưu template: " + template.getTemplateName());
             logger.info("Lưu template thành công");
 
-            // Tải lại danh sách (nếu là template mới hoặc đổi tên)
             loadTemplateNames();
 
         } catch (IOException e) {

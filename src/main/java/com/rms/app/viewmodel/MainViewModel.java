@@ -74,7 +74,7 @@ public class MainViewModel {
         this.currentProjectDirectory = new SimpleObjectProperty<>(null);
 
         projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
-            if (newMsg != null && (newMsg.startsWith("Đã lưu") || newMsg.startsWith("Import hoàn tất"))) {
+            if (newMsg != null && (newMsg.startsWith("Đã lưu") || newMsg.startsWith("Import hoàn tất") || newMsg.startsWith("Hoàn tất."))) {
                 refreshProjectTree();
             }
         });
@@ -168,7 +168,7 @@ public class MainViewModel {
             mainTabPane.getSelectionModel().select(newTab);
         } catch (IOException e) {
             logger.error("Không thể tải template: " + templateName, e);
-            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: \"Ghi đè (Override)" + e.getMessage());
         }
     }
 
@@ -304,7 +304,7 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI] Mở tab Sơ đồ Quan hệ (UC-MOD-02).
+     * Mở tab Sơ đồ Quan hệ (UC-MOD-02).
      */
     public void openGraphViewTab() {
         if (projectStateService.getCurrentProjectDirectory() == null) {
@@ -542,6 +542,20 @@ public class MainViewModel {
                 projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
             }
         });
+    }
+
+    /**
+     * [THÊM MỚI] Kích hoạt (Trigger) UC-PM-04 (Ngày 37).
+     */
+    public void rebuildIndex() {
+        if (projectStateService.getCurrentProjectDirectory() == null) {
+            projectStateService.setStatusMessage("Lỗi: Vui lòng mở một dự án trước khi Tái lập Chỉ mục.");
+            return;
+        }
+        /**
+         * Service này đã tự xử lý (handle) luồng nền (background thread)
+         */
+        indexService.validateAndRebuildIndex();
     }
 
 

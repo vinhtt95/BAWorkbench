@@ -279,7 +279,7 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI] Xử lý sự kiện nhấn "View > Project Graph View".
+     * Xử lý sự kiện nhấn "View > Project Graph View".
      */
     @FXML
     private void handleOpenGraphView() {
@@ -319,6 +319,15 @@ public class MainView {
     @FXML
     private void handleImportExcel() {
         viewModel.openImportWizardTab();
+    }
+
+    /**
+     * [THÊM MỚI] Xử lý sự kiện nhấn nút "Rebuild Index".
+     * Tuân thủ UC-PM-04 (Ngày 37).
+     */
+    @FXML
+    private void handleRebuildIndex() {
+        viewModel.rebuildIndex();
     }
 
     /**

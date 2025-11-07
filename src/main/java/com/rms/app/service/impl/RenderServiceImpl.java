@@ -91,10 +91,6 @@ public class RenderServiceImpl implements IRenderService {
         if ("Flow Builder".equals(field.getType())) {
             try {
                 ObservableList<FlowStep> steps = viewModel.getFlowStepProperty(field.getName());
-                /**
-                 * [SỬA LỖI] Truyền (pass) viewModel vào control
-                 * để nút Gemini có thể gọi nó.
-                 */
                 return loadFlowBuilderControl(steps, viewModel);
             } catch (IOException e) {
                 logger.error("Không thể tải FlowBuilderControl.fxml", e);
@@ -133,6 +129,16 @@ public class RenderServiceImpl implements IRenderService {
                 ObjectProperty<LocalDate> dateProperty = viewModel.getLocalDateProperty(field.getName());
                 datePicker.valueProperty().bindBidirectional(dateProperty);
                 return datePicker;
+
+            /**
+             * [THÊM MỚI] Triển khai (implementation)
+             * Link đơn giản (UC-DEV-04)
+             */
+            case "Figma Link":
+                TextField figmaField = new TextField();
+                figmaField.textProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
+                figmaField.setPromptText("Dán (paste) link Figma...");
+                return figmaField;
 
             default:
                 logger.warn("Loại field không xác định: {}", field.getType());
@@ -249,9 +255,6 @@ public class RenderServiceImpl implements IRenderService {
         loader.setController(controller);
         Parent controlRoot = loader.load();
 
-        /**
-         * [SỬA LỖI] Inject (tiêm) ViewModel và Data (dữ liệu)
-         */
         controller.setData(steps);
         controller.setViewModel(viewModel);
 
