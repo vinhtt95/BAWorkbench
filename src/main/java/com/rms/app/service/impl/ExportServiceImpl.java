@@ -8,6 +8,7 @@ import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.ExportTemplate;
 import com.rms.app.model.ExportTemplateSection;
 import com.rms.app.service.*;
+import javafx.application.Platform; // [THÊM MỚI] Import
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -63,7 +64,12 @@ public class ExportServiceImpl implements IExportService {
      */
     @Override
     public void exportToExcel(File outputFile, List<String> templateNamesToExport) throws IOException {
-        projectStateService.setStatusMessage("Đang xuất ra Excel...");
+        /**
+         * ========================================================================
+         * ĐÃ SỬA LỖI (DÒNG NÀY)
+         * ========================================================================
+         */
+        Platform.runLater(() -> projectStateService.setStatusMessage("Đang xuất ra Excel..."));
         logger.info("Bắt đầu xuất Excel (UC-PUB-02) ra file: {}", outputFile.getAbsolutePath());
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
@@ -110,9 +116,10 @@ public class ExportServiceImpl implements IExportService {
                     for (Artifact summaryArtifact : artifacts) {
                         /**
                          * Tải (load) toàn bộ file .json (Source of Truth)
+                         * [SỬA LỖI] Sử dụng relativePath từ CSDL Chỉ mục
                          */
-                        Artifact fullArtifact = artifactRepository.load(
-                                template.getPrefixId() + File.separator + summaryArtifact.getId() + ".json");
+                        Artifact fullArtifact = artifactRepository.load(summaryArtifact.getRelativePath());
+
 
                         Row row = sheet.createRow(rowNum++);
 
@@ -150,12 +157,22 @@ public class ExportServiceImpl implements IExportService {
             try (FileOutputStream out = new FileOutputStream(outputFile)) {
                 workbook.write(out);
             }
-            projectStateService.setStatusMessage("Xuất Excel thành công: " + outputFile.getName());
+            /**
+             * ========================================================================
+             * ĐÃ SỬA LỖI (DÒNG NÀY)
+             * ========================================================================
+             */
+            Platform.runLater(() -> projectStateService.setStatusMessage("Xuất Excel thành công: " + outputFile.getName()));
             logger.info("Xuất Excel thành công.");
 
         } catch (Exception e) {
             logger.error("Lỗi nghiêm trọng khi tạo Workbook Excel", e);
-            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
+            /**
+             * ========================================================================
+             * ĐÃ SỬA LỖI (DÒNG NÀY)
+             * ========================================================================
+             */
+            Platform.runLater(() -> projectStateService.setStatusMessage("Lỗi: " + e.getMessage()));
             throw new IOException("Lỗi khi ghi file Excel: " + e.getMessage(), e);
         }
     }
@@ -195,7 +212,12 @@ public class ExportServiceImpl implements IExportService {
      */
     @Override
     public void exportMarkdownToPdf(String markdownContent, File outputFile) throws IOException, InterruptedException {
-        projectStateService.setStatusMessage("Đang tạo file PDF...");
+        /**
+         * ========================================================================
+         * ĐÃ SỬA LỖI (DÒNG NÀY)
+         * ========================================================================
+         */
+        Platform.runLater(() -> projectStateService.setStatusMessage("Đang tạo file PDF..."));
 
         /**
          * Bước 8.0 (UC-PUB-01): Lưu file Markdown trung gian (temp)
@@ -249,7 +271,12 @@ public class ExportServiceImpl implements IExportService {
             }
 
             logger.info("Tạo file PDF thành công: {}", outputFile.getAbsolutePath());
-            projectStateService.setStatusMessage("Xuất PDF thành công: " + outputFile.getName());
+            /**
+             * ========================================================================
+             * ĐÃ SỬA LỖI (DÒNG NÀY)
+             * ========================================================================
+             */
+            Platform.runLater(() -> projectStateService.setStatusMessage("Xuất PDF thành công: " + outputFile.getName()));
 
         } finally {
             /**
@@ -275,7 +302,12 @@ public class ExportServiceImpl implements IExportService {
      */
     @Override
     public void exportToDocument(File outputFile, String exportTemplateName, String releaseIdFilter) throws IOException, InterruptedException {
-        projectStateService.setStatusMessage("Đang tổng hợp tài liệu...");
+        /**
+         * ========================================================================
+         * ĐÃ SỬA LỖI (DÒNG NÀY)
+         * ========================================================================
+         */
+        Platform.runLater(() -> projectStateService.setStatusMessage("Đang tổng hợp tài liệu..."));
         logger.info("Bắt đầu xuất tài liệu (UC-PUB-01) theo template: {}", exportTemplateName);
 
         /**
@@ -335,7 +367,12 @@ public class ExportServiceImpl implements IExportService {
          * Bước 8.0 & 9.0 (UC-PUB-01): Gọi Pandoc (từ Ngày 31)
          */
         exportMarkdownToPdf(mdBuilder.toString(), outputFile);
-        projectStateService.setStatusMessage("Xuất tài liệu thành công: " + outputFile.getName());
+        /**
+         * ========================================================================
+         * ĐÃ SỬA LỖI (DÒNG NÀY)
+         * ========================================================================
+         */
+        Platform.runLater(() -> projectStateService.setStatusMessage("Xuất tài liệu thành công: " + outputFile.getName()));
     }
 
     /**
@@ -360,7 +397,26 @@ public class ExportServiceImpl implements IExportService {
              * Bước 7.5 (UC-PUB-01): Đọc file .md (đã auto-gen)
              */
             for (Artifact artifact : artifacts) {
-                String relativePath = artifact.getArtifactType() + File.separator + artifact.getId() + ".md";
+                /**
+                 * ========================================================================
+                 * ĐÃ SỬA LỖI (KHỐI NÀY)
+                 * ========================================================================
+                 */
+                // [SỬA LỖI] Lấy (Get) đường dẫn (path) .json từ CSDL Chỉ mục (Index DB)
+                String jsonRelativePath = artifact.getRelativePath();
+                if (jsonRelativePath == null || jsonRelativePath.isEmpty()) {
+                    logger.error("Không thể tải (load) artifact {}: relativePath là null. Bỏ qua.", artifact.getId());
+                    mdBuilder.append("*Lỗi: Không tìm thấy đường dẫn (path) cho ").append(artifact.getId()).append("*\n\n---\n\n");
+                    continue;
+                }
+
+                // [SỬA LỖI] Thay thế (Replace) đuôi (extension) .json thành .md
+                String relativePath = jsonRelativePath.replace(".json", ".md");
+                /**
+                 * ========================================================================
+                 * HẾT PHẦN SỬA LỖI
+                 * ========================================================================
+                 */
                 try {
                     String mdContent = artifactRepository.loadMarkdown(relativePath);
                     mdBuilder.append(mdContent);

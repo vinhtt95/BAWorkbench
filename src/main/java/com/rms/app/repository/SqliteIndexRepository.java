@@ -387,7 +387,17 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                results.add(rs.getString("status"));
+                /**
+                 * ========================================================================
+                 * ĐÃ SỬA LỖI (DÒNG NÀY)
+                 * ========================================================================
+                 */
+                results.add(rs.getString("type")); // Sửa từ "status" thành "type"
+                /**
+                 * ========================================================================
+                 * HẾT PHẦN SỬA LỖI
+                 * ========================================================================
+                 */
             }
         }
         return results;
