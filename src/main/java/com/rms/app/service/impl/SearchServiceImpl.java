@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * [TÁI CẤU TRÚC NGÀY 21 & 22]
  * Triển khai ISearchService.
  * Dịch vụ này hiện truy vấn trực tiếp CSDL Chỉ mục (SQLite).
  */
@@ -27,7 +26,6 @@ public class SearchServiceImpl implements ISearchService {
     private final ISqliteIndexRepository indexRepository;
 
     /**
-     * [THÊM MỚI NGÀY 29]
      * Inject IArtifactRepository để hỗ trợ việc Load/Save (Triple-Write)
      * khi cập nhật trạng thái từ Kanban.
      */
@@ -51,7 +49,6 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     /**
-     * [TÁI CẤU TRÚC NGÀY 21]
      * Tìm kiếm CSDL chỉ mục (SQLite) cho autocomplete.
      * Tham chiếu (F-DEV-06)
      *
@@ -69,7 +66,6 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     /**
-     * [TÁI CẤU TRÚC NGÀY 22]
      * Tìm kiếm CSDL chỉ mục (SQLite) cho backlinks.
      * Tham chiếu (F-MOD-03)
      *
@@ -90,7 +86,6 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     /**
-     * [THÊM MỚI NGÀY 28]
      * Triển khai logic nghiệp vụ cho Kanban (UC-MGT-02).
      *
      * @return Map (Ánh xạ) {Status -> List<Artifact>}
@@ -118,7 +113,6 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     /**
-     * [THÊM MỚI NGÀY 29]
      * Triển khai logic cập nhật trạng thái (F-MGT-03).
      *
      * @param artifact   Đối tượng (chỉ chứa ID, Type) được kéo
@@ -133,7 +127,6 @@ public class SearchServiceImpl implements ISearchService {
 
         /**
          * 1. Xác định đường dẫn tương đối (Relative Path)
-         * Cần có ArtifactType để xác định thư mục con.
          */
         if (artifact.getArtifactType() == null) {
             throw new IOException("ArtifactType là null, không thể xác định đường dẫn file.");
@@ -152,13 +145,29 @@ public class SearchServiceImpl implements ISearchService {
         fullArtifact.getFields().put("Trạng thái", newStatus);
 
         /**
-         * 4. Lưu (Save)
-         * Hành động này sẽ kích hoạt Triple-Write:
-         * - Ghi file .json (Source of Truth)
-         * - Ghi file .md (Git Mirror)
-         * - Cập nhật CSDL Chỉ mục (index.db), bao gồm cả cột 'status'
+         * 4. Lưu (Save) (Kích hoạt Triple-Write)
          */
         artifactRepository.save(fullArtifact);
         logger.info("Đã cập nhật trạng thái của {} thành {}", artifact.getId(), newStatus);
+    }
+
+    /**
+     * [THÊM MỚI] Triển khai (implementation)
+     * logic lấy (fetch) dữ liệu (data) đồ thị (UC-MOD-02).
+     *
+     * @return Map (Ánh xạ) chứa "nodes" và "edges"
+     * @throws IOException Nếu lỗi CSDL (SQL)
+     */
+    @Override
+    public Map<String, List<Map<String, String>>> getGraphData() throws IOException {
+        try {
+            Map<String, List<Map<String, String>>> data = new HashMap<>();
+            data.put("nodes", indexRepository.getAllNodes());
+            data.put("edges", indexRepository.getAllEdges());
+            return data;
+        } catch (SQLException e) {
+            logger.error("Lỗi SQL nghiêm trọng khi lấy (fetch) dữ liệu đồ thị (graph)", e);
+            throw new IOException("Không thể tải (load) dữ liệu Sơ đồ Quan hệ. Lỗi CSDL.", e);
+        }
     }
 }

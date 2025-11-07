@@ -117,7 +117,7 @@ public class MainViewModel {
             return;
         }
         String artifactId = selectedTab.getText();
-        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard") || artifactId.startsWith("Export Templates") || artifactId.startsWith("Import Wizard")) {
+        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard") || artifactId.startsWith("Export Templates") || artifactId.startsWith("Import Wizard") || artifactId.startsWith("Project Graph")) {
             currentBacklinks.add("(Không áp dụng)");
             return;
         }
@@ -300,6 +300,25 @@ public class MainViewModel {
             mainTabPane.getSelectionModel().select(newTab);
         } catch (IOException e) {
             logger.error("Không thể tải DashboardView", e);
+        }
+    }
+
+    /**
+     * [THÊM MỚI] Mở tab Sơ đồ Quan hệ (UC-MOD-02).
+     */
+    public void openGraphViewTab() {
+        if (projectStateService.getCurrentProjectDirectory() == null) {
+            projectStateService.setStatusMessage("Lỗi: Vui lòng mở một dự án trước.");
+            return;
+        }
+        try {
+            Tab newTab = viewManager.openViewInNewTab(
+                    "/com/rms/app/view/ProjectGraphView.fxml", "Project Graph"
+            );
+            this.mainTabPane.getTabs().add(newTab);
+            mainTabPane.getSelectionModel().select(newTab);
+        } catch (IOException e) {
+            logger.error("Không thể tải ProjectGraphView", e);
         }
     }
 
@@ -497,7 +516,7 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI] Mở Dialog (Cửa sổ) Cấu hình API Key (UC-CFG-04).
+     * Mở Dialog (Cửa sổ) Cấu hình API Key (UC-CFG-04).
      */
     public void openApiKeysDialog() {
         if (projectStateService.getCurrentProjectDirectory() == null) {

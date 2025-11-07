@@ -4,6 +4,7 @@ import com.rms.app.model.Artifact;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map; // [THÊM MỚI] Import
 
 /**
  * Interface (cho DIP) của Lớp Chỉ mục SQLite.
@@ -128,4 +129,22 @@ public interface ISqliteIndexRepository {
      * @throws SQLException Nếu lỗi CSDL
      */
     List<Artifact> queryArtifactsByCriteria(String type, String status, String releaseId) throws SQLException;
+
+    /**
+     * [THÊM MỚI] Lấy tất cả các Nút (Node) cho Sơ đồ Quan hệ (Graph).
+     * (UC-MOD-02)
+     *
+     * @return Danh sách các Map (Ánh xạ) {id, label, group}
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    List<Map<String, String>> getAllNodes() throws SQLException;
+
+    /**
+     * [THÊM MỚI] Lấy tất cả các Cạnh (Edge) cho Sơ đồ Quan hệ (Graph).
+     * (UC-MOD-02)
+     *
+     * @return Danh sách các Map (Ánh xạ) {from, to}
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    List<Map<String, String>> getAllEdges() throws SQLException;
 }

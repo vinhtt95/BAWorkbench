@@ -279,6 +279,14 @@ public class MainView {
     }
 
     /**
+     * [THÊM MỚI] Xử lý sự kiện nhấn "View > Project Graph View".
+     */
+    @FXML
+    private void handleOpenGraphView() {
+        viewModel.openGraphViewTab();
+    }
+
+    /**
      * Xử lý sự kiện nhấn "File > Export to Excel...".
      */
     @FXML
@@ -314,7 +322,7 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI] Xử lý sự kiện nhấn "Settings > API Keys..."
+     * Xử lý sự kiện nhấn "Settings > API Keys..."
      * Tuân thủ UC-CFG-04 (Ngày 35).
      */
     @FXML

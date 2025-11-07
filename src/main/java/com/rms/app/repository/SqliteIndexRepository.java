@@ -9,7 +9,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap; // [THÊM MỚI] Import
 import java.util.List;
+import java.util.Map; // [THÊM MỚI] Import
 
 /**
  * Triển khai (implementation) logic I/O cho CSDL Chỉ mục (SQLite).
@@ -288,6 +290,52 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
                 artifact.setName(rs.getString("name"));
                 artifact.setArtifactType(rs.getString("type"));
                 results.add(artifact);
+            }
+        }
+        return results;
+    }
+
+    /**
+     * [THÊM MỚI] Triển khai (implementation) (UC-MOD-02)
+     */
+    @Override
+    public List<Map<String, String>> getAllNodes() throws SQLException {
+        List<Map<String, String>> results = new ArrayList<>();
+        /**
+         * 'label' và 'group' là các key (khóa) được vis.js yêu cầu
+         */
+        String sql = "SELECT id, name AS label, type AS 'group' FROM artifacts;";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Map<String, String> node = new HashMap<>();
+                node.put("id", rs.getString("id"));
+                node.put("label", rs.getString("label"));
+                node.put("group", rs.getString("group"));
+                results.add(node);
+            }
+        }
+        return results;
+    }
+
+    /**
+     * [THÊM MỚI] Triển khai (implementation) (UC-MOD-02)
+     */
+    @Override
+    public List<Map<String, String>> getAllEdges() throws SQLException {
+        List<Map<String, String>> results = new ArrayList<>();
+        /**
+         * 'from' và 'to' là các key (khóa) được vis.js yêu cầu
+         */
+        String sql = "SELECT fromId AS 'from', toId AS 'to' FROM links;";
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Map<String, String> edge = new HashMap<>();
+                edge.put("from", rs.getString("from"));
+                edge.put("to", rs.getString("to"));
+                results.add(edge);
             }
         }
         return results;

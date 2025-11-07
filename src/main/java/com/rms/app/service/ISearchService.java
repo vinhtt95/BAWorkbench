@@ -43,7 +43,6 @@ public interface ISearchService {
     Map<String, List<Artifact>> getArtifactsGroupedByStatus();
 
     /**
-     * [THÊM MỚI NGÀY 29]
      * Cập nhật Trạng thái (Status) của một artifact.
      * Tuân thủ UC-MGT-02 (Luồng 1.0, Bước 7.0) và F-MGT-03.
      *
@@ -52,4 +51,14 @@ public interface ISearchService {
      * @throws IOException Nếu lỗi load hoặc save (Triple-Write)
      */
     void updateArtifactStatus(Artifact artifact, String newStatus) throws IOException;
+
+    /**
+     * [THÊM MỚI] Lấy (fetch) tất cả Nút (Node) và Cạnh (Edge)
+     * từ CSDL Chỉ mục (Index DB).
+     * Tuân thủ UC-MOD-02 (Ngày 36).
+     *
+     * @return Map (Ánh xạ) chứa "nodes" và "edges"
+     * @throws IOException Nếu lỗi CSDL (SQL)
+     */
+    Map<String, List<Map<String, String>>> getGraphData() throws IOException;
 }

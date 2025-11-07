@@ -35,6 +35,7 @@
                 <Menu text="View">
                     <items>
                         <MenuItem onAction="#handleOpenDashboard" text="Planning Dashboard"/>
+                        <MenuItem onAction="#handleOpenGraphView" text="Project Graph View"/>
                     </items>
                 </Menu>
                 <Menu text="Settings">
