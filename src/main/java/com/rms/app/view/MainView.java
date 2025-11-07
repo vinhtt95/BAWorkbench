@@ -2,6 +2,7 @@ package com.rms.app.view;
 
 import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
+import com.rms.app.model.ArtifactTemplate; // [THÊM MỚI] Import
 import com.rms.app.service.IViewManager;
 import com.rms.app.service.impl.ProjectServiceImpl; // Import lớp (class) lồng nhau (nested)
 import com.rms.app.viewmodel.MainViewModel;
@@ -30,6 +31,8 @@ import java.util.Optional;
  * "Dumb" View Controller cho MainView.fxml.
  * [CẬP NHẬT] Hỗ trợ "New Folder" và
  * xử lý các loại TreeItem mới.
+ * [SỬA LỖI] ContextMenu giờ đây là động (dynamic)
+ * và lọc theo scope.
  */
 public class MainView {
 
@@ -225,7 +228,12 @@ public class MainView {
     }
 
     /**
+     * ========================================================================
+     * ĐÃ SỬA LỖI (PHƯƠNG THỨC NÀY)
+     * ========================================================================
      * [CẬP NHẬT] Thiết lập Context Menu (menu chuột phải) cho TreeView.
+     * Giờ đây menu sẽ được xây dựng động (dynamic) dựa trên
+     * scope của thư mục được click.
      */
     private void setupTreeViewContextMenu() {
         ContextMenu treeContextMenu = new ContextMenu();
@@ -234,15 +242,6 @@ public class MainView {
          * Menu "New Artifact"
          */
         Menu newMenu = new Menu("New Artifact");
-        projectStateService.currentProjectDirectoryProperty().addListener((obs, oldDir, newDir) -> {
-            rebuildNewArtifactMenu(newMenu);
-        });
-        projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
-            if (newMsg != null && newMsg.startsWith("Đã lưu template")) {
-                rebuildNewArtifactMenu(newMenu);
-            }
-        });
-        rebuildNewArtifactMenu(newMenu);
 
         /**
          * [MỚI] Menu "New Folder"
@@ -254,7 +253,57 @@ public class MainView {
         deleteItem.setOnAction(e -> handleDeleteArtifact());
 
         treeContextMenu.getItems().addAll(newMenu, newFolderItem, new SeparatorMenuItem(), deleteItem);
+
+        /**
+         * [SỬA LỖI] Thêm listener setOnShowing
+         * để xây dựng menu một cách động (dynamically).
+         * Đây là logic cốt lõi cho Rule 1.
+         */
+        treeContextMenu.setOnShowing(event -> {
+            TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
+
+            if (selectedItem == null) {
+                newMenu.setDisable(true);
+                newFolderItem.setDisable(true);
+                deleteItem.setDisable(true);
+            } else {
+                // Logic cho "New Folder" và "Delete"
+                newFolderItem.setDisable(selectedItem instanceof ProjectServiceImpl.ArtifactTreeItem); // Không thể tạo thư mục trong file
+                deleteItem.setDisable(selectedItem.getParent() == null); // Không thể xóa root
+
+                // Logic cho "New Artifact" (Rule 1)
+                String scope = null;
+                if (selectedItem instanceof ProjectServiceImpl.FolderTreeItem) {
+                    // Click vào một thư mục (ví dụ: "UC" hoặc "Tài khoản")
+                    scope = ((ProjectServiceImpl.FolderTreeItem) selectedItem).getArtifactTypeScope();
+                } else if (selectedItem instanceof ProjectServiceImpl.ArtifactTreeItem) {
+                    // Click vào một file (lấy scope của thư mục cha)
+                    TreeItem<String> parent = selectedItem.getParent();
+                    if (parent instanceof ProjectServiceImpl.FolderTreeItem) {
+                        scope = ((ProjectServiceImpl.FolderTreeItem) parent).getArtifactTypeScope();
+                    }
+                }
+
+                // Xây dựng lại (rebuild) menu con dựa trên scope tìm thấy
+                rebuildNewArtifactMenu(newMenu, scope);
+            }
+        });
+
         projectTreeView.setContextMenu(treeContextMenu);
+
+        /**
+         * Các listener này vẫn giữ nguyên
+         * để đảm bảo templateService
+         * có dữ liệu mới nhất khi menu được hiển thị.
+         */
+        projectStateService.currentProjectDirectoryProperty().addListener((obs, oldDir, newDir) -> {
+            rebuildNewArtifactMenu(newMenu, null); // Xóa (clear) menu cũ
+        });
+        projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
+            if (newMsg != null && newMsg.startsWith("Đã lưu template")) {
+                rebuildNewArtifactMenu(newMenu, null); // Xóa (clear) menu cũ
+            }
+        });
     }
 
     /**
@@ -320,34 +369,66 @@ public class MainView {
     }
 
     /**
+     * ========================================================================
+     * ĐÃ SỬA LỖI (PHƯƠNG THỨC NÀY)
+     * ========================================================================
      * Hàm helper để xây dựng lại (rebuild) menu "New Artifact" một cách động.
      *
      * @param newMenu Menu (MenuItem) cần được xây dựng lại
+     * @param scope   Scope (ví dụ: "UC") của thư mục được click
      */
-    private void rebuildNewArtifactMenu(Menu newMenu) {
+    private void rebuildNewArtifactMenu(Menu newMenu, String scope) {
         newMenu.getItems().clear();
-        if (projectStateService.getCurrentProjectDirectory() != null) {
-            try {
-                List<String> templateNames = templateService.loadAllTemplateNames();
-                if (templateNames.isEmpty()) {
-                    newMenu.getItems().add(new MenuItem("(Không tìm thấy template nào)"));
-                } else {
-                    for (String templateName : templateNames) {
-                        MenuItem item = new MenuItem(templateName);
-                        item.setOnAction(e -> {
-                            TreeItem<String> selected = projectTreeView.getSelectionModel().getSelectedItem();
-                            viewModel.createNewArtifact(templateName, selected);
-                        });
-                        newMenu.getItems().add(item);
-                    }
-                }
-            } catch (IOException e) {
-                newMenu.getItems().add(new MenuItem("(Lỗi tải template)"));
+
+        // Nếu không có dự án nào đang mở, hoặc scope là null (ví dụ: click vào gốc dự án)
+        if (projectStateService.getCurrentProjectDirectory() == null || scope == null) {
+            newMenu.getItems().add(new MenuItem("(Không thể tạo artifact ở đây)"));
+            newMenu.setDisable(true);
+            return;
+        }
+
+        newMenu.setDisable(false); // Kích hoạt (Enable) menu "New Artifact"
+
+        try {
+            List<String> templateNames = templateService.loadAllTemplateNames();
+            if (templateNames.isEmpty()) {
+                newMenu.getItems().add(new MenuItem("(Không tìm thấy template nào)"));
+                return;
             }
-        } else {
-            newMenu.getItems().add(new MenuItem("(Mở dự án để xem template)"));
+
+            for (String templateName : templateNames) {
+                // Tải (load) template để lấy prefixId (ví dụ: "UC")
+                ArtifactTemplate template = templateService.loadLatestTemplateByName(templateName);
+
+                /**
+                 * [SỬA LỖI] Logic cốt lõi cho Rule 1:
+                 * Chỉ thêm (add) template nếu PrefixId của nó
+                 * khớp (match) với Scope của thư mục.
+                 */
+                if (template != null && scope.equals(template.getPrefixId())) {
+                    MenuItem item = new MenuItem(templateName);
+                    item.setOnAction(e -> {
+                        TreeItem<String> selected = projectTreeView.getSelectionModel().getSelectedItem();
+                        viewModel.createNewArtifact(templateName, selected);
+                    });
+                    newMenu.getItems().add(item);
+                }
+            }
+
+            if (newMenu.getItems().isEmpty()) {
+                newMenu.getItems().add(new MenuItem("(Không có template cho scope '" + scope + "')"));
+            }
+
+        } catch (IOException e) {
+            newMenu.getItems().add(new MenuItem("(Lỗi tải template)"));
         }
     }
+    /**
+     * ========================================================================
+     * HẾT PHẦN SỬA LỖI
+     * ========================================================================
+     */
+
 
     /**
      * [CẬP NHẬT] Hàm helper lấy đường dẫn tương đối (relative path)

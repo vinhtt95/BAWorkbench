@@ -100,6 +100,11 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         }
     }
 
+    /**
+     * ========================================================================
+     * ĐÃ SỬA LỖI (PHƯƠNG THỨC NÀY)
+     * ========================================================================
+     */
     @Override
     public void insertArtifact(Artifact artifact) throws SQLException {
         String status = "Draft";
@@ -116,19 +121,28 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         // [CẬP NHẬT] Thêm folderId và relativePath
         String sql = "INSERT OR REPLACE INTO artifacts (id, name, type, status, folderId, relativePath) VALUES(?,?,?,?,?,?);";
 
-        // Tạm thời logic folderId (sẽ được IndexServiceImpl xử lý đúng)
-        String folderId = null; // Cần logic để tìm folderId từ relativePath
+        /**
+         * [SỬA LỖI] Lấy (Get) folderId trực tiếp từ
+         * đối tượng (object) Artifact,
+         * nó đã được ArtifactViewModel gán (set).
+         */
+        String folderId = artifact.getFolderId();
 
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, artifact.getId());
             pstmt.setString(2, name);
             pstmt.setString(3, artifact.getArtifactType());
             pstmt.setString(4, status);
-            pstmt.setString(5, folderId); // Tạm thời null
+            pstmt.setString(5, folderId); // <-- ĐÃ SỬA: Sử dụng folderId chính xác
             pstmt.setString(6, artifact.getRelativePath());
             pstmt.executeUpdate();
         }
     }
+    /**
+     * ========================================================================
+     * HẾT PHẦN SỬA LỖI
+     * ========================================================================
+     */
 
     /**
      * [MỚI] Triển khai insertFolder
