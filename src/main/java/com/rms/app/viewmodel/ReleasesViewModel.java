@@ -61,7 +61,6 @@ public class ReleasesViewModel {
         public StringProperty idProperty() { return id; }
 
         /**
-         * [SỬA LỖI NGÀY 27]
          * Bổ sung getter (phương thức truy cập) cho Tên (Name).
          *
          * @return Tên (Name) của Release.
@@ -130,7 +129,7 @@ public class ReleasesViewModel {
     private void saveReleases() throws IOException {
         ProjectConfig config = projectService.getCurrentProjectConfig();
         if (config == null) {
-            throw new IOException("Không tìm thấy cấu hình dự án.");
+            throw new IOException("Không có cấu hình dự án nào đang tải để lưu.");
         }
 
         ArrayList<Map<String, String>> dataList = new ArrayList<>();
@@ -146,9 +145,10 @@ public class ReleasesViewModel {
      * Thêm hoặc Cập nhật một Release.
      *
      * @param model Model (View) chứa dữ liệu từ Form
+     * @return Đối tượng ReleaseModel (hoặc null) đã được tải lại
      * @throws IOException Nếu lưu thất bại
      */
-    public void saveOrUpdateRelease(ReleaseModel model) throws IOException {
+    public ReleaseModel saveOrUpdateRelease(ReleaseModel model) throws IOException {
         if (model == null || model.getId().isEmpty() || model.getName().isEmpty()) {
             throw new IOException("ID và Tên Release không được rỗng.");
         }
@@ -172,6 +172,21 @@ public class ReleasesViewModel {
         }
 
         saveReleases();
+
+        /**
+         * Tải lại (load) danh sách sau khi lưu.
+         */
+        loadReleases();
+
+        /**
+         * [SỬA LỖI] Tìm và trả về
+         * đối tượng tương đương trong danh sách
+         * vừa được tải lại (reloaded list).
+         */
+        return releasesList.stream()
+                .filter(r -> r.getId().equals(model.getId()))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -189,8 +204,7 @@ public class ReleasesViewModel {
         if (indexService.hasBacklinks(model.getId())) {
             logger.warn("Ngăn chặn xóa Release {}: Đang có liên kết ngược.", model.getId());
             /**
-             * [SỬA LỖI NGÀY 27]
-             * Gọi model.getName() (đã được thêm)
+             * Gọi model.getName()
              */
             throw new IOException("Không thể xóa '" + model.getName() + "'. " +
                     "Đang có các artifact (ví dụ: Use Case) được gán cho Release này.");

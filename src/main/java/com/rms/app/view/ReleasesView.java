@@ -59,7 +59,6 @@ public class ReleasesView {
         releasesTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             viewModel.selectedReleaseProperty().set(newSelection);
             deleteButton.setDisable(newSelection == null);
-            saveButton.setDisable(newSelection == null);
         });
 
         /**
@@ -69,12 +68,17 @@ public class ReleasesView {
             if (newRelease != null) {
                 bindFormToModel(newRelease);
             } else {
-                clearForm();
+                /**
+                 * [SỬA LỖI] Nếu bỏ chọn (hoặc sau khi Tạo mới),
+                 * form sẽ được clear và disable.
+                 */
+                bindFormToModel(null);
             }
         });
 
         /**
          * 4. Khởi tạo Form (Trống)
+         * [SỬA LỖI] Bước này sẽ vô hiệu hóa (disable) Form khi bắt đầu
          */
         bindFormToModel(null);
 
@@ -82,6 +86,19 @@ public class ReleasesView {
          * 5. Tải dữ liệu
          */
         viewModel.loadReleases();
+    }
+
+    /**
+     * [SỬA LỖI] Helper (hàm phụ) để vô hiệu hóa (disable)
+     * hoặc kích hoạt (enable) toàn bộ Form chi tiết.
+     *
+     * @param disabled true = vô hiệu hóa, false = kích hoạt
+     */
+    private void setFormDisabled(boolean disabled) {
+        idField.setDisable(disabled);
+        nameField.setDisable(disabled);
+        dateField.setDisable(disabled);
+        saveButton.setDisable(disabled);
     }
 
     /**
@@ -109,8 +126,10 @@ public class ReleasesView {
             nameField.textProperty().bindBidirectional(model.nameProperty());
             dateField.valueProperty().bindBidirectional(model.dateProperty());
             idField.setEditable(false);
+            setFormDisabled(false); // [SỬA LỖI] Kích hoạt (enable) form
         } else {
             clearForm();
+            setFormDisabled(true); // [SỬA LỖI] Vô hiệu hóa (disable) form
         }
     }
 
@@ -132,8 +151,14 @@ public class ReleasesView {
         releasesTableView.getSelectionModel().clearSelection();
         ReleasesViewModel.ReleaseModel newModel = new ReleasesViewModel.ReleaseModel("", "", LocalDate.now());
         bindFormToModel(newModel);
+
+        /**
+         * [SỬA LỖI] Ghi đè (Override)
+         * bindFormToModel (vì nó set editable=false)
+         * để cho phép nhập ID mới.
+         */
+        idField.setEditable(true);
         idField.requestFocus();
-        saveButton.setDisable(false);
     }
 
     /**
@@ -143,19 +168,32 @@ public class ReleasesView {
     private void handleSave() {
         ReleasesViewModel.ReleaseModel modelToSave = formModel.get();
         if (modelToSave == null) {
-            /**
-             * Trường hợp này không nên xảy ra nếu nút "Save" được enable.
-             */
             showErrorAlert("Lỗi Lưu", "Không có Release nào được chọn để lưu.");
             return;
         }
 
         try {
             /**
-             * ViewModel xử lý logic nghiệp vụ (Kiểm tra trùng lặp)
+             * [SỬA LỖI] Yêu cầu ViewModel
+             * trả về đối tượng đã được lưu (và tải lại)
              */
-            viewModel.saveOrUpdateRelease(modelToSave);
-            releasesTableView.getSelectionModel().select(modelToSave);
+            ReleasesViewModel.ReleaseModel savedModel = viewModel.saveOrUpdateRelease(modelToSave);
+
+            /**
+             * [SỬA LỖI] Chọn đối tượng 'savedModel' (đối tượng mới
+             * từ danh sách đã tải lại) thay vì 'modelToSave' (đối tượng cũ).
+             * Điều này ngăn 'TableView' mất lựa chọn
+             * và ngăn 'Form' bị xóa trắng.
+             */
+            if (savedModel != null) {
+                releasesTableView.getSelectionModel().select(savedModel);
+            } else {
+                /**
+                 * Trường hợp này xảy ra nếu 'save' thất bại và trả về null
+                 * (ví dụ: do ID trùng lặp đã được xử lý trong ViewModel)
+                 */
+                releasesTableView.getSelectionModel().clearSelection();
+            }
         } catch (IOException e) {
             showErrorAlert("Lỗi Lưu (UC-CFG-02, 1.0.E1)", e.getMessage());
         }
@@ -173,9 +211,6 @@ public class ReleasesView {
         }
 
         try {
-            /**
-             * ViewModel xử lý logic nghiệp vụ (Kiểm tra toàn vẹn)
-             */
             viewModel.deleteRelease(modelToDelete);
         } catch (IOException e) {
             showErrorAlert("Lỗi Xóa (UC-CFG-02, 1.0.A2)", e.getMessage());

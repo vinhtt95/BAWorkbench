@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.rms.app.model.Artifact;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -83,8 +84,7 @@ public class JsonFileRepository implements IArtifactRepository {
         Files.writeString(mdPath, mdContent);
 
         /**
-         * [THÊM MỚI NGÀY 20] Hoàn thành Triple-Write (F-DEV-05)
-         * [vinhtt95/baworkbench/BAWorkbench-b81f6c2eab10596eeb739d9111f5ef0610b2666e/Requirement/Functional Requirements Document.md]
+         * Hoàn thành Triple-Write (F-DEV-05)
          */
         indexService.updateArtifactInIndex(artifact);
     }
@@ -120,8 +120,7 @@ public class JsonFileRepository implements IArtifactRepository {
         String id = jsonFile.getName().replace(".json", "");
 
         /**
-         * [THÊM MỚI NGÀY 20] Kiểm tra Toàn vẹn (F-DEV-10, F-DEV-11)
-         * [vinhtt95/baworkbench/BAWorkbench-b81f6c2eab10596eeb739d9111f5ef0610b2666e/Requirement/Functional Requirements Document.md]
+         * Kiểm tra Toàn vẹn (F-DEV-10, F-DEV-11)
          */
         if (indexService.hasBacklinks(id)) {
             logger.warn("Ngăn chặn xóa {}: Artifact đang có liên kết ngược.", id);
@@ -135,8 +134,17 @@ public class JsonFileRepository implements IArtifactRepository {
         logger.debug("Đã xóa file: {} (và file .md)", jsonFile.getPath());
 
         /**
-         * [THÊM MỚI NGÀY 20] Xóa khỏi CSDL Chỉ mục
+         * Xóa khỏi CSDL Chỉ mục
          */
         indexService.deleteArtifactFromIndex(id);
+    }
+
+    @Override
+    public String loadMarkdown(String relativePath) throws IOException {
+        File fileToLoad = getArtifactFile(relativePath);
+        if (!fileToLoad.exists()) {
+            throw new IOException("File không tồn tại: " + relativePath);
+        }
+        return Files.readString(fileToLoad.toPath(), StandardCharsets.UTF_8);
     }
 }

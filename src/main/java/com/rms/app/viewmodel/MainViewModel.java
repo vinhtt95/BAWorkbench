@@ -12,10 +12,9 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
-import javafx.scene.control.TreeItem;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -24,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * "Brain" - Logic UI cho MainView.
@@ -86,7 +87,6 @@ public class MainViewModel {
      * Hàm refresh cây thư mục (TreeView).
      */
     private void refreshProjectTree() {
-        // ... (Không thay đổi) ...
         File projectDir = projectStateService.getCurrentProjectDirectory();
         if (projectDir != null) {
             try {
@@ -114,7 +114,6 @@ public class MainViewModel {
      * @param selectedTab Tab hiện tại đang được chọn
      */
     public void updateBacklinks(Tab selectedTab) {
-        // ... (Cập nhật để bỏ qua tab mới) ...
         currentBacklinks.clear();
         if (selectedTab == null || "Welcome".equals(selectedTab.getText())) {
             currentBacklinks.add("(Chọn một artifact để xem)");
@@ -147,7 +146,6 @@ public class MainViewModel {
      * @param directory Thư mục
      */
     public void createNewProject(String projectName, File directory) {
-        // ... (Không thay đổi) ...
         try {
             boolean success = projectService.createProject(projectName, directory);
             if (success) {
@@ -166,7 +164,6 @@ public class MainViewModel {
      * @param templateName Tên template (ví dụ: "Use Case")
      */
     public void createNewArtifact(String templateName) {
-        // ... (Không thay đổi) ...
         try {
             ArtifactTemplate template = templateService.loadTemplate(templateName);
             Tab newTab = viewManager.openArtifactTab(template);
@@ -184,7 +181,6 @@ public class MainViewModel {
      * @param relativePath Đường dẫn tương đối (ví dụ: "UC/UC001.json")
      */
     public void openArtifact(String relativePath) {
-        // ... (Không thay đổi) ...
         if (relativePath == null || !relativePath.endsWith(".json")) {
             logger.warn("Bỏ qua mở file không hợp lệ: {}", relativePath);
             return;
@@ -222,7 +218,6 @@ public class MainViewModel {
      * @throws IOException Nếu xóa thất bại
      */
     public void deleteArtifact(String relativePath) throws IOException {
-        // ... (Không thay đổi) ...
         artifactRepository.delete(relativePath);
         refreshProjectTree();
         String id = new File(relativePath).getName().replace(".json", "");
@@ -246,7 +241,6 @@ public class MainViewModel {
      * @param directory Thư mục dự án
      */
     public void openProject(File directory) {
-        // ... (Không thay đổi) ...
         try {
             if (mainTabPane != null) {
                 mainTabPane.getTabs().clear();
@@ -271,7 +265,6 @@ public class MainViewModel {
      * Mở tab Cấu hình Form Builder (UC-CFG-01).
      */
     public void openFormBuilderTab() {
-        // ... (Không thay đổi) ...
         try {
             Tab newTab = viewManager.openViewInNewTab(
                     "/com/rms/app/view/FormBuilderView.fxml", "Form Builder"
@@ -287,7 +280,6 @@ public class MainViewModel {
      * Mở tab Cấu hình Releases (UC-CFG-02).
      */
     public void openReleasesConfigTab() {
-        // ... (Không thay đổi) ...
         try {
             Tab newTab = viewManager.openViewInNewTab(
                     "/com/rms/app/view/ReleasesView.fxml", "Releases Config"
@@ -303,7 +295,6 @@ public class MainViewModel {
      * Mở tab Bảng Kanban (UC-MGT-02).
      */
     public void openDashboardTab() {
-        // ... (Không thay đổi) ...
         try {
             Tab newTab = viewManager.openViewInNewTab(
                     "/com/rms/app/view/DashboardView.fxml", "Dashboard"
@@ -319,7 +310,6 @@ public class MainViewModel {
      * Logic nghiệp vụ cho UC-PUB-02 (Xuất Excel).
      */
     public void exportProjectToExcel() {
-        // ... (Không thay đổi) ...
         if (mainTabPane == null || mainTabPane.getScene() == null || mainTabPane.getScene().getWindow() == null) {
             projectStateService.setStatusMessage("Lỗi: Không thể mở hộp thoại lưu file.");
             return;
@@ -354,7 +344,6 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI NGÀY 32]
      * Mở tab Trình thiết kế Template Xuất bản (UC-CFG-03).
      */
     public void openExportTemplateBuilderTab() {
@@ -366,6 +355,127 @@ public class MainViewModel {
             mainTabPane.getSelectionModel().select(newTab);
         } catch (IOException e) {
             logger.error("Không thể tải ExportTemplateBuilderView", e);
+        }
+    }
+
+    /**
+     * Mở Dialog "Tùy chọn Xuất bản" (UC-PUB-01, Bước 2.0).
+     */
+    public void openExportToDocumentDialog() {
+        if (projectStateService.getCurrentProjectDirectory() == null) {
+            projectStateService.setStatusMessage("Lỗi: Vui lòng mở một dự án trước.");
+            return;
+        }
+
+        try {
+            /**
+             * Bước 3.0 & 4.0: Tải dữ liệu cho Dropdown
+             */
+            List<String> templateNames = templateService.loadAllExportTemplateNames();
+            List<Map<String, String>> releases = projectService.getCurrentProjectConfig().getReleases();
+
+            ObservableList<String> releaseOptions = FXCollections.observableArrayList();
+            releaseOptions.add("Không lọc (Tất cả yêu cầu)"); // 1.0.A1
+            if (releases != null) {
+                releases.forEach(rel -> releaseOptions.add(rel.get("id") + ": " + rel.get("name")));
+            }
+
+            if (templateNames.isEmpty()) {
+                projectStateService.setStatusMessage("Lỗi: Không tìm thấy 'Template Xuất bản' (UC-CFG-03).");
+                return;
+            }
+
+            /**
+             * Xây dựng Dialog (Cửa sổ)
+             */
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Tùy chọn Xuất bản (UC-PUB-01)");
+            dialog.setHeaderText("Chọn template và bộ lọc để xuất tài liệu.");
+            DialogPane dialogPane = dialog.getDialogPane();
+            dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+            ComboBox<String> templateCombo = new ComboBox<>(FXCollections.observableArrayList(templateNames));
+            templateCombo.setPromptText("Chọn Template Xuất bản");
+            templateCombo.setMinWidth(300);
+            if (!templateNames.isEmpty()) {
+                templateCombo.getSelectionModel().selectFirst();
+            }
+
+            ComboBox<String> releaseCombo = new ComboBox<>(releaseOptions);
+            releaseCombo.setPromptText("Chọn Lọc theo Release");
+            releaseCombo.setMinWidth(300);
+            releaseCombo.getSelectionModel().selectFirst();
+
+            GridPane grid = new GridPane();
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.add(new Label("Template:"), 0, 0);
+            grid.add(templateCombo, 1, 0);
+            grid.add(new Label("Lọc Release:"), 0, 1);
+            grid.add(releaseCombo, 1, 1);
+
+            dialogPane.setContent(grid);
+
+            /**
+             * Xử lý kết quả (Bước 6.0)
+             */
+            Optional<ButtonType> result = dialog.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+
+                String selectedTemplate = templateCombo.getValue();
+                String selectedReleaseOption = releaseCombo.getValue();
+
+                if (selectedTemplate == null || selectedTemplate.isEmpty()) {
+                    projectStateService.setStatusMessage("Lỗi: Bạn phải chọn một template.");
+                    return;
+                }
+
+                /**
+                 * Chuyển đổi "REL001: V1.0" -> "REL001"
+                 * hoặc "Không lọc" -> null
+                 */
+                String releaseIdFilter = null;
+                if (selectedReleaseOption != null && !selectedReleaseOption.startsWith("Không lọc")) {
+                    releaseIdFilter = selectedReleaseOption.split(":")[0].trim();
+                }
+
+                /**
+                 * Bước 5.0: Chọn vị trí lưu file
+                 */
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Lưu Tài liệu");
+                fileChooser.setInitialFileName("My_SRS_Export.pdf");
+                fileChooser.getExtensionFilters().addAll(
+                        new FileChooser.ExtensionFilter("PDF Files (*.pdf)", "*.pdf"),
+                        new FileChooser.ExtensionFilter("Word Files (*.docx)", "*.docx")
+                );
+                File file = fileChooser.showSaveDialog(mainTabPane.getScene().getWindow());
+
+                if (file != null) {
+                    /**
+                     * Bước 7.0: Kích hoạt (trên luồng nền)
+                     */
+                    final String finalReleaseIdFilter = releaseIdFilter;
+                    Task<Void> exportTask = new Task<>() {
+                        @Override
+                        protected Void call() throws Exception {
+                            exportService.exportToDocument(file, selectedTemplate, finalReleaseIdFilter);
+                            return null;
+                        }
+
+                        @Override
+                        protected void failed() {
+                            projectStateService.setStatusMessage("Lỗi Xuất bản: " + getException().getMessage());
+                            logger.error("Lỗi Xuất bản (UC-PUB-01)", getException());
+                        }
+                    };
+                    new Thread(exportTask).start();
+                }
+            }
+
+        } catch (Exception e) {
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
+            logger.error("Không thể mở Dialog Xuất bản", e);
         }
     }
 

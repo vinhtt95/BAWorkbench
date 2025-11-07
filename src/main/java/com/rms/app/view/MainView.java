@@ -77,7 +77,6 @@ public class MainView {
      * Thiết lập logic UI cho bảng Backlinks (Cột phải).
      */
     private void setupBacklinksPanel() {
-        // ... (Không thay đổi) ...
         backlinksListView.setItems(viewModel.getCurrentBacklinks());
         rightAccordion.setExpandedPane(backlinksPane);
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -100,7 +99,6 @@ public class MainView {
      * Thiết lập trình lắng nghe sự kiện click chuột cho TreeView (Cột trái).
      */
     private void setupTreeViewClickListener() {
-        // ... (Không thay đổi) ...
         projectTreeView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
@@ -122,7 +120,6 @@ public class MainView {
      * Thiết lập Context Menu (menu chuột phải) cho TreeView.
      */
     private void setupTreeViewContextMenu() {
-        // ... (Không thay đổi) ...
         ContextMenu treeContextMenu = new ContextMenu();
         Menu newMenu = new Menu("New Artifact");
         projectStateService.currentProjectDirectoryProperty().addListener((obs, oldDir, newDir) -> {
@@ -145,7 +142,6 @@ public class MainView {
      */
     @FXML
     private void handleDeleteArtifact() {
-        // ... (Không thay đổi) ...
         TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
         if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
             showErrorAlert("Lỗi Xóa", "Vui lòng chọn một file artifact (.json) để xóa.");
@@ -173,7 +169,6 @@ public class MainView {
      * @param newMenu Menu (MenuItem) cần được xây dựng lại
      */
     private void rebuildNewArtifactMenu(Menu newMenu) {
-        // ... (Không thay đổi) ...
         newMenu.getItems().clear();
         if (projectStateService.getCurrentProjectDirectory() != null) {
             try {
@@ -202,7 +197,6 @@ public class MainView {
      * @return Đường dẫn tương đối (ví dụ: "UC/UC001.json") hoặc null
      */
     private String getSelectedArtifactPath(TreeItem<String> selectedItem) {
-        // ... (Không thay đổi) ...
         if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
             return null;
         }
@@ -222,7 +216,6 @@ public class MainView {
      * @param content Nội dung lỗi
      */
     private void showErrorAlert(String title, String content) {
-        // ... (Không thay đổi) ...
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
@@ -235,7 +228,6 @@ public class MainView {
      */
     @FXML
     private void handleNewProject() {
-        // ... (Không thay đổi) ...
         TextInputDialog nameDialog = new TextInputDialog("MyProject");
         nameDialog.setTitle("New Project");
         nameDialog.setHeaderText("Enter Project Name:");
@@ -255,7 +247,6 @@ public class MainView {
      */
     @FXML
     private void handleOpenProject() {
-        // ... (Không thay đổi) ...
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Open RMS Project");
         File selectedDirectory = directoryChooser.showDialog(getStage());
@@ -297,13 +288,21 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI NGÀY 32]
      * Xử lý sự kiện nhấn "Settings > Export Template Builder...".
      * Tuân thủ UC-CFG-03.
      */
     @FXML
     private void handleOpenExportTemplateBuilder() {
         viewModel.openExportTemplateBuilderTab();
+    }
+
+    /**
+     * Xử lý sự kiện nhấn "File > Export to Document..."
+     * Tuân thủ UC-PUB-01 (Ngày 33).
+     */
+    @FXML
+    private void handleExportToDocument() {
+        viewModel.openExportToDocumentDialog();
     }
 
 

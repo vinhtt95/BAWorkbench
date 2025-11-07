@@ -108,7 +108,6 @@ public interface ISqliteIndexRepository {
     List<Artifact> getArtifactsByType(String type) throws SQLException;
 
     /**
-     * [THÊM MỚI NGÀY 32]
      * Lấy danh sách các Loại (Type) duy nhất (distinct)
      * từ CSDL Chỉ mục (dùng cho Export Query Builder).
      *
@@ -116,4 +115,17 @@ public interface ISqliteIndexRepository {
      * @throws SQLException Nếu lỗi CSDL
      */
     List<String> getDefinedTypes() throws SQLException;
+
+    /**
+     * Truy vấn CSDL chỉ mục (SQLite) cho Trình xuất bản (Publisher).
+     * Lấy các artifact khớp với Loại, Trạng thái VÀ/HOẶC Liên kết Release.
+     * Tham chiếu UC-PUB-01 (Bước 7.4).
+     *
+     * @param type       Loại artifact (ví dụ: "UC")
+     * @param status     Trạng thái artifact (ví dụ: "Approved", có thể null)
+     * @param releaseId  ID của Release (ví dụ: "REL001", có thể null)
+     * @return Danh sách Artifacts (chỉ chứa ID, Name, Type)
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    List<Artifact> queryArtifactsByCriteria(String type, String status, String releaseId) throws SQLException;
 }

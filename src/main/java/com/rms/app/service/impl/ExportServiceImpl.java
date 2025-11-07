@@ -5,6 +5,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.rms.app.model.Artifact;
 import com.rms.app.model.ArtifactTemplate;
+import com.rms.app.model.ExportTemplate;
+import com.rms.app.model.ExportTemplateSection;
 import com.rms.app.service.*;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -180,7 +182,6 @@ public class ExportServiceImpl implements IExportService {
     }
 
     /**
-     * [CẬP NHẬT NGÀY 31]
      * Triển khai logic gọi Pandoc (UC-PUB-01, Bước 8.0 & 9.0).
      *
      * @param markdownContent Chuỗi nội dung Markdown (Nguồn)
@@ -204,19 +205,13 @@ public class ExportServiceImpl implements IExportService {
 
         try {
             /**
-             * [SỬA LỖI NGÀY 31] Ghi file với UTF-8
-             * để đảm bảo Tiếng Việt (Unicode) được lưu đúng.
+             * Ghi file với UTF-8 (để hỗ trợ Tiếng Việt)
              */
             Files.writeString(tempMdPath, markdownContent, StandardCharsets.UTF_8);
             logger.info("Đã tạo file Markdown trung gian tại: {}", tempMdPath);
 
             /**
              * Bước 9.0 (UC-PUB-01): Gọi Pandoc
-             *
-             * [SỬA LỖI NGÀY 31] Thêm cờ (flag) --pdf-engine=xelatex
-             * để yêu cầu Pandoc sử dụng engine 'xelatex' (đã cài
-             * qua basictex) hỗ trợ Unicode (Tiếng Việt) thay vì
-             * pdflatex (mặc định).
              */
             ProcessBuilder pb = new ProcessBuilder(
                     "pandoc",
@@ -260,6 +255,116 @@ public class ExportServiceImpl implements IExportService {
                 Files.deleteIfExists(tempMdPath);
             } catch (IOException e) {
                 logger.warn("Không thể xóa file temp: {}", tempMdPath, e);
+            }
+        }
+    }
+
+    /**
+     * Điều phối (orchestrate) toàn bộ quá trình xuất bản PDF/DOCX.
+     * Tuân thủ UC-PUB-01.
+     *
+     * @param outputFile         File .pdf hoặc .docx (Đích)
+     * @param exportTemplateName Tên của Template Xuất bản (ví dụ: "SRS Template Chuẩn")
+     * @param releaseIdFilter    ID của Release (ví dụ: "REL001", hoặc null nếu "Không lọc")
+     * @throws IOException          Nếu lỗi I/O, lỗi truy vấn, hoặc lỗi Pandoc
+     * @throws InterruptedException Nếu luồng (thread) Pandoc bị gián đoạn
+     */
+    @Override
+    public void exportToDocument(File outputFile, String exportTemplateName, String releaseIdFilter) throws IOException, InterruptedException {
+        projectStateService.setStatusMessage("Đang tổng hợp tài liệu...");
+        logger.info("Bắt đầu xuất tài liệu (UC-PUB-01) theo template: {}", exportTemplateName);
+
+        /**
+         * Bước 7.1 (UC-PUB-01): Đọc file cấu hình template
+         */
+        ExportTemplate template = templateService.loadExportTemplate(exportTemplateName);
+        if (template == null) {
+            throw new IOException("Không tìm thấy Template Xuất bản: " + exportTemplateName);
+        }
+
+        /**
+         * Bước 7.2 & 7.3 (UC-PUB-01): Xây dựng chuỗi Markdown trung gian
+         */
+        StringBuilder mdBuilder = new StringBuilder();
+        mdBuilder.append("--- \n");
+        mdBuilder.append("title: ").append(template.getTemplateName()).append("\n");
+        mdBuilder.append("author: BA Workbench Export\n");
+        mdBuilder.append("--- \n\n");
+
+        for (ExportTemplateSection section : template.getSections()) {
+            mdBuilder.append("# ").append(section.getTitle()).append("\n\n");
+
+            if ("Static".equals(section.getType())) {
+                mdBuilder.append(section.getContent()).append("\n\n");
+            } else if ("Dynamic".equals(section.getType())) {
+                /**
+                 * Bước 7.4 (UC-PUB-01): Thực thi "Trình tạo Truy vấn" (Query Builder)
+                 */
+                Map<String, String> query = section.getQuery();
+                String artifactType = query.get("artifactType");
+                String status = query.get("status");
+
+                if (artifactType == null || artifactType.isEmpty()) {
+                    logger.warn("Bỏ qua chương động '{}': Loại Artifact (artifactType) bị thiếu.", section.getTitle());
+                    continue;
+                }
+
+                String effectiveReleaseId = releaseIdFilter;
+
+                try {
+                    List<Artifact> artifacts = indexRepository.queryArtifactsByCriteria(artifactType, status, effectiveReleaseId);
+                    logger.info("Chương '{}' tìm thấy {} artifacts.", section.getTitle(), artifacts.size());
+
+                    /**
+                     * Bước 7.5 (UC-PUB-01): Nối vào chuỗi Markdown
+                     */
+                    appendArtifactsToMarkdown(mdBuilder, artifacts, section.getDisplayFormat());
+
+                } catch (SQLException e) {
+                    logger.error("Lỗi SQL khi thực thi query cho chương '{}': {}", section.getTitle(), e.getMessage());
+                    mdBuilder.append("*Lỗi khi tải dữ liệu cho chương này.*\n\n");
+                }
+            }
+        }
+
+        /**
+         * Bước 8.0 & 9.0 (UC-PUB-01): Gọi Pandoc (từ Ngày 31)
+         */
+        exportMarkdownToPdf(mdBuilder.toString(), outputFile);
+        projectStateService.setStatusMessage("Xuất tài liệu thành công: " + outputFile.getName());
+    }
+
+    /**
+     * Helper (hàm phụ) để render danh sách Artifacts sang Markdown.
+     *
+     * @param mdBuilder     StringBuilder
+     * @param artifacts     Danh sách artifacts (từ CSDL)
+     * @param displayFormat "Table" hoặc "FullContent"
+     * @throws IOException Nếu lỗi đọc file .md
+     */
+    private void appendArtifactsToMarkdown(StringBuilder mdBuilder, List<Artifact> artifacts, String displayFormat) throws IOException {
+        if ("Table".equalsIgnoreCase(displayFormat)) {
+            mdBuilder.append("| ID | Name |\n");
+            mdBuilder.append("|:---|:---|\n");
+            for (Artifact artifact : artifacts) {
+                mdBuilder.append("| ").append(artifact.getId()).append(" | ").append(artifact.getName()).append(" |\n");
+            }
+            mdBuilder.append("\n");
+        } else {
+            /**
+             * Mặc định là "FullContent"
+             * Bước 7.5 (UC-PUB-01): Đọc file .md (đã auto-gen)
+             */
+            for (Artifact artifact : artifacts) {
+                String relativePath = artifact.getArtifactType() + File.separator + artifact.getId() + ".md";
+                try {
+                    String mdContent = artifactRepository.loadMarkdown(relativePath);
+                    mdBuilder.append(mdContent);
+                    mdBuilder.append("\n\n---\n\n"); // Thêm dải phân cách
+                } catch (IOException e) {
+                    logger.error("Không thể đọc file .md: {}. Bỏ qua.", relativePath, e);
+                    mdBuilder.append("*Lỗi: Không tìm thấy ").append(relativePath).append("*\n\n---\n\n");
+                }
             }
         }
     }

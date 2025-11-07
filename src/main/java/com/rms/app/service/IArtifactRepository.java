@@ -34,4 +34,14 @@ public interface IArtifactRepository {
      * @throws IOException Nếu lỗi xóa file
      */
     void delete(String relativePath) throws IOException;
+
+    /**
+     * Tải nội dung (đã auto-gen) của file Markdown (.md).
+     * Tham chiếu UC-PUB-01 (Bước 7.5).
+     *
+     * @param relativePath Đường dẫn tương đối (ví dụ: "UC/UC001.md")
+     * @return Nội dung String của file Markdown
+     * @throws IOException Nếu không tìm thấy file
+     */
+    String loadMarkdown(String relativePath) throws IOException;
 }

@@ -22,7 +22,6 @@ public interface IExportService {
     void exportToExcel(File outputFile, List<String> templateNamesToExport) throws IOException;
 
     /**
-     * [THÊM MỚI NGÀY 31]
      * Tích hợp Pandoc (UC-PUB-01).
      * Chuyển đổi một chuỗi Markdown thành file PDF.
      *
@@ -32,4 +31,16 @@ public interface IExportService {
      * @throws InterruptedException Nếu luồng (thread) Pandoc bị gián đoạn
      */
     void exportMarkdownToPdf(String markdownContent, File outputFile) throws IOException, InterruptedException;
+
+    /**
+     * Điều phối (orchestrate) toàn bộ quá trình xuất bản PDF/DOCX.
+     * Tuân thủ UC-PUB-01.
+     *
+     * @param outputFile         File .pdf hoặc .docx (Đích)
+     * @param exportTemplateName Tên của Template Xuất bản (ví dụ: "SRS Template Chuẩn")
+     * @param releaseIdFilter    ID của Release (ví dụ: "REL001", hoặc null nếu "Không lọc")
+     * @throws IOException          Nếu lỗi I/O, lỗi truy vấn, hoặc lỗi Pandoc
+     * @throws InterruptedException Nếu luồng (thread) Pandoc bị gián đoạn
+     */
+    void exportToDocument(File outputFile, String exportTemplateName, String releaseIdFilter) throws IOException, InterruptedException;
 }

@@ -37,7 +37,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public void initializeDatabase(File projectConfigDir) throws SQLException {
-        // ... (Không thay đổi) ...
         File dbFile = new File(projectConfigDir, "index.db");
         this.connectionString = "jdbc:sqlite:" + dbFile.getAbsolutePath();
         logger.info("Đang khởi tạo CSDL Chỉ mục tại: {}", dbFile.getAbsolutePath());
@@ -66,7 +65,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public void clearIndex() throws SQLException {
-        // ... (Không thay đổi) ...
         String deleteLinks = "DELETE FROM links;";
         String deleteArtifacts = "DELETE FROM artifacts;";
 
@@ -79,7 +77,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public void insertArtifact(Artifact artifact) throws SQLException {
-        // ... (Không thay đổi, giữ nguyên sửa lỗi Ngày 29) ...
         String status = "Draft";
         if (artifact.getFields() != null && artifact.getFields().containsKey("Trạng thái")) {
             Object statusObj = artifact.getFields().get("Trạng thái");
@@ -104,7 +101,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public void insertLink(String fromId, String toId) throws SQLException {
-        // ... (Không thay đổi) ...
         String sql = "INSERT OR IGNORE INTO links (fromId, toId) VALUES(?,?);";
 
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -116,7 +112,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public void deleteArtifact(String artifactId) throws SQLException {
-        // ... (Không thay đổi) ...
         String sql = "DELETE FROM artifacts WHERE id = ?;";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, artifactId);
@@ -126,7 +121,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public void deleteLinksForArtifact(String artifactId) throws SQLException {
-        // ... (Không thay đổi) ...
         String sql = "DELETE FROM links WHERE fromId = ?;";
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, artifactId);
@@ -136,7 +130,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public List<Artifact> queryArtifacts(String query) throws SQLException {
-        // ... (Không thay đổi) ...
         List<Artifact> results = new ArrayList<>();
         String sql = "SELECT id, name, type FROM artifacts "
                 + "WHERE id LIKE ? OR name LIKE ? LIMIT 10;";
@@ -160,7 +153,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public List<Artifact> queryBacklinks(String artifactId) throws SQLException {
-        // ... (Không thay đổi) ...
         List<Artifact> results = new ArrayList<>();
         String sql = "SELECT a.id, a.name, a.type FROM artifacts a "
                 + "JOIN links l ON a.id = l.fromId "
@@ -183,7 +175,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public List<String> getDefinedStatuses() throws SQLException {
-        // ... (Không thay đổi) ...
         List<String> results = new ArrayList<>();
         String sql = "SELECT DISTINCT status FROM artifacts WHERE status IS NOT NULL ORDER BY status;";
 
@@ -198,7 +189,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public List<Artifact> getArtifactsByStatus(String status) throws SQLException {
-        // ... (Không thay đổi) ...
         List<Artifact> results = new ArrayList<>();
         String sql = "SELECT id, name, type FROM artifacts WHERE status = ?;";
 
@@ -219,7 +209,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
     @Override
     public List<Artifact> getArtifactsByType(String type) throws SQLException {
-        // ... (Không thay đổi) ...
         List<Artifact> results = new ArrayList<>();
         String sql = "SELECT id, name, type FROM artifacts WHERE type = ?;";
 
@@ -239,7 +228,7 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
     }
 
     /**
-     * [THÊM MỚI NGÀY 32] Triển khai logic query (UC-CFG-03)
+     * Triển khai logic query (UC-CFG-03)
      */
     @Override
     public List<String> getDefinedTypes() throws SQLException {
@@ -250,6 +239,55 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 results.add(rs.getString("type"));
+            }
+        }
+        return results;
+    }
+
+    /**
+     * Triển khai logic query (UC-PUB-01)
+     */
+    @Override
+    public List<Artifact> queryArtifactsByCriteria(String type, String status, String releaseId) throws SQLException {
+        List<Artifact> results = new ArrayList<>();
+
+        /**
+         * Xây dựng (build) query SQL động
+         */
+        StringBuilder sql = new StringBuilder("SELECT id, name, type FROM artifacts a WHERE a.type = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(type);
+
+        if (status != null && !status.isEmpty()) {
+            sql.append(" AND a.status = ?");
+            params.add(status);
+        }
+
+        if (releaseId != null && !releaseId.isEmpty()) {
+            /**
+             * Lọc các artifact (a) có một liên kết (link) TỚI releaseId
+             */
+            sql.append(" AND EXISTS (SELECT 1 FROM links l WHERE l.fromId = a.id AND l.toId = ?)");
+            params.add(releaseId);
+        }
+
+        sql.append(" ORDER BY a.id;");
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+            /**
+             * Đặt (set) các tham số (parameter)
+             */
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Artifact artifact = new Artifact();
+                artifact.setId(rs.getString("id"));
+                artifact.setName(rs.getString("name"));
+                artifact.setArtifactType(rs.getString("type"));
+                results.add(artifact);
             }
         }
         return results;
