@@ -260,6 +260,7 @@ public class FormBuilderView {
     /**
      * (CẬP NHẬT)
      * Thiết lập Thả (Drop) vào Form Preview (ListView)
+     * (Handler này xử lý việc thả vào vùng TRỐNG của ListView)
      */
     private void setupPreviewDrop() {
         formPreviewListView.setOnDragOver(event -> {
@@ -274,7 +275,7 @@ public class FormBuilderView {
         });
 
         /**
-         * Xử lý khi thả
+         * Xử lý khi thả (vào vùng trống)
          */
         formPreviewListView.setOnDragDropped(event -> {
             Dragboard db = event.getDragboard();
@@ -283,7 +284,7 @@ public class FormBuilderView {
                 String fieldType = db.getString();
 
                 /**
-                 * Thêm vào ViewModel
+                 * Thêm vào ViewModel (ở cuối danh sách)
                  */
                 ArtifactTemplate.FieldTemplate newField = new ArtifactTemplate.FieldTemplate();
                 newField.setName(fieldType); // Tên tạm thời
@@ -306,6 +307,9 @@ public class FormBuilderView {
      */
     private class FieldTemplateListCell extends ListCell<ArtifactTemplate.FieldTemplate> {
         public FieldTemplateListCell() {
+            /**
+             * Bắt đầu kéo (drag) từ một Ô (Cell) (để sắp xếp lại)
+             */
             setOnDragDetected(event -> {
                 if (getItem() == null) {
                     return;
@@ -317,33 +321,106 @@ public class FormBuilderView {
                 event.consume();
             });
 
+            /**
+             * Xử lý khi kéo (drag) QUA một Ô (Cell)
+             */
             setOnDragOver(event -> {
-                if (event.getGestureSource() != this && event.getDragboard().hasContent(FIELD_TEMPLATE_FORMAT)) {
+                if (event.getGestureSource() == this) {
+                    event.consume();
+                    return;
+                }
+
+                Dragboard db = event.getDragboard();
+
+                /**
+                 * Chấp nhận (Accept) Kéo-để-sắp-xếp-lại (Re-order)
+                 */
+                if (db.hasContent(FIELD_TEMPLATE_FORMAT)) {
                     event.acceptTransferModes(TransferMode.MOVE);
                 }
+                /**
+                 * Chấp nhận (Accept) Thả-từ-Toolbox (Drop from Toolbox)
+                 */
+                else if (db.hasString() && event.getGestureSource() != formPreviewListView) {
+                    event.acceptTransferModes(TransferMode.COPY);
+                }
+
                 event.consume();
             });
 
+            /**
+             * Xử lý khi Thả (drop) LÊN TRÊN một Ô (Cell)
+             */
             setOnDragDropped(event -> {
-                if (getItem() == null) {
-                    return;
-                }
                 Dragboard db = event.getDragboard();
                 boolean success = false;
+
+                /**
+                 * Trường hợp 1: Kéo-để-sắp-xếp-lại (Re-order)
+                 */
                 if (db.hasContent(FIELD_TEMPLATE_FORMAT)) {
-                    ArtifactTemplate.FieldTemplate draggedField =
-                            (ArtifactTemplate.FieldTemplate) db.getContent(FIELD_TEMPLATE_FORMAT);
-                    int draggedIndex = viewModel.currentFields.indexOf(draggedField);
-                    int thisIndex = getIndex();
+                    if (getItem() == null) {
+                        /**
+                         * Nếu thả (drop) vào vùng trống (cell rỗng ở cuối)
+                         * chúng ta chỉ cần di chuyển item
+                         * đến cuối danh sách.
+                         */
+                        ArtifactTemplate.FieldTemplate draggedField =
+                                (ArtifactTemplate.FieldTemplate) db.getContent(FIELD_TEMPLATE_FORMAT);
+                        viewModel.currentFields.remove(draggedField);
+                        viewModel.currentFields.add(draggedField);
+                        success = true;
+
+                    } else {
+                        /**
+                         * Thả (drop) lên trên một item đã tồn tại
+                         */
+                        ArtifactTemplate.FieldTemplate draggedField =
+                                (ArtifactTemplate.FieldTemplate) db.getContent(FIELD_TEMPLATE_FORMAT);
+                        int draggedIndex = viewModel.currentFields.indexOf(draggedField);
+                        int thisIndex = getIndex();
+
+                        /**
+                         * Di chuyển (Move)
+                         */
+                        viewModel.currentFields.remove(draggedIndex);
+                        viewModel.currentFields.add(thisIndex, draggedField);
+
+                        success = true;
+                    }
+                }
+                /**
+                 * Trường hợp 2: Thả-từ-Toolbox (Drop from Toolbox)
+                 */
+                else if (db.hasString()) {
+                    String fieldType = db.getString();
+                    ArtifactTemplate.FieldTemplate newField = new ArtifactTemplate.FieldTemplate();
+                    newField.setName(fieldType);
+                    newField.setType(fieldType);
+                    newField.setOptions(new HashMap<>());
 
                     /**
-                     * Di chuyển
+                     * [ĐÃ SỬA] Thêm logic kiểm tra giới hạn (bounds check)
+                     * để fix IndexOutOfBoundsException
                      */
-                    viewModel.currentFields.remove(draggedIndex);
-                    viewModel.currentFields.add(thisIndex, draggedField);
+                    int thisIndex = getIndex();
+                    int listSize = viewModel.currentFields.size();
 
+                    if (thisIndex >= 0 && thisIndex < listSize) {
+                        /**
+                         * Thả (Drop) vào giữa danh sách (list)
+                         */
+                        viewModel.currentFields.add(thisIndex, newField);
+                    } else {
+                        /**
+                         * Thả (Drop) vào cuối
+                         * (bao gồm cả thisIndex == listSize hoặc lỗi)
+                         */
+                        viewModel.currentFields.add(newField);
+                    }
                     success = true;
                 }
+
                 event.setDropCompleted(success);
                 event.consume();
             });
@@ -370,7 +447,7 @@ public class FormBuilderView {
                 if (viewModel.selectedFieldProperty().get() == field) {
                     setStyle("-fx-border-color: -fx-accent; " +
                             "-fx-border-width: 1px; " +
-                            "-fx-background-color: -fx-accent;" + // [SỬA LỖI] Dùng -fx-accent
+                            "-fx-background-color: -fx-accent;" +
                             textFill);
                 } else {
                     setStyle("-fx-border-color: #555555; " +
