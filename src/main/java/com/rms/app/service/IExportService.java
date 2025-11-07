@@ -20,4 +20,16 @@ public interface IExportService {
      * @throws IOException Nếu lỗi I/O hoặc lỗi Apache POI
      */
     void exportToExcel(File outputFile, List<String> templateNamesToExport) throws IOException;
+
+    /**
+     * [THÊM MỚI NGÀY 31]
+     * Tích hợp Pandoc (UC-PUB-01).
+     * Chuyển đổi một chuỗi Markdown thành file PDF.
+     *
+     * @param markdownContent Chuỗi nội dung Markdown (Nguồn)
+     * @param outputFile      File .pdf (Đích)
+     * @throws IOException          Nếu lỗi I/O (ghi file temp) hoặc lỗi Pandoc
+     * @throws InterruptedException Nếu luồng (thread) Pandoc bị gián đoạn
+     */
+    void exportMarkdownToPdf(String markdownContent, File outputFile) throws IOException, InterruptedException;
 }
