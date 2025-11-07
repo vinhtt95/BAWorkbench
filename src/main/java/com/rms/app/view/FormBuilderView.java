@@ -180,6 +180,10 @@ public class FormBuilderView {
          * (Chỉ lắng nghe kiểu (type) thay đổi)
          */
         viewModel.currentFieldType.addListener((obs, oldType, newType) -> {
+            /**
+             * [ĐÃ SỬA] Chỉ hiển thị nếu là "Dropdown".
+             * Ẩn nếu là "Status Tracker" hoặc loại khác.
+             */
             boolean isDropdown = "Dropdown".equals(newType);
             dropdownOptionsPane.setVisible(isDropdown);
             dropdownOptionsPane.setManaged(isDropdown);

@@ -55,6 +55,7 @@ public class FormBuilderViewModel {
             "Text (Single-line)",
             "Text Area (Multi-line)",
             "Dropdown",
+            "Status Tracker", // [ĐÃ THÊM] Trường Status chuyên dụng
             "Linker (@ID)",
             "Flow Builder",
             "DatePicker",

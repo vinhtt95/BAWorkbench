@@ -141,6 +141,18 @@ public class RenderServiceImpl implements IRenderService {
                 comboBox.valueProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
                 return comboBox;
 
+            /**
+             * [ĐÃ THÊM] Xử lý loại "Status Tracker" mới
+             */
+            case "Status Tracker":
+                ComboBox<String> statusComboBox = new ComboBox<>();
+                /**
+                 * Cung cấp các tùy chọn (options) cố định
+                 */
+                statusComboBox.setItems(FXCollections.observableArrayList("Draft", "In Review", "Approved"));
+                statusComboBox.valueProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
+                return statusComboBox;
+
             case "Linker (@ID)":
                 TextField linkerField = new TextField();
                 linkerField.textProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
@@ -214,8 +226,11 @@ public class RenderServiceImpl implements IRenderService {
         } else {
             /**
              * Ưu tiên 3: Nguồn tĩnh (Hardcoded - ví dụ: "Status")
+             * [ĐÃ SỬA] Đã xóa hardcode "Draft", "In Review", "Approved"
+             * vì nó đã được chuyển sang "Status Tracker".
+             * Giờ đây Dropdown mặc định là trống.
              */
-            options.addAll("Draft", "In Review", "Approved");
+            // options.addAll("Draft", "In Review", "Approved");
         }
 
         return options;
