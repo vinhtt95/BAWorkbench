@@ -147,10 +147,24 @@ public class IndexServiceImpl implements IIndexService {
                         }
 
                         /**
+                         * ========================================================================
+                         * ĐÃ SỬA LỖI (KHỐI NÀY)
+                         * ========================================================================
+                         */
+                        /**
                          * Cập nhật (Update) thông tin đường dẫn (path) và folderId
                          */
                         artifact.setRelativePath(relativePath);
-                        // artifact.setFolderId(parentFolderId); // Bị lỗi, logic này phải do insertArtifact xử lý
+                        /**
+                         * [SỬA LỖI] Gán ID của thư mục cha (parent)
+                         * cho artifact TRƯỚC KHI lưu.
+                         */
+                        artifact.setFolderId(parentFolderId);
+                        /**
+                         * ========================================================================
+                         * HẾT PHẦN SỬA LỖI
+                         * ========================================================================
+                         */
 
                         indexRepository.insertArtifact(artifact);
                         fileCount++;
@@ -189,11 +203,10 @@ public class IndexServiceImpl implements IIndexService {
         try {
             /**
              * [CẬP NHẬT] Đảm bảo artifact có folderId chính xác
-             * (Logic này cần được hoàn thiện bằng cách
-             * truy vấn CSDL thư mục dựa trên relativePath)
+             * (Logic này giờ đã được gán bởi
+             * ArtifactViewModel khi lưu từ UI,
+             * và bởi scanDirectoryRecursive khi tái lập chỉ mục)
              */
-            // artifact.setFolderId(findFolderId(artifact.getRelativePath()));
-
             indexRepository.insertArtifact(artifact);
             indexRepository.deleteLinksForArtifact(artifact.getId());
 
