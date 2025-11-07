@@ -12,6 +12,7 @@
     <HBox spacing="5" alignment="CENTER_LEFT">
         <Label text="Flow Steps" style="-fx-font-weight: bold;"/>
         <Pane HBox.hgrow="ALWAYS"/>
+        <Button fx:id="geminiButton" text="Gemini: Đề xuất" onAction="#handleGeminiSuggest"/>
         <Button text="Add Step" onAction="#handleAddStep"/>
         <Button text="Add If/Then" onAction="#handleAddLogic"/>
         <Button text="Remove" onAction="#handleRemoveStep"/>

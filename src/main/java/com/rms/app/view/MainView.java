@@ -305,12 +305,21 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI] Xử lý sự kiện nhấn "File > Import from Excel..."
+     * Xử lý sự kiện nhấn "File > Import from Excel..."
      * Tuân thủ UC-PM-03 (Ngày 34).
      */
     @FXML
     private void handleImportExcel() {
         viewModel.openImportWizardTab();
+    }
+
+    /**
+     * [THÊM MỚI] Xử lý sự kiện nhấn "Settings > API Keys..."
+     * Tuân thủ UC-CFG-04 (Ngày 35).
+     */
+    @FXML
+    private void handleOpenApiKeys() {
+        viewModel.openApiKeysDialog();
     }
 
     /**

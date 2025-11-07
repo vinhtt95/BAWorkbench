@@ -98,9 +98,6 @@ public class ProjectServiceImpl implements IProjectService {
         return config;
     }
 
-    /**
-     * Triển khai [THÊM MỚI NGÀY 27]
-     */
     @Override
     public void saveCurrentProjectConfig() throws IOException {
         if (this.currentProjectConfig == null) {
@@ -109,6 +106,22 @@ public class ProjectServiceImpl implements IProjectService {
         File configFile = getConfigFile();
         logger.info("Đang lưu cấu hình dự án (ví dụ: Releases) vào: {}", configFile.getPath());
         objectMapper.writeValue(configFile, this.currentProjectConfig);
+    }
+
+    /**
+     * [THÊM MỚI] Triển khai (implementation)
+     * logic lưu API Key (UC-CFG-04).
+     *
+     * @param apiKey API Key
+     * @throws IOException Nếu lỗi lưu
+     */
+    @Override
+    public void saveGeminiApiKey(String apiKey) throws IOException {
+        if (this.currentProjectConfig == null) {
+            throw new IOException("Vui lòng mở một dự án trước khi lưu API Key.");
+        }
+        this.currentProjectConfig.setGeminiApiKey(apiKey);
+        saveCurrentProjectConfig();
     }
 
 

@@ -42,6 +42,8 @@
                         <MenuItem onAction="#handleOpenFormBuilder" text="Artifact Types (Form Builder)"/>
                         <MenuItem onAction="#handleOpenReleasesConfig" text="Releases Management..."/>
                         <MenuItem onAction="#handleOpenExportTemplateBuilder" text="Export Template Builder..."/>
+                        <SeparatorMenuItem/>
+                        <MenuItem onAction="#handleOpenApiKeys" text="API Keys..."/>
                     </items>
                 </Menu>
                 <Menu text="Help"/>

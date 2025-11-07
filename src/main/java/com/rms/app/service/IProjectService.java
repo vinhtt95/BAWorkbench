@@ -40,13 +40,21 @@ public interface IProjectService {
     ProjectConfig getCurrentProjectConfig();
 
     /**
-     * [THÊM MỚI NGÀY 27]
      * Lưu lại (ghi đè) file project.json
      * với trạng thái (state) của đối tượng ProjectConfig trong bộ nhớ.
      *
      * @throws IOException Nếu lỗi I/O
      */
     void saveCurrentProjectConfig() throws IOException;
+
+    /**
+     * [THÊM MỚI] Helper (hàm phụ) để cập nhật và lưu API Key.
+     * (Triển khai tối thiểu cho UC-CFG-04)
+     *
+     * @param apiKey API Key
+     * @throws IOException Nếu lỗi lưu
+     */
+    void saveGeminiApiKey(String apiKey) throws IOException;
 
     /**
      * Quét cấu trúc thư mục dự án và tạo TreeView.

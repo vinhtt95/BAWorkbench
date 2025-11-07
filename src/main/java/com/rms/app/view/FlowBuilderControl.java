@@ -1,6 +1,7 @@
 package com.rms.app.view;
 
 import com.rms.app.model.FlowStep;
+import com.rms.app.viewmodel.ArtifactViewModel; // [THÊM MỚI] Import
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -29,15 +30,18 @@ public class FlowBuilderControl {
     private boolean isInitialized = false;
 
     /**
-     * Hàm khởi tạo (initialize) của FXML.
-     * [SỬA LỖI]: Không cấu hình cột ở đây,
-     * vì các cột FXML có thể vẫn là null.
+     * [THÊM MỚI] Tham chiếu đến ViewModel cha (parent)
+     * (được inject (tiêm) bởi RenderService)
      */
-    @FXML
-    public void initialize() {
-        /**
-         * Để trống. Logic sẽ được chuyển sang setData().
-         */
+    private ArtifactViewModel viewModel;
+
+    /**
+     * Hàm này được RenderService gọi để "inject" ViewModel cha (parent).
+     *
+     * @param viewModel ViewModel của Artifact
+     */
+    public void setViewModel(ArtifactViewModel viewModel) {
+        this.viewModel = viewModel;
     }
 
     /**
@@ -51,10 +55,6 @@ public class FlowBuilderControl {
         this.flowStepsList = flowSteps;
         this.stepsTableView.setItems(this.flowStepsList);
 
-        /**
-         * [SỬA LỖI]: Di chuyển logic từ initialize() vào đây.
-         * Chỉ chạy logic này MỘT LẦN.
-         */
         if (!isInitialized) {
             try {
                 stepActorColumn.setCellFactory(TextFieldTableCell.forTableColumn());
@@ -78,8 +78,20 @@ public class FlowBuilderControl {
     }
 
     /**
+     * [THÊM MỚI] Xử lý sự kiện nhấn nút "Gemini: Đề xuất".
+     * Tuân thủ UC-DEV-03 (Luồng 1.0.A1).
+     */
+    @FXML
+    private void handleGeminiSuggest() {
+        if (viewModel != null) {
+            viewModel.generateFlowFromGemini();
+        } else {
+            logger.error("Không thể gọi Gemini: ArtifactViewModel là null.");
+        }
+    }
+
+    /**
      * Xử lý sự kiện khi nhấn nút "Add Step".
-     * Thêm một FlowStep mới vào cuối danh sách.
      */
     @FXML
     private void handleAddStep() {
@@ -96,7 +108,6 @@ public class FlowBuilderControl {
 
     /**
      * Xử lý sự kiện khi nhấn nút "Remove Selected".
-     * Xóa bước (step) đang được chọn khỏi danh sách.
      */
     @FXML
     private void handleRemoveStep() {
@@ -108,7 +119,6 @@ public class FlowBuilderControl {
 
     /**
      * Xử lý sự kiện khi nhấn nút "Add If/Then".
-     * Thêm một bước logic (IF) vào danh sách.
      */
     @FXML
     private void handleAddLogic() {
@@ -127,7 +137,6 @@ public class FlowBuilderControl {
 
     /**
      * Xử lý sự kiện khi nhấn nút "Move Up".
-     * Di chuyển bước đang chọn lên trên một vị trí.
      */
     @FXML
     private void handleMoveUp() {
@@ -140,7 +149,6 @@ public class FlowBuilderControl {
 
     /**
      * Xử lý sự kiện khi nhấn nút "Move Down".
-     * Di chuyển bước đang chọn xuống dưới một vị trí.
      */
     @FXML
     private void handleMoveDown() {

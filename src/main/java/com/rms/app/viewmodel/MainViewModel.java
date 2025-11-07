@@ -477,7 +477,7 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI] Mở tab Trình hướng dẫn (Wizard) Import (UC-PM-03).
+     * Mở tab Trình hướng dẫn (Wizard) Import (UC-PM-03).
      */
     public void openImportWizardTab() {
         if (projectStateService.getCurrentProjectDirectory() == null) {
@@ -494,6 +494,35 @@ public class MainViewModel {
         } catch (IOException e) {
             logger.error("Không thể tải ImportWizardView", e);
         }
+    }
+
+    /**
+     * [THÊM MỚI] Mở Dialog (Cửa sổ) Cấu hình API Key (UC-CFG-04).
+     */
+    public void openApiKeysDialog() {
+        if (projectStateService.getCurrentProjectDirectory() == null) {
+            projectStateService.setStatusMessage("Lỗi: Vui lòng mở một dự án trước.");
+            return;
+        }
+
+        ProjectConfig config = projectService.getCurrentProjectConfig();
+        String currentKey = config.getGeminiApiKey() != null ? config.getGeminiApiKey() : "";
+
+        TextInputDialog dialog = new TextInputDialog(currentKey);
+        dialog.setTitle("Cấu hình API Keys");
+        dialog.setHeaderText("Quản lý API Key (UC-CFG-04)");
+        dialog.setContentText("Google Gemini API Key:");
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(apiKey -> {
+            try {
+                projectService.saveGeminiApiKey(apiKey);
+                projectStateService.setStatusMessage("Đã lưu Gemini API Key.");
+            } catch (IOException e) {
+                logger.error("Không thể lưu API Key", e);
+                projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
+            }
+        });
     }
 
 

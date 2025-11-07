@@ -6,13 +6,14 @@ import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
 import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.FlowStep;
-import com.rms.app.service.IArtifactRepository;
-import com.rms.app.service.IDiagramRenderService;
-import com.rms.app.service.IProjectStateService;
+import com.rms.app.model.ProjectConfig; // [THÊM MỚI] Import
+import com.rms.app.service.*;
 import javafx.animation.PauseTransition;
+import javafx.application.Platform; // [THÊM MỚI] Import
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task; // [THÊM MỚI] Import
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import javafx.util.Duration;
@@ -38,6 +39,8 @@ public class ArtifactViewModel {
     private final IProjectStateService projectStateService;
     private final ObjectMapper objectMapper;
     private final IDiagramRenderService diagramRenderService;
+    private final IApiService apiService; // [THÊM MỚI]
+    private final IProjectService projectService; // [THÊM MỚI]
 
     /**
      * Model (dữ liệu)
@@ -68,13 +71,16 @@ public class ArtifactViewModel {
     @Inject
     public ArtifactViewModel(IArtifactRepository artifactRepository,
                              IProjectStateService projectStateService,
-                             IDiagramRenderService diagramRenderService) {
+                             IDiagramRenderService diagramRenderService,
+                             IApiService apiService,
+                             IProjectService projectService) {
         this.artifactRepository = artifactRepository;
         this.projectStateService = projectStateService;
         this.diagramRenderService = diagramRenderService;
+        this.apiService = apiService; // [THÊM MỚI]
+        this.projectService = projectService; // [THÊM MỚI]
         this.objectMapper = new ObjectMapper();
 
-        // [SỬA LỖI NGÀY 27] Hỗ trợ ObjectMapper cho Java 8 Time (LocalDate)
         this.objectMapper.findAndRegisterModules();
 
         this.id = new SimpleStringProperty("Đang chờ lưu...");
@@ -106,10 +112,6 @@ public class ArtifactViewModel {
             this.id.set(artifact.getId());
             this.name.set(artifact.getName());
 
-            // [SỬA LỖI NGÀY 27] Không bind ở đây,
-            // để getFieldProperty/getFlowStepProperty tự động nạp
-            // khi RenderService gọi chúng.
-
         } else {
             this.artifact = new Artifact();
             this.artifact.setFields(new HashMap<>());
@@ -126,13 +128,11 @@ public class ArtifactViewModel {
      * @return Property (javafx) tương ứng
      */
     public Property<?> getFieldProperty(String fieldName) {
-        // [SỬA LỖI NGÀY 27] Đổi tên thành "getStringProperty"
-        // để rõ ràng nó chỉ xử lý String
         return getStringProperty(fieldName);
     }
 
     /**
-     * [THÊM MỚI NGÀY 27] Cung cấp StringProperty (dùng cho TextField, TextArea, Dropdown, Linker)
+     * Cung cấp StringProperty (dùng cho TextField, TextArea, Dropdown, Linker)
      */
     public StringProperty getStringProperty(String fieldName) {
         return (StringProperty) dynamicFields.computeIfAbsent(fieldName, key -> {
@@ -144,7 +144,7 @@ public class ArtifactViewModel {
     }
 
     /**
-     * [THÊM MỚI NGÀY 27] Cung cấp ObjectProperty<LocalDate> (dùng cho DatePicker)
+     * Cung cấp ObjectProperty<LocalDate> (dùng cho DatePicker)
      */
     public ObjectProperty<LocalDate> getLocalDateProperty(String fieldName) {
         return (ObjectProperty<LocalDate>) dynamicFields.computeIfAbsent(fieldName, key -> {
@@ -159,7 +159,6 @@ public class ArtifactViewModel {
                 }
             } else if (initialValueRaw != null) {
                 try {
-                    // Thử convert (ví dụ: nếu Jackson đọc nó thành mảng [2025, 11, 7])
                     initialValue = objectMapper.convertValue(initialValueRaw, LocalDate.class);
                 } catch (Exception e) {
                     logger.error("Không thể convert giá trị ngày: {}", initialValueRaw, e);
@@ -201,10 +200,8 @@ public class ArtifactViewModel {
         }
 
         ObservableList<FlowStep> list = FXCollections.observableArrayList(initialSteps);
-        // [SỬA LỖI NGÀY 27] Cần lắng nghe sự thay đổi sâu (deep change)
         list.addListener((javafx.collections.ListChangeListener.Change<? extends FlowStep> c) -> {
             while (c.next()) {
-                // Chỉ cần biết có thay đổi, không cần biết chi tiết
             }
             triggerAutoSave();
         });
@@ -228,7 +225,6 @@ public class ArtifactViewModel {
         logger.debug("Kích hoạt Auto-save...");
         try {
             if (artifact.getId() == null) {
-                // [SỬA LỖI NGÀY 27] Cần ID ngẫu nhiên hơn
                 String newId = this.templatePrefix + "-" + (System.currentTimeMillis() % 100000);
                 artifact.setId(newId);
                 artifact.setArtifactType(this.templatePrefix);
@@ -237,18 +233,13 @@ public class ArtifactViewModel {
 
             artifact.setName(name.get());
 
-            // [SỬA LỖI NGÀY 27] Cần lấy giá trị (value) đúng từ các loại Property
             for (Map.Entry<String, Property<?>> entry : dynamicFields.entrySet()) {
                 if (entry.getValue() instanceof SimpleListProperty) {
-                    // Xử lý FlowStep
                     artifact.getFields().put(entry.getKey(), new ArrayList<>(((SimpleListProperty<?>) entry.getValue()).get()));
                 } else if (entry.getValue() instanceof SimpleObjectProperty) {
-                    // Xử lý DatePicker (LocalDate) hoặc các Object khác
                     Object value = entry.getValue().getValue();
-                    // Lưu Date thành String ISO (ví dụ: "2025-11-07")
                     artifact.getFields().put(entry.getKey(), (value != null) ? value.toString() : null);
                 } else {
-                    // Xử lý StringProperty (TextField, Dropdown, ...)
                     artifact.getFields().put(entry.getKey(), entry.getValue().getValue());
                 }
             }
@@ -262,7 +253,6 @@ public class ArtifactViewModel {
     }
 
     /**
-     * [THÊM MỚI NGÀY 26]
      * Logic nghiệp vụ để sinh sơ đồ (UC-MOD-01)
      *
      * @return Một Image (JavaFX) của sơ đồ
@@ -271,11 +261,8 @@ public class ArtifactViewModel {
         try {
             List<FlowStep> flowSteps = new ArrayList<>();
 
-            // [SỬA LỖI NGÀY 27] Lấy dữ liệu Flow từ dynamicFields (đã binding)
-            // thay vì từ artifact.getFields() (có thể đã cũ)
             for (Map.Entry<String, Property<?>> entry : dynamicFields.entrySet()) {
                 if (entry.getValue() instanceof SimpleListProperty) {
-                    // Chỉ lấy Flow đầu tiên tìm thấy
                     flowSteps = (List<FlowStep>) new ArrayList<>(((SimpleListProperty<?>) entry.getValue()).get());
                     break;
                 }
@@ -296,6 +283,85 @@ public class ArtifactViewModel {
             projectStateService.setStatusMessage("Lỗi render sơ đồ: " + e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * [THÊM MỚI] Logic nghiệp vụ cho "Gemini: Đề xuất" (UC-DEV-03).
+     */
+    public void generateFlowFromGemini() {
+        /**
+         * 1. Lấy (Get) Tên và Mô tả (Description)
+         */
+        String artifactName = name.get();
+        String artifactDescription = getStringProperty("Description").get();
+        if (artifactDescription == null) {
+            artifactDescription = getStringProperty("Mô tả").get(); // Thử tên tiếng Việt
+        }
+
+        if (artifactName == null || artifactName.isEmpty() || artifactDescription == null || artifactDescription.isEmpty()) {
+            projectStateService.setStatusMessage("Lỗi: Vui lòng nhập Tên (Name) và Mô tả (Description) trước.");
+            return;
+        }
+
+        /**
+         * 2. Lấy (Get) API Key
+         */
+        ProjectConfig config = projectService.getCurrentProjectConfig();
+        if (config == null || config.getGeminiApiKey() == null || config.getGeminiApiKey().isEmpty()) {
+            projectStateService.setStatusMessage("Lỗi: Gemini API Key chưa được cấu hình (Settings > API Keys).");
+            return;
+        }
+        String apiKey = config.getGeminiApiKey();
+
+        /**
+         * 3. Lấy (Get) danh sách (list) Flow để cập nhật
+         */
+        ObservableList<FlowStep> flowStepList = null;
+        for (Map.Entry<String, Property<?>> entry : dynamicFields.entrySet()) {
+            if (entry.getValue() instanceof SimpleListProperty) {
+                flowStepList = (ObservableList<FlowStep>) entry.getValue();
+                break;
+            }
+        }
+
+        if (flowStepList == null) {
+            projectStateService.setStatusMessage("Lỗi: Không tìm thấy trường 'Flow Builder' trong template này.");
+            return;
+        }
+        final ObservableList<FlowStep> targetList = flowStepList;
+
+        /**
+         * 4. Chạy Tác vụ (Task) trên luồng nền (background thread)
+         */
+        String finalArtifactDescription = artifactDescription;
+        Task<List<FlowStep>> geminiTask = new Task<>() {
+            @Override
+            protected List<FlowStep> call() throws Exception {
+                return apiService.generateFlowFromGemini(artifactName, finalArtifactDescription, apiKey);
+            }
+
+            @Override
+            protected void succeeded() {
+                List<FlowStep> suggestedSteps = getValue();
+                /**
+                 * 5. Cập nhật UI trên luồng FX
+                 */
+                Platform.runLater(() -> {
+                    targetList.clear();
+                    targetList.addAll(suggestedSteps);
+                    projectStateService.setStatusMessage(String.format("Gemini đã đề xuất %d bước.", suggestedSteps.size()));
+                });
+            }
+
+            @Override
+            protected void failed() {
+                logger.error("Tác vụ (Task) Gemini thất bại", getException());
+                Platform.runLater(() -> projectStateService.setStatusMessage("Lỗi Gemini: " + getException().getMessage()));
+            }
+        };
+
+        projectStateService.setStatusMessage(String.format("Đang gửi '%s' đến Gemini...", artifactName));
+        new Thread(geminiTask).start();
     }
 
     /**

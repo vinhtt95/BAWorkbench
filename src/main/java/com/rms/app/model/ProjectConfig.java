@@ -19,6 +19,12 @@ public class ProjectConfig {
     @JsonProperty("releases")
     private List<Map<String, String>> releases; // Sẽ dùng cho UC-CFG-02
 
+    /**
+     * [THÊM MỚI] Sẽ dùng cho UC-CFG-04 / UC-DEV-03
+     */
+    @JsonProperty("geminiApiKey")
+    private String geminiApiKey;
+
     // getters and setters
     public String getProjectName() {
         return projectName;
@@ -42,5 +48,13 @@ public class ProjectConfig {
 
     public void setReleases(List<Map<String, String>> releases) {
         this.releases = releases;
+    }
+
+    public String getGeminiApiKey() {
+        return geminiApiKey;
+    }
+
+    public void setGeminiApiKey(String geminiApiKey) {
+        this.geminiApiKey = geminiApiKey;
     }
 }

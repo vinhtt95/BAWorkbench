@@ -91,7 +91,11 @@ public class RenderServiceImpl implements IRenderService {
         if ("Flow Builder".equals(field.getType())) {
             try {
                 ObservableList<FlowStep> steps = viewModel.getFlowStepProperty(field.getName());
-                return loadFlowBuilderControl(steps);
+                /**
+                 * [SỬA LỖI] Truyền (pass) viewModel vào control
+                 * để nút Gemini có thể gọi nó.
+                 */
+                return loadFlowBuilderControl(steps, viewModel);
             } catch (IOException e) {
                 logger.error("Không thể tải FlowBuilderControl.fxml", e);
                 return new Label("Lỗi khi tải Flow Builder");
@@ -174,7 +178,6 @@ public class RenderServiceImpl implements IRenderService {
 
     /**
      * Thêm logic Autocomplete (gợi ý @ID) vào một control (TextField hoặc TextArea).
-     * (Phần logic Hover Card (1.0.A1) đã bị loại bỏ do lỗi biên dịch).
      *
      * @param control Control (TextField, TextArea) cần thêm tính năng.
      */
@@ -233,18 +236,24 @@ public class RenderServiceImpl implements IRenderService {
     /**
      * Tải FXML control FlowBuilderControl và inject data (list) vào.
      *
-     * @param steps Danh sách các bước quy trình
+     * @param steps     Danh sách các bước quy trình
+     * @param viewModel ViewModel của Artifact (để inject)
      * @return Node (control) FlowBuilder
      * @throws IOException Nếu không thể tải FXML
      */
-    private Node loadFlowBuilderControl(ObservableList<FlowStep> steps) throws IOException {
+    private Node loadFlowBuilderControl(ObservableList<FlowStep> steps, ArtifactViewModel viewModel) throws IOException {
         String fxmlPath = "/com/rms/app/view/FlowBuilderControl.fxml";
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
 
         FlowBuilderControl controller = injector.getInstance(FlowBuilderControl.class);
         loader.setController(controller);
         Parent controlRoot = loader.load();
+
+        /**
+         * [SỬA LỖI] Inject (tiêm) ViewModel và Data (dữ liệu)
+         */
         controller.setData(steps);
+        controller.setViewModel(viewModel);
 
         return controlRoot;
     }
