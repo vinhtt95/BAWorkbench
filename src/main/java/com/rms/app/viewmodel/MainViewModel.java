@@ -36,8 +36,6 @@ public class MainViewModel {
     private final IProjectService projectService;
 
     private final ObjectProperty<TreeItem<String>> projectRoot;
-    // [SỬA LỖI] Xóa 'statusMessage' cục bộ
-    // private final StringProperty statusMessage;
     private final ObjectProperty<ProjectConfig> currentProject;
 
     private final ObjectProperty<File> currentProjectDirectory;
@@ -72,14 +70,11 @@ public class MainViewModel {
         this.exportService = exportService;
 
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
-        // [SỬA LỖI] Xóa khởi tạo 'statusMessage'
-        // this.statusMessage = new SimpleStringProperty("Sẵn sàng.");
         this.currentProject = new SimpleObjectProperty<>(null);
-
         this.currentProjectDirectory = new SimpleObjectProperty<>(null);
 
         projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
-            if (newMsg != null && newMsg.startsWith("Đã lưu")) {
+            if (newMsg != null && (newMsg.startsWith("Đã lưu") || newMsg.startsWith("Import hoàn tất"))) {
                 refreshProjectTree();
             }
         });
@@ -122,7 +117,7 @@ public class MainViewModel {
             return;
         }
         String artifactId = selectedTab.getText();
-        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard") || artifactId.startsWith("Export Templates")) {
+        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard") || artifactId.startsWith("Export Templates") || artifactId.startsWith("Import Wizard")) {
             currentBacklinks.add("(Không áp dụng)");
             return;
         }
@@ -152,9 +147,6 @@ public class MainViewModel {
             boolean success = projectService.createProject(projectName, directory);
             if (success) {
                 openProject(directory);
-                /**
-                 * [SỬA LỖI] Cập nhật vào projectStateService
-                 */
                 projectStateService.setStatusMessage("Tạo dự án mới thành công: " + projectName);
             }
         } catch (IOException e) {
@@ -484,15 +476,30 @@ public class MainViewModel {
         }
     }
 
+    /**
+     * [THÊM MỚI] Mở tab Trình hướng dẫn (Wizard) Import (UC-PM-03).
+     */
+    public void openImportWizardTab() {
+        if (projectStateService.getCurrentProjectDirectory() == null) {
+            projectStateService.setStatusMessage("Lỗi: Vui lòng mở một dự án trước khi Import.");
+            return;
+        }
+
+        try {
+            Tab newTab = viewManager.openViewInNewTab(
+                    "/com/rms/app/view/ImportWizardView.fxml", "Import Wizard"
+            );
+            this.mainTabPane.getTabs().add(newTab);
+            mainTabPane.getSelectionModel().select(newTab);
+        } catch (IOException e) {
+            logger.error("Không thể tải ImportWizardView", e);
+        }
+    }
+
 
     public ObjectProperty<TreeItem<String>> projectRootProperty() {
         return projectRoot;
     }
-
-    // [SỬA LỖI] Xóa phương thức này
-    // public StringProperty statusMessageProperty() {
-    //    return statusMessage;
-    // }
 
     public void setMainTabPane(TabPane mainTabPane) {
         this.mainTabPane = mainTabPane;

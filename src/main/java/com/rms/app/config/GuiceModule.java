@@ -8,8 +8,10 @@ import com.rms.app.service.*;
 import com.rms.app.service.impl.*;
 import com.rms.app.view.DashboardView;
 import com.rms.app.view.ExportTemplateBuilderView;
+import com.rms.app.view.ImportWizardView; // [THÊM MỚI] Import
 import com.rms.app.viewmodel.DashboardViewModel;
 import com.rms.app.viewmodel.ExportTemplateBuilderViewModel;
+import com.rms.app.viewmodel.ImportWizardViewModel; // [THÊM MỚI] Import
 import com.rms.app.viewmodel.MainViewModel;
 import com.rms.app.view.FlowBuilderControl;
 
@@ -24,6 +26,7 @@ public class GuiceModule extends AbstractModule {
         bind(MainViewModel.class).in(Singleton.class);
         bind(DashboardViewModel.class);
         bind(ExportTemplateBuilderViewModel.class);
+        bind(ImportWizardViewModel.class); // [THÊM MỚI]
 
         /**
          * Views (Controllers)
@@ -31,6 +34,7 @@ public class GuiceModule extends AbstractModule {
         bind(FlowBuilderControl.class);
         bind(DashboardView.class);
         bind(ExportTemplateBuilderView.class);
+        bind(ImportWizardView.class); // [THÊM MỚI]
 
 
         /**
@@ -44,6 +48,7 @@ public class GuiceModule extends AbstractModule {
         bind(IIndexService.class).to(IndexServiceImpl.class).in(Singleton.class);
         bind(IDiagramRenderService.class).to(DiagramRenderServiceImpl.class).in(Singleton.class);
         bind(IExportService.class).to(ExportServiceImpl.class).in(Singleton.class);
+        bind(IImportService.class).to(ImportServiceImpl.class).in(Singleton.class); // [THÊM MỚI]
 
         /**
          * Repositories

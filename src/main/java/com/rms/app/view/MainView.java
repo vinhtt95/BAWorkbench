@@ -59,14 +59,7 @@ public class MainView {
         viewModel.setMainTabPane(mainTabPane);
 
         projectTreeView.rootProperty().bind(viewModel.projectRootProperty());
-
-        /**
-         * [SỬA LỖI] Xóa bỏ binding (liên kết) kép.
-         * Chỉ binding (liên kết) vào "Nguồn Chân lý" (Source of Truth) duy nhất
-         * là projectStateService.
-         */
         statusLabel.textProperty().bind(projectStateService.statusMessageProperty());
-        // DÒNG BỊ XÓA: statusLabel.textProperty().bind(viewModel.statusMessageProperty());
 
         Tab welcomeTab = new Tab("Welcome");
         welcomeTab.setContent(new javafx.scene.control.Label("Chào mừng đến với RMS v1.0"));
@@ -311,6 +304,14 @@ public class MainView {
         viewModel.openExportToDocumentDialog();
     }
 
+    /**
+     * [THÊM MỚI] Xử lý sự kiện nhấn "File > Import from Excel..."
+     * Tuân thủ UC-PM-03 (Ngày 34).
+     */
+    @FXML
+    private void handleImportExcel() {
+        viewModel.openImportWizardTab();
+    }
 
     /**
      * Hàm helper lấy Stage (cửa sổ) chính của ứng dụng.
