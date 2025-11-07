@@ -45,15 +45,16 @@ public class RenderServiceImpl implements IRenderService {
     private final ContextMenu autocompletePopup;
 
     /**
-     * [THÊM MỚI NGÀY 27] Inject IProjectService để lấy danh sách Release
+     * Inject IProjectService để lấy danh sách Release (UC-MGT-03).
      */
     private final IProjectService projectService;
+
 
     @Inject
     public RenderServiceImpl(Injector injector, IProjectService projectService) {
         this.injector = injector;
         this.searchService = injector.getInstance(ISearchService.class);
-        this.projectService = projectService; // [THÊM MỚI NGÀY 27]
+        this.projectService = projectService;
         this.autocompletePopup = new ContextMenu();
     }
 
@@ -97,10 +98,6 @@ public class RenderServiceImpl implements IRenderService {
             }
         }
 
-        // [SỬA LỖI NGÀY 27] Không gọi getFieldProperty ở đây,
-        // gọi các hàm cụ thể (getStringProperty, getLocalDateProperty)
-        // bên trong các case.
-
         switch (field.getType()) {
             case "Text (Single-line)":
                 TextField textField = new TextField();
@@ -115,9 +112,8 @@ public class RenderServiceImpl implements IRenderService {
                 return textArea;
 
             case "Dropdown":
-                // [CẬP NHẬT NGÀY 27] Hỗ trợ Dropdown động
                 ComboBox<String> comboBox = new ComboBox<>();
-                comboBox.setItems(getDropdownOptions(field)); // Lấy options động
+                comboBox.setItems(getDropdownOptions(field));
                 comboBox.valueProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
                 return comboBox;
 
@@ -129,7 +125,6 @@ public class RenderServiceImpl implements IRenderService {
                 return linkerField;
 
             case "DatePicker":
-                // [THÊM MỚI NGÀY 27] Hỗ trợ UC-MGT-01
                 DatePicker datePicker = new DatePicker();
                 ObjectProperty<LocalDate> dateProperty = viewModel.getLocalDateProperty(field.getName());
                 datePicker.valueProperty().bindBidirectional(dateProperty);
@@ -142,17 +137,15 @@ public class RenderServiceImpl implements IRenderService {
     }
 
     /**
-     * [THÊM MỚI NGÀY 27]
      * Lấy các tùy chọn (options) cho ComboBox (Dropdown).
      * Hỗ trợ nguồn động (ví dụ: @Releases) cho UC-MGT-03.
+     *
+     * @param field Template của trường (field)
+     * @return Danh sách các tùy chọn (options)
      */
     private ObservableList<String> getDropdownOptions(ArtifactTemplate.FieldTemplate field) {
         ObservableList<String> options = FXCollections.observableArrayList();
 
-        // Hiện tại, chúng ta làm cứng (hardcode) logic cho "@Releases"
-
-        // Tạm thời hardcode, nếu tên field là "Target Release"
-        // (Đây là cách làm nhanh, không phải là cách tốt nhất)
         if ("Target Release".equalsIgnoreCase(field.getName())) {
             try {
                 ProjectConfig config = projectService.getCurrentProjectConfig();
@@ -169,7 +162,9 @@ public class RenderServiceImpl implements IRenderService {
                 options.add("(Lỗi tải Release)");
             }
         } else {
-            // Nguồn tĩnh (ví dụ: "Status")
+            /**
+             * Nguồn tĩnh (ví dụ: "Status")
+             */
             options.addAll("Draft", "In Review", "Approved");
         }
 
@@ -179,10 +174,15 @@ public class RenderServiceImpl implements IRenderService {
 
     /**
      * Thêm logic Autocomplete (gợi ý @ID) vào một control (TextField hoặc TextArea).
+     * (Phần logic Hover Card (1.0.A1) đã bị loại bỏ do lỗi biên dịch).
      *
      * @param control Control (TextField, TextArea) cần thêm tính năng.
      */
     private void setupAutocomplete(final TextInputControl control) {
+
+        /**
+         * Logic Autocomplete (UC-DEV-02, Normal Flow)
+         */
         control.caretPositionProperty().addListener((obs, oldPos, newPos) -> {
             String text = control.getText();
             if (text.isEmpty()) {
@@ -241,30 +241,9 @@ public class RenderServiceImpl implements IRenderService {
         String fxmlPath = "/com/rms/app/view/FlowBuilderControl.fxml";
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
 
-        /**
-         * [SỬA LỖI] Thay đổi cách nạp FXML
-         * Thay vì dùng setControllerFactory (gây lỗi @FXML null)
-         * chúng ta dùng setController (giống ViewManagerImpl)
-         */
-
-        /**
-         * 1. Yêu cầu Guice tạo Controller
-         */
         FlowBuilderControl controller = injector.getInstance(FlowBuilderControl.class);
-
-        /**
-         * 2. Set controller này cho FXML
-         */
         loader.setController(controller);
-
-        /**
-         * 3. Load (lúc này FXML sẽ inject @FXML vào 'controller')
-         */
         Parent controlRoot = loader.load();
-
-        /**
-         * 4. Gọi setData (lúc này @FXML đã được inject)
-         */
         controller.setData(steps);
 
         return controlRoot;
