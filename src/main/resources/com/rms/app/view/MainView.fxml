@@ -12,39 +12,45 @@
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.SeparatorMenuItem?>
-
-<BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.rms.app.view.MainView" prefHeight="800" prefWidth="1280">
+<?import javafx.scene.control.SplitPane?> <BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+                                                      fx:controller="com.rms.app.view.MainView" prefHeight="800" prefWidth="1280">
     <top>
         <MenuBar>
             <menus>
                 <Menu text="File">
                     <items>
+
                         <MenuItem onAction="#handleNewProject" text="New Project..." accelerator="Ctrl+N"/>
                         <MenuItem onAction="#handleOpenProject" text="Open Project..." accelerator="Ctrl+O"/>
                         <SeparatorMenuItem/>
-                        <MenuItem onAction="#handleRebuildIndex" text="Kiểm tra &amp; Tái lập Chỉ mục..."/>
+                        <MenuItem onAction="#handleRebuildIndex" text="Kiểm tra &amp;
+Tái lập Chỉ mục..."/>
                         <MenuItem onAction="#handleImportExcel" text="Import from Excel..."/>
                         <SeparatorMenuItem/>
                         <MenuItem onAction="#handleExportExcel" text="Export to Excel..."/>
+
                         <MenuItem onAction="#handleExportToDocument" text="Export to Document (PDF/DOCX)..."/>
                         <SeparatorMenuItem/>
                         <MenuItem text="Exit"/>
                     </items>
                 </Menu>
+
                 <Menu text="Edit"/>
                 <Menu text="View">
                     <items>
                         <MenuItem onAction="#handleOpenDashboard" text="Planning Dashboard"/>
+
                         <MenuItem onAction="#handleOpenGraphView" text="Project Graph View"/>
                     </items>
                 </Menu>
                 <Menu text="Settings">
                     <items>
+
                         <MenuItem onAction="#handleOpenFormBuilder" text="Artifact Types (Form Builder)"/>
                         <MenuItem onAction="#handleOpenReleasesConfig" text="Releases Management..."/>
                         <MenuItem onAction="#handleOpenExportTemplateBuilder" text="Export Template Builder..."/>
                         <SeparatorMenuItem/>
+
                         <MenuItem onAction="#handleOpenApiKeys" text="API Keys..."/>
                     </items>
                 </Menu>
@@ -53,29 +59,34 @@
         </MenuBar>
     </top>
 
-    <left>
-        <VBox minWidth="200" prefWidth="250" styleClass="sidebar">
-            <Label styleClass="sidebar-title" text="Project Explorer"/>
-            <TreeView fx:id="projectTreeView" VBox.vgrow="ALWAYS"/>
-        </VBox>
-    </left>
     <center>
-        <TabPane fx:id="mainTabPane" styleClass="center-pane"/>
+        <SplitPane dividerPositions="0.20, 0.75" BorderPane.alignment="CENTER">
+
+            <VBox styleClass="sidebar">
+                <Label styleClass="sidebar-title" text="Project Explorer"/>
+                <TreeView fx:id="projectTreeView" VBox.vgrow="ALWAYS"/>
+            </VBox>
+
+            <TabPane fx:id="mainTabPane" styleClass="center-pane"/>
+
+            <VBox styleClass="sidebar">
+                <Label styleClass="sidebar-title" text="Contextual Info"/>
+
+                <Accordion fx:id="rightAccordion">
+                    <panes>
+                        <TitledPane fx:id="backlinksPane" text="Backlinks (Liên kết ngược)">
+                            <ListView fx:id="backlinksListView"/>
+                        </TitledPane>
+
+                    </panes>
+                </Accordion>
+            </VBox>
+        </SplitPane>
     </center>
-    <right>
-        <VBox minWidth="200" prefWidth="250" styleClass="sidebar">
-            <Label styleClass="sidebar-title" text="Contextual Info"/>
-            <Accordion fx:id="rightAccordion">
-                <panes>
-                    <TitledPane fx:id="backlinksPane" text="Backlinks (Liên kết ngược)">
-                        <ListView fx:id="backlinksListView"/>
-                    </TitledPane>
-                </panes>
-            </Accordion>
-        </VBox>
-    </right>
+
     <bottom>
-        <Label fx:id="statusLabel" style="-fx-padding: 4px; -fx-background-color: #3c3f41;"
+        <Label fx:id="statusLabel" style="-fx-padding: 4px;
+-fx-background-color: #3c3f41;"
                text="Status: Ready" BorderPane.alignment="CENTER_LEFT"/>
     </bottom>
 </BorderPane>

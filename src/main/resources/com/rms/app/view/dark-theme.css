@@ -144,3 +144,54 @@
     -fx-background-color: transparent;
     -fx-border-width: 0;
 }
+
+/* --- [THÊM MỚI] Ẩn thanh cuộn (Scrollbar) theo yêu cầu --- */
+
+/* 1. Ẩn tất cả thanh cuộn theo mặc định */
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+/* 2. Ẩn "track" (thanh nền) */
+.scroll-bar .track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0.0;
+    -fx-border-radius: 0.0;
+}
+
+/* 3. Ẩn "thumb" (con trượt) */
+.scroll-bar .thumb {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0.0;
+    -fx-background-radius: 8.0; /* Vẫn giữ bo góc */
+}
+
+/* 4. Ẩn các nút mũi tên (nếu có) */
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0.0;
+}
+
+/* --- Hiển thị thanh cuộn khi HOVER --- */
+
+/* 5. Áp dụng cho các container cuộn chính: Hiển thị con trượt khi di chuột */
+.scroll-pane:hover .scroll-bar .thumb,
+.tree-view:hover .scroll-bar .thumb,
+.list-view:hover .scroll-bar .thumb,
+.text-area:hover .scroll-bar .thumb,
+.tab-pane:hover .scroll-bar .thumb {
+    -fx-background-color: #888888; /* Màu xám mờ */
+    -fx-opacity: 0.7;
+}
+
+/* 6. Làm con trượt sáng hơn khi di chuột trực tiếp vào nó */
+.scroll-pane:hover .scroll-bar .thumb:hover,
+.tree-view:hover .scroll-bar .thumb:hover,
+.list-view:hover .scroll-bar .thumb:hover,
+.text-area:hover .scroll-bar .thumb:hover,
+.tab-pane:hover .scroll-bar .thumb:hover {
+    -fx-background-color: #AAAAAA;
+    -fx-opacity: 0.9;
+}

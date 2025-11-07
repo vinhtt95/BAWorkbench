@@ -9,74 +9,86 @@
 <SplitPane dividerPositions="0.25" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.rms.app.view.FormBuilderView">
     <items>
-        <VBox styleClass="sidebar" minWidth="200" prefWidth="200" maxWidth="250"
-              SplitPane.resizableWithParent="false">
+        <VBox styleClass="sidebar" minWidth="200" prefWidth="200" maxWidth="250">
             <Label styleClass="sidebar-title" text="Artifact Types"/>
             <ListView fx:id="templateListView" VBox.vgrow="ALWAYS"/>
-            <Button onAction="#handleNewTemplate" text="New Template" maxWidth="Infinity" style="-fx-margin: 5 0 0 0;"/>
+            <Button onAction="#handleNewTemplate" text="New Template" maxWidth="Infinity" style="-fx-margin: 5 0
+0 0;"/>
         </VBox>
 
         <BorderPane fx:id="editorPane" visible="false">
             <top>
                 <VBox style="-fx-border-color: -fx-base; -fx-border-width: 0 0 1 0; -fx-padding: 10;">
                     <HBox spacing="10" alignment="CENTER_LEFT">
+
                         <Label text="Template Name:"/>
                         <TextField fx:id="templateNameField" prefWidth="200" HBox.hgrow="NEVER"/>
                         <Label text="Prefix ID:"/>
                         <TextField fx:id="prefixIdField" prefWidth="80" HBox.hgrow="NEVER"/>
+
                         <Label text="Version:"/>
                         <Label fx:id="versionLabel" text="1" style="-fx-font-weight: bold;"/>
                         <Pane HBox.hgrow="ALWAYS"/>
                         <Button onAction="#handleSaveAsNewVersion" text="Save as New Version"/>
+
                     </HBox>
                 </VBox>
             </top>
             <center>
                 <SplitPane dividerPositions="0.2, 0.75">
-                    <VBox styleClass="sidebar" minWidth="200" prefWidth="200" maxWidth="200"
-                          SplitPane.resizableWithParent="false">
+                    <VBox styleClass="sidebar" minWidth="200" prefWidth="200" maxWidth="200">
+
                         <Label styleClass="sidebar-title" text="Toolbox"/>
                         <ListView fx:id="toolboxListView"/>
                     </VBox>
+
 
                     <VBox spacing="5" style="-fx-padding: 10;">
                         <Label styleClass="sidebar-title" text="Form Preview"/>
                         <HBox spacing="5" alignment="CENTER_LEFT">
                             <Button fx:id="moveUpButton" onAction="#handleMoveUp" text="Up"/>
+
                             <Button fx:id="moveDownButton" onAction="#handleMoveDown" text="Down"/>
                             <Pane HBox.hgrow="ALWAYS"/>
                             <Button fx:id="removeFieldButton" onAction="#handleRemoveField" text="Remove" style="-fx-text-fill: #ff8888;"/>
+
                         </HBox>
                         <ListView fx:id="formPreviewListView" VBox.vgrow="ALWAYS"/>
                     </VBox>
 
                     <VBox fx:id="propertiesPaneContainer" styleClass="sidebar" spacing="10"
-                          minWidth="250" prefWidth="250" maxWidth="300"
-                          SplitPane.resizableWithParent="false">
+
+                          minWidth="250" prefWidth="250" maxWidth="300">
                         <padding>
                             <Insets top="5" right="5" bottom="5" left="5"/>
+
                         </padding>
                         <Label styleClass="sidebar-title" text="Field Properties"/>
 
                         <VBox fx:id="propertiesPane" spacing="10" visible="false" managed="false">
+
 
                             <VBox spacing="3">
                                 <Label text="Name:"/>
                                 <TextField fx:id="fieldNameField"/>
                             </VBox>
 
+
                             <VBox spacing="3">
                                 <Label text="Type:"/>
                                 <TextField fx:id="fieldTypeField" editable="false"/>
+
                             </VBox>
 
                         </VBox>
                         <VBox fx:id="dropdownOptionsPane" spacing="5" managed="false" visible="false" VBox.vgrow="ALWAYS">
+
                             <Label text="Dropdown Options (one per line):"/>
                             <TextArea fx:id="dropdownOptionsArea" prefRowCount="10" VBox.vgrow="ALWAYS"/>
                         </VBox>
 
                         <Label fx:id="noFieldSelectedLabel" text="(Select a field from the Preview list to see its properties)"
+
                                wrapText="true"/>
                     </VBox>
                 </SplitPane>
