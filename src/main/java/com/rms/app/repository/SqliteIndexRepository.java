@@ -86,11 +86,7 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         }
 
         /**
-         * [SỬA LỖI NGÀY 29]
          * Xử lý lỗi (Error 1) [SQLITE_CONSTRAINT_NOTNULL].
-         * Nếu Tên (Name) là null (do file .json bị lỗi hoặc thiếu),
-         * chúng ta sử dụng ID làm Tên (Name) thay thế để tuân thủ
-         * ràng buộc NOT NULL của CSDL.
          */
         String name = (artifact.getName() != null) ? artifact.getName() :
                 (artifact.getId() != null ? artifact.getId() : "Untitled");
@@ -201,6 +197,29 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, status);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Artifact artifact = new Artifact();
+                artifact.setId(rs.getString("id"));
+                artifact.setName(rs.getString("name"));
+                artifact.setArtifactType(rs.getString("type"));
+                results.add(artifact);
+            }
+        }
+        return results;
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 30] Triển khai logic query (UC-PUB-02)
+     */
+    @Override
+    public List<Artifact> getArtifactsByType(String type) throws SQLException {
+        List<Artifact> results = new ArrayList<>();
+        String sql = "SELECT id, name, type FROM artifacts WHERE type = ?;";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, type);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {

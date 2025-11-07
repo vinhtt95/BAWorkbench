@@ -79,7 +79,6 @@ public interface ISqliteIndexRepository {
     List<Artifact> queryBacklinks(String artifactId) throws SQLException;
 
     /**
-     * [THÊM MỚI NGÀY 28]
      * Lấy danh sách các Trạng thái (Status) duy nhất (distinct)
      * từ CSDL Chỉ mục (dùng cho Kanban).
      *
@@ -89,7 +88,6 @@ public interface ISqliteIndexRepository {
     List<String> getDefinedStatuses() throws SQLException;
 
     /**
-     * [THÊM MỚI NGÀY 28]
      * Lấy tất cả các artifact (chỉ ID, Name)
      * khớp với một Trạng thái (Status) cụ thể (dùng cho Kanban).
      *
@@ -98,4 +96,15 @@ public interface ISqliteIndexRepository {
      * @throws SQLException Nếu lỗi CSDL
      */
     List<Artifact> getArtifactsByStatus(String status) throws SQLException;
+
+    /**
+     * [THÊM MỚI NGÀY 30]
+     * Lấy tất cả các artifact (chỉ ID, Name, Type)
+     * khớp với một Loại (Type) cụ thể (dùng cho Xuất Excel).
+     *
+     * @param type Tên Loại (ví dụ: "UC")
+     * @return Danh sách các Artifact
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    List<Artifact> getArtifactsByType(String type) throws SQLException;
 }

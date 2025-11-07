@@ -11,10 +11,13 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TreeItem;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +46,11 @@ public class MainViewModel {
     private final ISearchService searchService;
     private final IIndexService indexService;
 
+    /**
+     * [THÊM MỚI NGÀY 30]
+     */
+    private final IExportService exportService;
+
     private final ObservableList<String> currentBacklinks = FXCollections.observableArrayList();
 
     private TabPane mainTabPane;
@@ -54,7 +62,8 @@ public class MainViewModel {
                          IProjectStateService projectStateService,
                          IArtifactRepository artifactRepository,
                          ISearchService searchService,
-                         IIndexService indexService) {
+                         IIndexService indexService,
+                         IExportService exportService) {
         this.projectService = projectService;
         this.templateService = templateService;
         this.viewManager = viewManager;
@@ -62,6 +71,7 @@ public class MainViewModel {
         this.artifactRepository = artifactRepository;
         this.searchService = searchService;
         this.indexService = indexService;
+        this.exportService = exportService;
 
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
         this.statusMessage = new SimpleStringProperty("Sẵn sàng.");
@@ -80,6 +90,7 @@ public class MainViewModel {
      * Hàm refresh cây thư mục (TreeView).
      */
     private void refreshProjectTree() {
+        // ... (Không thay đổi) ...
         File projectDir = projectStateService.getCurrentProjectDirectory();
         if (projectDir != null) {
             try {
@@ -103,23 +114,21 @@ public class MainViewModel {
 
     /**
      * Logic cập nhật Backlinks khi đổi Tab
-     * (Sẽ được gọi bởi MainView)
      *
      * @param selectedTab Tab hiện tại đang được chọn
      */
     public void updateBacklinks(Tab selectedTab) {
+        // ... (Không thay đổi) ...
         currentBacklinks.clear();
         if (selectedTab == null || "Welcome".equals(selectedTab.getText())) {
             currentBacklinks.add("(Chọn một artifact để xem)");
             return;
         }
-
         String artifactId = selectedTab.getText();
         if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard")) {
             currentBacklinks.add("(Không áp dụng)");
             return;
         }
-
         try {
             List<Artifact> backlinks = searchService.getBacklinks(artifactId);
             if (backlinks.isEmpty()) {
@@ -142,6 +151,7 @@ public class MainViewModel {
      * @param directory Thư mục
      */
     public void createNewProject(String projectName, File directory) {
+        // ... (Không thay đổi) ...
         try {
             boolean success = projectService.createProject(projectName, directory);
             if (success) {
@@ -160,15 +170,12 @@ public class MainViewModel {
      * @param templateName Tên template (ví dụ: "Use Case")
      */
     public void createNewArtifact(String templateName) {
+        // ... (Không thay đổi) ...
         try {
             ArtifactTemplate template = templateService.loadTemplate(templateName);
-
             Tab newTab = viewManager.openArtifactTab(template);
-
             this.mainTabPane.getTabs().add(newTab);
-
             mainTabPane.getSelectionModel().select(newTab);
-
         } catch (IOException e) {
             logger.error("Không thể tải template: " + templateName, e);
             projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
@@ -181,13 +188,12 @@ public class MainViewModel {
      * @param relativePath Đường dẫn tương đối (ví dụ: "UC/UC001.json")
      */
     public void openArtifact(String relativePath) {
+        // ... (Không thay đổi) ...
         if (relativePath == null || !relativePath.endsWith(".json")) {
             logger.warn("Bỏ qua mở file không hợp lệ: {}", relativePath);
             return;
         }
-
         String id = new File(relativePath).getName().replace(".json", "");
-
         for (Tab tab : mainTabPane.getTabs()) {
             if (tab.getText().equals(id)) {
                 mainTabPane.getSelectionModel().select(tab);
@@ -195,22 +201,18 @@ public class MainViewModel {
                 return;
             }
         }
-
         try {
             Artifact artifact = artifactRepository.load(relativePath);
             if (artifact == null) {
                 throw new IOException("Không tìm thấy artifact: " + relativePath);
             }
-
             ArtifactTemplate template = templateService.loadTemplateByPrefix(artifact.getArtifactType());
             if (template == null) {
                 throw new IOException("Không tìm thấy template cho loại: " + artifact.getArtifactType());
             }
-
             Tab newTab = viewManager.openArtifactTab(artifact, template);
             this.mainTabPane.getTabs().add(newTab);
             mainTabPane.getSelectionModel().select(newTab);
-
         } catch (IOException e) {
             logger.error("Lỗi mở artifact: " + relativePath, e);
             projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
@@ -221,14 +223,13 @@ public class MainViewModel {
      * Logic nghiệp vụ Xóa Artifact
      *
      * @param relativePath Đường dẫn tương đối của file cần xóa
-     * @throws IOException Nếu xóa thất bại (ví dụ: do vi phạm toàn vẹn)
+     * @throws IOException Nếu xóa thất bại
      */
     public void deleteArtifact(String relativePath) throws IOException {
+        // ... (Không thay đổi) ...
         artifactRepository.delete(relativePath);
         refreshProjectTree();
-
         String id = new File(relativePath).getName().replace(".json", "");
-
         Tab tabToClose = null;
         for (Tab tab : mainTabPane.getTabs()) {
             if (tab.getText().equals(id)) {
@@ -239,7 +240,6 @@ public class MainViewModel {
         if (tabToClose != null) {
             mainTabPane.getTabs().remove(tabToClose);
         }
-
         projectStateService.setStatusMessage("Đã xóa: " + id);
     }
 
@@ -250,6 +250,7 @@ public class MainViewModel {
      * @param directory Thư mục dự án
      */
     public void openProject(File directory) {
+        // ... (Không thay đổi) ...
         try {
             if (mainTabPane != null) {
                 mainTabPane.getTabs().clear();
@@ -258,15 +259,11 @@ public class MainViewModel {
                 mainTabPane.getTabs().add(welcomeTab);
                 mainTabPane.getSelectionModel().select(welcomeTab);
             }
-
             ProjectConfig config = projectService.openProject(directory);
             currentProject.set(config);
-
             projectStateService.setCurrentProjectDirectory(directory);
             indexService.validateAndRebuildIndex();
-
             refreshProjectTree();
-
             projectStateService.setStatusMessage("Đã mở dự án: " + config.getProjectName());
         } catch (IOException e) {
             logger.error("Lỗi mở dự án", e);
@@ -278,6 +275,7 @@ public class MainViewModel {
      * Mở tab Cấu hình Form Builder (UC-CFG-01).
      */
     public void openFormBuilderTab() {
+        // ... (Không thay đổi) ...
         try {
             Tab newTab = viewManager.openViewInNewTab(
                     "/com/rms/app/view/FormBuilderView.fxml", "Form Builder"
@@ -293,6 +291,7 @@ public class MainViewModel {
      * Mở tab Cấu hình Releases (UC-CFG-02).
      */
     public void openReleasesConfigTab() {
+        // ... (Không thay đổi) ...
         try {
             Tab newTab = viewManager.openViewInNewTab(
                     "/com/rms/app/view/ReleasesView.fxml", "Releases Config"
@@ -305,10 +304,10 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI NGÀY 28]
      * Mở tab Bảng Kanban (UC-MGT-02).
      */
     public void openDashboardTab() {
+        // ... (Không thay đổi) ...
         try {
             Tab newTab = viewManager.openViewInNewTab(
                     "/com/rms/app/view/DashboardView.fxml", "Dashboard"
@@ -317,6 +316,61 @@ public class MainViewModel {
             mainTabPane.getSelectionModel().select(newTab);
         } catch (IOException e) {
             logger.error("Không thể tải DashboardView", e);
+        }
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 30]
+     * Logic nghiệp vụ cho UC-PUB-02 (Xuất Excel).
+     * Kích hoạt FileChooser và chạy tác vụ (Task) nền.
+     */
+    public void exportProjectToExcel() {
+        /**
+         * Lấy Stage (cửa sổ) hiện tại
+         */
+        if (mainTabPane == null || mainTabPane.getScene() == null || mainTabPane.getScene().getWindow() == null) {
+            projectStateService.setStatusMessage("Lỗi: Không thể mở hộp thoại lưu file.");
+            return;
+        }
+        Stage stage = (Stage) mainTabPane.getScene().getWindow();
+
+        /**
+         * Bước 5.0 (UC-PUB-02): BA chọn vị trí lưu file
+         */
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export Project to Excel");
+        fileChooser.setInitialFileName(projectStateService.getCurrentProjectDirectory().getName() + "_Export.xlsx");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Excel Files (*.xlsx)", "*.xlsx"));
+        File file = fileChooser.showSaveDialog(stage);
+
+        if (file != null) {
+            /**
+             * Bước 3.0 & 4.0 (UC-PUB-02): Lấy danh sách Types
+             * (Tạm thời bỏ qua checklist, xuất tất cả)
+             */
+            try {
+                List<String> allTemplateNames = templateService.loadAllTemplateNames();
+                if (allTemplateNames.isEmpty()) {
+                    projectStateService.setStatusMessage("Không có loại (template) nào để xuất.");
+                    return;
+                }
+
+                /**
+                 * Bước 7.0 (UC-PUB-02): Chạy trên luồng nền (NFR)
+                 */
+                Task<Void> exportTask = new Task<>() {
+                    @Override
+                    protected Void call() throws Exception {
+                        exportService.exportToExcel(file, allTemplateNames);
+                        return null;
+                    }
+                };
+                new Thread(exportTask).start();
+
+            } catch (IOException e) {
+                logger.error("Không thể tải danh sách template để xuất.", e);
+                projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
+            }
         }
     }
 

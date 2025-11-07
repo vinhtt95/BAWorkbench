@@ -76,27 +76,20 @@ public class MainView {
 
     /**
      * Thiết lập logic UI cho bảng Backlinks (Cột phải).
-     * Liên kết ListView với dữ liệu ViewModel và xử lý điều hướng khi double-click.
      */
     private void setupBacklinksPanel() {
-
+        // ... (Không thay đổi) ...
         backlinksListView.setItems(viewModel.getCurrentBacklinks());
-
         rightAccordion.setExpandedPane(backlinksPane);
-
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             viewModel.updateBacklinks(newTab);
         });
-
         viewModel.updateBacklinks(mainTabPane.getSelectionModel().getSelectedItem());
-
-
         backlinksListView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 String selected = backlinksListView.getSelectionModel().getSelectedItem();
                 if (selected != null && selected.contains(":")) {
                     String artifactId = selected.split(":")[0].trim();
-
                     logger.warn("Điều hướng Backlink chưa được triển khai đầy đủ để hỗ trợ cấu trúc thư mục con.");
                     viewModel.openArtifact(artifactId + ".json");
                 }
@@ -106,18 +99,15 @@ public class MainView {
 
     /**
      * Thiết lập trình lắng nghe sự kiện click chuột cho TreeView (Cột trái).
-     * Xử lý double-click để mở artifact (.json).
      */
     private void setupTreeViewClickListener() {
+        // ... (Không thay đổi) ...
         projectTreeView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
-
                 if (selectedItem != null && selectedItem.isLeaf()) {
                     String fileName = selectedItem.getValue();
-
                     if (fileName.endsWith(".json")) {
-
                         String relativePath = getSelectedArtifactPath(selectedItem);
                         if (relativePath != null) {
                             logger.info("Đang mở artifact: " + relativePath);
@@ -131,52 +121,43 @@ public class MainView {
 
     /**
      * Thiết lập Context Menu (menu chuột phải) cho TreeView.
-     * Bao gồm menu động "New Artifact" và "Delete".
      */
     private void setupTreeViewContextMenu() {
+        // ... (Không thay đổi) ...
         ContextMenu treeContextMenu = new ContextMenu();
         Menu newMenu = new Menu("New Artifact");
-
         projectStateService.currentProjectDirectoryProperty().addListener((obs, oldDir, newDir) -> {
             rebuildNewArtifactMenu(newMenu);
         });
-
         projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
             if (newMsg != null && newMsg.startsWith("Đã lưu template")) {
                 rebuildNewArtifactMenu(newMenu);
             }
         });
-
         rebuildNewArtifactMenu(newMenu);
-
         MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(e -> handleDeleteArtifact());
-
         treeContextMenu.getItems().addAll(newMenu, new SeparatorMenuItem(), deleteItem);
-
         projectTreeView.setContextMenu(treeContextMenu);
     }
 
     /**
      * Xử lý sự kiện khi người dùng chọn "Delete" từ Context Menu.
-     * Hiển thị hộp thoại xác nhận và gọi ViewModel để xóa.
      */
     @FXML
     private void handleDeleteArtifact() {
+        // ... (Không thay đổi) ...
         TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
         if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
             showErrorAlert("Lỗi Xóa", "Vui lòng chọn một file artifact (.json) để xóa.");
             return;
         }
-
         String relativePath = getSelectedArtifactPath(selectedItem);
         if (relativePath == null) return;
-
         Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
         confirmAlert.setTitle("Xác nhận Xóa");
         confirmAlert.setHeaderText("Bạn có chắc muốn xóa " + selectedItem.getValue() + "?");
         confirmAlert.setContentText("Hành động này không thể hoàn tác.");
-
         Optional<ButtonType> result = confirmAlert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
@@ -189,11 +170,11 @@ public class MainView {
 
     /**
      * Hàm helper để xây dựng lại (rebuild) menu "New Artifact" một cách động.
-     * Được gọi khi dự án được mở hoặc khi template thay đổi.
      *
      * @param newMenu Menu (MenuItem) cần được xây dựng lại
      */
     private void rebuildNewArtifactMenu(Menu newMenu) {
+        // ... (Không thay đổi) ...
         newMenu.getItems().clear();
         if (projectStateService.getCurrentProjectDirectory() != null) {
             try {
@@ -222,13 +203,12 @@ public class MainView {
      * @return Đường dẫn tương đối (ví dụ: "UC/UC001.json") hoặc null
      */
     private String getSelectedArtifactPath(TreeItem<String> selectedItem) {
+        // ... (Không thay đổi) ...
         if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
             return null;
         }
-
         String relativePath = selectedItem.getValue();
         TreeItem<String> parent = selectedItem.getParent();
-
         while (parent != null && !parent.getValue().equals(ProjectServiceImpl.ARTIFACTS_DIR) && !parent.getValue().equals(projectTreeView.getRoot().getValue())) {
             relativePath = parent.getValue() + File.separator + relativePath;
             parent = parent.getParent();
@@ -243,6 +223,7 @@ public class MainView {
      * @param content Nội dung lỗi
      */
     private void showErrorAlert(String title, String content) {
+        // ... (Không thay đổi) ...
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
@@ -255,15 +236,14 @@ public class MainView {
      */
     @FXML
     private void handleNewProject() {
+        // ... (Không thay đổi) ...
         TextInputDialog nameDialog = new TextInputDialog("MyProject");
         nameDialog.setTitle("New Project");
         nameDialog.setHeaderText("Enter Project Name:");
         nameDialog.showAndWait().ifPresent(projectName -> {
-
             DirectoryChooser directoryChooser = new DirectoryChooser();
             directoryChooser.setTitle("Select Project Location");
             File location = directoryChooser.showDialog(getStage());
-
             if (location != null && projectName != null && !projectName.isEmpty()) {
                 File projectDir = new File(location, projectName);
                 viewModel.createNewProject(projectName, projectDir);
@@ -276,10 +256,10 @@ public class MainView {
      */
     @FXML
     private void handleOpenProject() {
+        // ... (Không thay đổi) ...
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Open RMS Project");
         File selectedDirectory = directoryChooser.showDialog(getStage());
-
         if (selectedDirectory != null) {
             viewModel.openProject(selectedDirectory);
         }
@@ -295,7 +275,6 @@ public class MainView {
 
     /**
      * Xử lý sự kiện nhấn "Settings > Releases Management...".
-     * Tuân thủ UC-CFG-02.
      */
     @FXML
     private void handleOpenReleasesConfig() {
@@ -303,14 +282,23 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI NGÀY 28]
      * Xử lý sự kiện nhấn "View > Planning Dashboard".
-     * Tuân thủ UC-MGT-02.
      */
     @FXML
     private void handleOpenDashboard() {
         viewModel.openDashboardTab();
     }
+
+    /**
+     * [THÊM MỚI NGÀY 30]
+     * Xử lý sự kiện nhấn "File > Export to Excel...".
+     * Tuân thủ UC-PUB-02.
+     */
+    @FXML
+    private void handleExportExcel() {
+        viewModel.exportProjectToExcel();
+    }
+
 
     /**
      * Hàm helper lấy Stage (cửa sổ) chính của ứng dụng.
