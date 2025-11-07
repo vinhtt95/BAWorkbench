@@ -34,11 +34,6 @@ public class ExportTemplateBuilderView {
 
     private final ExportTemplateBuilderViewModel viewModel;
 
-    /**
-     * Flag (cờ) để ngăn chặn các vòng lặp (loop) binding
-     */
-    private boolean isBinding = false;
-
     @Inject
     public ExportTemplateBuilderView(ExportTemplateBuilderViewModel viewModel) {
         this.viewModel = viewModel;
@@ -58,10 +53,6 @@ public class ExportTemplateBuilderView {
 
         /**
          * Cột 2: Trình chỉnh sửa (Editor)
-         *
-         * [SỬA LỖI NGÀY 32]
-         * Thay đổi .templateNameProperty() thành .templateName
-         * để khớp với thuộc tính (field) public trong ViewModel.
          */
         editorPane.visibleProperty().bind(Bindings.isNotNull(viewModel.templateName));
         templateNameField.textProperty().bindBidirectional(viewModel.templateName);
@@ -87,12 +78,26 @@ public class ExportTemplateBuilderView {
         });
 
         /**
+         * Lắng nghe Cột 2 (Danh sách Section) để refresh (Hack)
+         */
+        viewModel.currentSections.addListener((ListChangeListener<ExportTemplateSection>) c -> sectionsListView.refresh());
+
+        /**
          * Cột 3: Thuộc tính (Properties)
          */
         propertiesPane.visibleProperty().bind(viewModel.selectedSection.isNotNull());
-        viewModel.selectedSection.addListener((obs, oldSection, newSection) -> {
-            bindPropertiesPane(newSection);
-        });
+
+        /**
+         * [SỬA LỖI] Xóa bỏ (remove) phương thức bindPropertiesPane()
+         * và thay thế bằng binding hai chiều (bidirectional) trực tiếp
+         * tới các Property mới trong ViewModel.
+         */
+        titleField.textProperty().bindBidirectional(viewModel.currentSectionTitle);
+        typeComboBox.valueProperty().bindBidirectional(viewModel.currentSectionType);
+        contentField.textProperty().bindBidirectional(viewModel.currentSectionContent);
+        queryTypeComboBox.valueProperty().bindBidirectional(viewModel.currentQueryType);
+        queryStatusComboBox.valueProperty().bindBidirectional(viewModel.currentQueryStatus);
+        displayFormatComboBox.valueProperty().bindBidirectional(viewModel.currentDisplayFormat);
 
         /**
          * Thiết lập các ComboBox
@@ -103,99 +108,14 @@ public class ExportTemplateBuilderView {
         queryStatusComboBox.setItems(viewModel.statusOptions);
 
         /**
-         * Lắng nghe Cột 2 (Danh sách Section) để refresh (Hack)
+         * [SỬA LỖI] Logic ẩn/hiện (show/hide)
+         * các panel Tĩnh/Động (Static/Dynamic)
+         * dựa trên Property của ViewModel.
          */
-        viewModel.currentSections.addListener((ListChangeListener<ExportTemplateSection>) c -> sectionsListView.refresh());
-    }
-
-    /**
-     * Binding (thủ công) Cột 3 (Properties) với Section được chọn.
-     *
-     * @param section Section (chương) được chọn
-     */
-    private void bindPropertiesPane(ExportTemplateSection section) {
-        isBinding = true;
-
-        if (section == null) {
-            titleField.setText("");
-            typeComboBox.setValue(null);
-            contentField.setText("");
-            queryTypeComboBox.setValue(null);
-            queryStatusComboBox.setValue(null);
-            displayFormatComboBox.setValue(null);
-            staticPane.setVisible(false);
-            dynamicPane.setVisible(false);
-            isBinding = false;
-            return;
-        }
-
-        /**
-         * Hủy binding cũ (nếu có)
-         */
-        titleField.textProperty().unbind();
-        typeComboBox.valueProperty().unbind();
-        contentField.textProperty().unbind();
-        queryTypeComboBox.valueProperty().unbind();
-        queryStatusComboBox.valueProperty().unbind();
-        displayFormatComboBox.valueProperty().unbind();
-
-        /**
-         * 1. Bind dữ liệu TỪ Model (POJO) -> View (UI)
-         */
-        titleField.setText(section.getTitle());
-        typeComboBox.setValue(section.getType());
-        contentField.setText(section.getContent());
-        displayFormatComboBox.setValue(section.getDisplayFormat());
-
-        if (section.getQuery() != null) {
-            queryTypeComboBox.setValue(section.getQuery().get("artifactType"));
-            queryStatusComboBox.setValue(section.getQuery().get("status"));
-        } else {
-            section.setQuery(new HashMap<>());
-            queryTypeComboBox.setValue(null);
-            queryStatusComboBox.setValue(null);
-        }
-
-        /**
-         * 2. Hiển thị panel (Tĩnh/Động) chính xác
-         */
-        updatePanelVisibility(section.getType());
-
-        /**
-         * 3. Bind dữ liệu TỪ View (UI) -> Model (POJO)
-         */
-        titleField.textProperty().addListener((obs, oldV, newV) -> {
-            if (!isBinding) section.setTitle(newV);
-            sectionsListView.refresh();
+        viewModel.currentSectionType.addListener((obs, oldV, newV) -> {
+            updatePanelVisibility(newV);
         });
-
-        contentField.textProperty().addListener((obs, oldV, newV) -> {
-            if (!isBinding) section.setContent(newV);
-        });
-
-        displayFormatComboBox.valueProperty().addListener((obs, oldV, newV) -> {
-            if (!isBinding) section.setDisplayFormat(newV);
-        });
-
-        queryTypeComboBox.valueProperty().addListener((obs, oldV, newV) -> {
-            if (!isBinding) section.getQuery().put("artifactType", newV);
-        });
-
-        queryStatusComboBox.valueProperty().addListener((obs, oldV, newV) -> {
-            if (!isBinding) section.getQuery().put("status", newV);
-        });
-
-        /**
-         * 4. Xử lý logic khi thay đổi Loại (Type)
-         */
-        typeComboBox.valueProperty().addListener((obs, oldV, newV) -> {
-            if (!isBinding) {
-                section.setType(newV);
-                updatePanelVisibility(newV);
-            }
-        });
-
-        isBinding = false;
+        updatePanelVisibility(null); // Ẩn cả hai khi bắt đầu
     }
 
     /**

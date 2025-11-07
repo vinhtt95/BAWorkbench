@@ -1,22 +1,24 @@
 package com.rms.app.repository;
 
+import com.fasterxml.jackson.core.type.TypeReference; // [THÊM MỚI] Import
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
+import com.rms.app.model.FlowStep;
 import com.rms.app.service.IArtifactRepository;
 import com.rms.app.service.IIndexService;
 import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.impl.ProjectServiceImpl;
-import com.rms.app.viewmodel.MainViewModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.rms.app.model.Artifact;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -90,7 +92,9 @@ public class JsonFileRepository implements IArtifactRepository {
     }
 
     /**
-     * Helper tạo nội dung Markdown (đơn giản)
+     * [SỬA LỖI LẦN 2] Helper tạo nội dung Markdown.
+     * Hiện đã hỗ trợ định dạng (format) FlowStep,
+     * ngay cả khi 'value' là List<Map> (được tải từ file).
      */
     private String generateMarkdown(Artifact artifact) {
         StringBuilder sb = new StringBuilder();
@@ -98,10 +102,122 @@ public class JsonFileRepository implements IArtifactRepository {
 
         for (Map.Entry<String, Object> entry : artifact.getFields().entrySet()) {
             sb.append("## ").append(entry.getKey()).append("\n");
-            sb.append(entry.getValue() != null ? entry.getValue().toString() : "*N/A*");
+
+            Object value = entry.getValue();
+
+            /**
+             * [SỬA LỖI LẦN 2] Kiểm tra xem đây có phải là một Flow (danh sách) không
+             */
+            if (value instanceof List) {
+                List<?> list = (List<?>) value;
+                if (!list.isEmpty()) {
+                    /**
+                     * Cố gắng convert (chuyển đổi) danh sách (List) này thành List<FlowStep>.
+                     * Điều này xử lý trường hợp 'value' là List<Map> (khi tải từ file)
+                     * VÀ trường hợp 'value' là List<FlowStep> (khi lưu từ ViewModel).
+                     */
+                    try {
+                        List<FlowStep> steps = objectMapper.convertValue(
+                                list,
+                                new TypeReference<List<FlowStep>>() {}
+                        );
+
+                        /**
+                         * Nếu convert thành công VÀ có vẻ là FlowStep (có actor hoặc action)
+                         * (Kiểm tra 'get(0)' là an toàn vì chúng ta đã kiểm tra 'isEmpty()')
+                         */
+                        if (steps != null && (steps.get(0).getActor() != null || steps.get(0).getAction() != null)) {
+                            sb.append(formatFlowStepsToMarkdown(steps));
+                        } else {
+                            /**
+                             * Không phải là FlowStep, in ra như cũ
+                             */
+                            sb.append(value.toString());
+                        }
+                    } catch (Exception e) {
+                        /**
+                         * Không thể convert, đây là một danh sách (List) thông thường.
+                         */
+                        logger.warn("Không thể convert List sang FlowStep, in ra giá trị thô: {}", e.getMessage());
+                        sb.append(value.toString());
+                    }
+                } else {
+                    /**
+                     * Danh sách rỗng, in ra như cũ
+                     */
+                    sb.append(value.toString());
+                }
+            } else {
+                /**
+                 * Không phải là danh sách (List), giữ nguyên hành vi cũ
+                 */
+                sb.append(value != null ? value.toString() : "*N/A*");
+            }
+
             sb.append("\n\n");
         }
         return sb.toString();
+    }
+
+    /**
+     * Helper (hàm phụ) để định dạng (format)
+     * một danh sách FlowStep thành bảng Markdown.
+     * (Tuân thủ CodingConvention về Javadoc)
+     *
+     * @param steps Danh sách các bước (FlowStep)
+     * @return Chuỗi (String) Markdown đã định dạng
+     */
+    private String formatFlowStepsToMarkdown(List<FlowStep> steps) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("| Actor / Logic | Action / Condition |\n");
+            sb.append("|:---|:---|\n");
+
+            for (FlowStep step : steps) {
+                String actor = (step.getActor() != null) ? step.getActor() : "";
+                String action = (step.getAction() != null) ? step.getAction() : "";
+
+                /**
+                 * Xử lý logic IF/ELSE (làm cho chúng nổi bật)
+                 */
+                if ("IF".equalsIgnoreCase(step.getLogicType()) || "ELSE".equalsIgnoreCase(step.getLogicType())) {
+                    sb.append("| **").append(actor).append("** | **").append(action).append("** |\n");
+
+                    /**
+                     * Thêm các bước lồng nhau (nested) với thụt đầu dòng (indent)
+                     */
+                    if (step.getNestedSteps() != null) {
+                        for (FlowStep nestedStep : step.getNestedSteps()) {
+                            String nestedActor = (nestedStep.getActor() != null) ? nestedStep.getActor() : "";
+                            String nestedAction = (nestedStep.getAction() != null) ? nestedStep.getAction() : "";
+                            /**
+                             * Dùng &nbsp; để lùi vào
+                             */
+                            sb.append("| *&nbsp;&nbsp;&nbsp;&nbsp; ").append(nestedActor).append("* | *").append(nestedAction).append("* |\n");
+                        }
+                    }
+                } else {
+                    /**
+                     * Bước (step) thông thường
+                     */
+                    sb.append("| ").append(actor).append(" | ").append(action).append(" |\n");
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            logger.warn("Lỗi khi định dạng (format) FlowSteps sang Markdown", e);
+            /**
+             * Fallback (Phương án dự phòng): Trả về JSON (vẫn tốt hơn là object reference)
+             */
+            try {
+                /**
+                 * Sử dụng objectMapper đã tồn tại trong lớp
+                 */
+                return this.objectMapper.writeValueAsString(steps);
+            } catch (Exception ex) {
+                return "[Lỗi định dạng Flow]";
+            }
+        }
     }
 
 
