@@ -68,18 +68,39 @@ public class RenderServiceImpl implements IRenderService {
         this.autocompletePopup = new ContextMenu();
     }
 
+    /**
+     * ========================================================================
+     * ĐÃ SỬA LỖI (FILE NÀY)
+     * ========================================================================
+     * Hàm này đã được sửa để luôn render "ID" và "Name"
+     * ngay cả khi template.getFields() là null.
+     */
     @Override
     public List<Node> renderForm(ArtifactTemplate template, ArtifactViewModel viewModel) {
         List<Node> nodes = new ArrayList<>();
-        if (template == null || template.getFields() == null) {
+        if (template == null) { // Chỉ kiểm tra template
             return nodes;
         }
 
+        /**
+         * [SỬA LỖI] Luôn thêm (add) "ID" và "Name"
+         * bất kể các trường (field) khác.
+         */
         nodes.add(createFieldGroup("ID", new TextField(viewModel.getId()) {{ setEditable(false); }}));
         nodes.add(createFieldGroup("Name", new TextField() {{
             textProperty().bindBidirectional(viewModel.nameProperty());
         }}));
 
+        /**
+         * [SỬA LỖI] Kiểm tra (check) 'fields'
+         * ngay trước vòng lặp (loop)
+         */
+        if (template.getFields() == null) {
+            logger.warn("Template {} (ID: {}) không có danh sách fields (null). Chỉ render ID và Name.", template.getTemplateName(), template.getTemplateId());
+            return nodes; // Trả về (return) danh sách chỉ có ID và Name
+        }
+
+        // Vòng lặp (loop) này giờ đã an toàn
         for (ArtifactTemplate.FieldTemplate field : template.getFields()) {
             Node control = createControlForField(field, viewModel);
             if (control != null) {
@@ -88,6 +109,12 @@ public class RenderServiceImpl implements IRenderService {
         }
         return nodes;
     }
+    /**
+     * ========================================================================
+     * HẾT PHẦN SỬA LỖI
+     * ========================================================================
+     */
+
 
     /**
      * Tạo control JavaFX tương ứng cho một FieldTemplate.

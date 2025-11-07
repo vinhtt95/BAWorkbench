@@ -88,10 +88,16 @@ public class ArtifactView {
                     Tab thisTab = tabPane.getSelectionModel().getSelectedItem();
 
                     /**
-                     * Kiểm tra xem tab này có phải là tab
-                     * chúng ta đang tìm không
+                     * ========================================================================
+                     * ĐÃ SỬA LỖI (DÒNG NÀY)
+                     * ========================================================================
+                     * So sánh content của Tab (thisTab.getContent()) với
+                     * root FXML của view này (artifactTabPane).
+                     *
+                     * Lỗi cũ là: thisTab.getContent() == formContainer.getParent().getParent()
+                     * (vốn so sánh artifactTabPane với Tab "Form View", luôn false)
                      */
-                    if (thisTab != null && thisTab.getContent() == formContainer.getParent().getParent()) {
+                    if (thisTab != null && thisTab.getContent() == this.artifactTabPane) {
                         Object userData = thisTab.getUserData();
 
                         if (userData instanceof Map) {
@@ -116,6 +122,11 @@ public class ArtifactView {
                          */
                         renderFormContent();
                     }
+                    /**
+                     * ========================================================================
+                     * HẾT PHẦN SỬA LỖI
+                     * ========================================================================
+                     */
                 }
             }
         });
