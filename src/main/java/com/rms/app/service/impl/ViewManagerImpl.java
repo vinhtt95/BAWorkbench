@@ -104,12 +104,11 @@ public class ViewManagerImpl implements IViewManager {
             newTab.setContent(viewRoot);
 
             /**
-             * [SỬA LỖI] Gán ID artifact vào userData
-             * để MainViewModel có thể kiểm tra mà không cần đọc text.
+             * [ĐÃ XÓA] Xóa bỏ (Remove)
+             * `newTab.setUserData(artifact.getId());`
+             * ArtifactView/ViewModel giờ đây
+             * tự quản lý UserData của chính nó.
              */
-            if (artifact != null) {
-                newTab.setUserData(artifact.getId());
-            }
 
             return newTab;
 
@@ -121,7 +120,7 @@ public class ViewManagerImpl implements IViewManager {
     }
 
     /**
-     * [SỬA LỖI] Triển khai (implementation) logic "undock" (tháo) tab (UI-02).
+     * Triển khai (implementation) logic "undock" (tháo) tab (UI-02).
      *
      * @param tab         Tab để "undock" (tháo ra)
      * @param mainTabPane TabPane gốc để "re-dock" (gắn lại) khi đóng
@@ -148,8 +147,7 @@ public class ViewManagerImpl implements IViewManager {
         Stage newStage = new Stage();
 
         /**
-         * [SỬA LỖI] Lấy tên tab từ graphic (Label)
-         * thay vì tab.getText() (đang là null)
+         * Lấy tên tab từ graphic (Label)
          */
         try {
             if (tab.getGraphic() instanceof HBox) {
@@ -174,10 +172,7 @@ public class ViewManagerImpl implements IViewManager {
         height = (height <= 0) ? 600 : height;
 
         /**
-         * [SỬA LỖI] Tạo một root container MỚI (StackPane)
-         * và thêm 'content' (nút đã tồn tại) vào đó.
-         * KHÔNG thể đặt 'content' làm root của Scene mới
-         * vì nó đã từng thuộc về một scene-graph.
+         * Tạo một root container MỚI (StackPane)
          */
         StackPane newRoot = new StackPane();
         newRoot.getChildren().add(content);
@@ -201,11 +196,10 @@ public class ViewManagerImpl implements IViewManager {
          * Logic "Re-dock" (Gắn lại)
          */
         newStage.setOnCloseRequest(event -> {
-            logger.debug("Đang re-dock (gắn lại) tab..."); // Đã xóa tên tab (là null)
+            logger.debug("Đang re-dock (gắn lại) tab...");
 
             /**
-             * [SỬA LỖI] Gỡ (remove) content khỏi StackPane
-             * trước khi gán (assign) lại cho tab.
+             * Gỡ (remove) content khỏi StackPane
              */
             newRoot.getChildren().remove(content);
             tab.setContent(content);

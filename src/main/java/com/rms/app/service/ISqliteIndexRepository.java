@@ -1,7 +1,7 @@
 package com.rms.app.service;
 
 import com.rms.app.model.Artifact;
-import com.rms.app.model.ProjectFolder; // Giả định model này sẽ được tạo
+import com.rms.app.model.ProjectFolder;
 
 import java.io.File;
 import java.sql.SQLException;

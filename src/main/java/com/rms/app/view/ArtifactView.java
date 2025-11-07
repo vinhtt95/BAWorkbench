@@ -17,10 +17,12 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Map; // [MỚI] Import
 
 /**
  * "Dumb" View Controller cho ArtifactView.fxml.
- * Chịu trách nhiệm render Form động.
+ * [CẬP NHẬT] Khởi tạo (initialize) ViewModel
+ * bằng cách sử dụng UserData từ Tab.
  */
 public class ArtifactView {
 
@@ -32,6 +34,10 @@ public class ArtifactView {
     private final ArtifactViewModel viewModel;
     private final IRenderService renderService;
 
+    /**
+     * [THAY ĐỔI] Các trường (field) này
+     * giờ chỉ dùng khi MỞ (OPEN) artifact
+     */
     private ArtifactTemplate templateToRender;
     private Artifact artifactToLoad;
 
@@ -45,7 +51,7 @@ public class ArtifactView {
 
     /**
      * Hàm này sẽ được gọi bởi IViewManager TRƯỚC khi FXML được load
-     * để View biết nó cần render template nào.
+     * (CHỈ KHI MỞ ARTIFACT ĐÃ TỒN TẠI)
      *
      * @param template Template của artifact
      */
@@ -54,7 +60,7 @@ public class ArtifactView {
     }
 
     /**
-     * Hàm này được IViewManager gọi (nếu là mở file)
+     * Hàm này được IViewManager gọi (CHỈ KHI MỞ ARTIFACT ĐÃ TỒN TẠI)
      *
      * @param artifact Dữ liệu artifact (hoặc null)
      */
@@ -64,18 +70,107 @@ public class ArtifactView {
 
     @FXML
     public void initialize() {
-        viewModel.initializeData(templateToRender, artifactToLoad);
 
-        if (templateToRender != null) {
-            List<Node> formNodes = renderService.renderForm(templateToRender, viewModel);
+        /**
+         * [ĐÃ SỬA] Logic khởi tạo (Initialization logic)
+         * đã được chuyển sang listener (trình lắng nghe)
+         * để đảm bảo UserData của Tab đã sẵn sàng.
+         */
+        formContainer.parentProperty().addListener((obs, oldParent, newParent) -> {
+            if (newParent != null && viewModel.isNotInitialized()) {
+                /**
+                 * Tìm (Find) Tab (Pane) cha
+                 * (Đây là một hack, nhưng cần thiết
+                 * để lấy UserData)
+                 */
+                Node tabPaneNode = formContainer.getScene().lookup("#mainTabPane");
+                if (tabPaneNode instanceof TabPane) {
+                    TabPane tabPane = (TabPane) tabPaneNode;
+                    Tab thisTab = tabPane.getSelectionModel().getSelectedItem();
+
+                    /**
+                     * Kiểm tra xem tab này có phải là tab
+                     * chúng ta đang tìm không
+                     * (Nội dung (content) của tab là ScrollPane -> VBox)
+                     */
+                    if (thisTab != null && thisTab.getContent() == formContainer.getParent().getParent()) {
+                        Object userData = thisTab.getUserData();
+
+                        if (userData instanceof Map) {
+                            /**
+                             * TRƯỜNG HỢP 1: TẠO MỚI (NEW)
+                             * (UserData là Map)
+                             */
+                            viewModel.initializeData(thisTab);
+                        } else {
+                            /**
+                             * TRƯỜNG HỢP 2: MỞ (OPEN)
+                             * (UserData là String ID
+                             * HOẶC artifactToLoad đã được set)
+                             */
+                            viewModel.initializeData(templateToRender, artifactToLoad);
+                            // Cập nhật UserData thành ID
+                            // (nếu nó chưa phải)
+                            if (artifactToLoad != null) {
+                                thisTab.setUserData(artifactToLoad.getId());
+                            }
+                        }
+
+                        /**
+                         * Sau khi ViewModel được khởi tạo,
+                         * render (vẽ) form
+                         */
+                        renderFormContent();
+                    }
+                }
+            }
+        });
+
+        setupDiagramTabLogic();
+    }
+
+    /**
+     * [MỚI] Tách (Refactor)
+     * logic render (vẽ) form
+     * và binding (liên kết)
+     */
+    private void renderFormContent() {
+        ArtifactTemplate template = viewModel.getTemplate(); // Lấy (Get) template từ VM
+
+        if (template != null) {
+            List<Node> formNodes = renderService.renderForm(template, viewModel);
             formContainer.getChildren().addAll(formNodes);
         } else {
             formContainer.getChildren().add(new Label("Lỗi: Không tìm thấy template."));
         }
 
         /**
-         * Logic lazy-load, chỉ render khi tab được chọn.
-         * Tuân thủ UC-MOD-01 [vinhtt95/baworkbench/BAWorkbench-c5a6f74b866bd635fc341b1b5b0b13160f7ba9a1/Requirement/UseCases/UC-MOD-01.md]
+         * Lắng nghe (Listen) sự kiện
+         * Auto-save để làm mới (refresh) sơ đồ
+         */
+        viewModel.nameProperty().addListener((obs, oldV, newV) -> invalidateDiagram());
+
+        viewModel.dynamicFields.values().forEach(prop -> {
+            if (prop instanceof ListProperty) {
+                ObservableList<?> list = ((ListProperty<?>) prop).get();
+                if (list != null) {
+                    list.addListener((javafx.collections.ListChangeListener<Object>) c -> {
+                        invalidateDiagram();
+                    });
+                }
+            } else {
+                prop.addListener((obs, oldV, newV) -> invalidateDiagram());
+            }
+        });
+    }
+
+    /**
+     * [MỚI] Tách (Refactor) logic
+     * cài đặt (setup) Tab Sơ đồ (Diagram)
+     */
+    private void setupDiagramTabLogic() {
+        /**
+         * Logic lazy-load
          */
         diagramTab.setOnSelectionChanged(event -> {
             if (diagramTab.isSelected() && !diagramRendered) {
@@ -86,43 +181,12 @@ public class ArtifactView {
                 }
             }
         });
-
-        /**
-         * Lắng nghe sự kiện Auto-save (qua các property) để
-         * tự động làm mới sơ đồ (UC-MOD-01, Luồng 1.0.A1).
-         *
-         * [SỬA LỖI NGÀY 27]
-         * Phải lắng nghe cả sự thay đổi giá trị (cho StringProperty, ObjectProperty)
-         * và sự thay đổi nội dung (cho ListProperty) để đảm bảo
-         * Flow Builder (List) cũng kích hoạt việc làm mới sơ đồ.
-         */
-        viewModel.nameProperty().addListener((obs, oldV, newV) -> invalidateDiagram());
-
-        viewModel.dynamicFields.values().forEach(prop -> {
-            if (prop instanceof ListProperty) {
-                /**
-                 * Nếu là ListProperty (ví dụ: Flow Builder),
-                 * chúng ta lắng nghe sự thay đổi NỘI DUNG của danh sách (list).
-                 */
-                ObservableList<?> list = ((ListProperty<?>) prop).get();
-                if (list != null) {
-                    list.addListener((javafx.collections.ListChangeListener<Object>) c -> {
-                        invalidateDiagram();
-                    });
-                }
-            } else {
-                /**
-                 * Nếu là Property thông thường (ví dụ: StringProperty, ObjectProperty),
-                 * chúng ta lắng nghe sự thay đổi GIÁ TRỊ của property.
-                 */
-                prop.addListener((obs, oldV, newV) -> invalidateDiagram());
-            }
-        });
     }
 
+
     /**
-     * Đánh dấu sơ đồ là "cũ" (stale) để nó được render lại
-     * vào lần click tab tiếp theo (Luồng 1.0.A1).
+     * Đánh dấu sơ đồ là "cũ" (stale)
+     * (Luồng 1.0.A1).
      */
     private void invalidateDiagram() {
         diagramRendered = false;

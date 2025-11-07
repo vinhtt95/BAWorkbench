@@ -310,6 +310,7 @@ public class MainViewModel {
 
             /**
              * [MỚI] Kiểm tra Scope
+             * (Chỉ các thư mục gốc (root folder) mới có scope)
              */
             if (artifactTypeScope != null && !artifactTypeScope.equals(template.getPrefixId())) {
                 throw new IOException("Không thể tạo '" + template.getTemplateName() + "' (" + template.getPrefixId() +

@@ -8,14 +8,14 @@ import java.util.Map;
 /**
  * POJO cơ sở cho mọi đối tượng yêu cầu.
  * [CẬP NHẬT] Thêm templateId để hỗ trợ Versioning.
- * [CẬP NHẬT 2] Thêm relativePath để hỗ trợ cây thư mục đa cấp.
+ * [CẬP NHẬT 2] Thêm relativePath và folderId để hỗ trợ cây thư mục đa cấp.
  */
 public class Artifact implements Serializable {
 
     /**
      * ID phiên bản để đảm bảo tính tương thích (compatibility) khi Serializable.
      */
-    private static final long serialVersionUID = 3L; // [CẬP NHẬT] Tăng SUID
+    private static final long serialVersionUID = 4L; // [CẬP NHẬT] Tăng SUID
 
     @JsonProperty("id")
     private String id;
@@ -33,6 +33,13 @@ public class Artifact implements Serializable {
      */
     @JsonProperty("relativePath")
     private String relativePath;
+
+    /**
+     * [MỚI] ID của thư mục cha (folder)
+     * (Để CSDL truy vấn nhanh cây thư mục)
+     */
+    @JsonProperty("folderId")
+    private String folderId;
 
     /**
      * [MỚI] ID phiên bản template chính xác
@@ -82,6 +89,14 @@ public class Artifact implements Serializable {
 
     public void setRelativePath(String relativePath) {
         this.relativePath = relativePath;
+    }
+
+    public String getFolderId() {
+        return folderId;
+    }
+
+    public void setFolderId(String folderId) {
+        this.folderId = folderId;
     }
 
     public String getTemplateId() {
