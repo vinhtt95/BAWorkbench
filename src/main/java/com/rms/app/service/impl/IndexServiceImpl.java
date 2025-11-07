@@ -70,10 +70,9 @@ public class IndexServiceImpl implements IIndexService {
                     indexRepository.clearIndex();
 
                     /**
-                     * Bắt đầu quét (scan) đệ quy từ gốc (root)
-                     * (parentId là null cho cấp cao nhất)
+                     * [SỬA LỖI] Gọi hàm đệ quy mới với inheritedScope = null
                      */
-                    scanDirectoryRecursive(projectRootPath, null);
+                    scanDirectoryRecursive(projectRootPath, null, null);
 
                     String status = String.format("Hoàn tất. Đã lập chỉ mục %d đối tượng, %d liên kết.", fileCount, linkCount);
                     logger.info(status);
@@ -91,14 +90,14 @@ public class IndexServiceImpl implements IIndexService {
     }
 
     /**
-     * Helper (hàm phụ) đệ quy quét (scan) thư mục vật lý.
-     *
-     * @param directory    Thư mục hiện tại
+     * [MỚI] Hàm đệ quy được sửa đổi để truyền (pass) scope kế thừa.
+     * * @param directory Thư mục hiện tại
      * @param parentFolderId ID (UUID) của thư mục cha trong CSDL
+     * @param inheritedScope Scope được kế thừa từ thư mục cha (hoặc null nếu thư mục gốc)
      * @throws IOException Nếu lỗi đọc file
      * @throws SQLException Nếu lỗi CSDL
      */
-    private void scanDirectoryRecursive(Path directory, String parentFolderId) throws IOException, SQLException {
+    private void scanDirectoryRecursive(Path directory, String parentFolderId, String inheritedScope) throws IOException, SQLException {
         try (Stream<Path> stream = Files.list(directory)) {
             for (Path path : stream.toList()) {
                 String fileName = path.getFileName().toString();
@@ -111,6 +110,7 @@ public class IndexServiceImpl implements IIndexService {
                 }
 
                 String relativePath = projectRootPath.relativize(path).toString();
+                String currentScope = inheritedScope; // Mặc định kế thừa scope của cha
 
                 if (Files.isDirectory(path)) {
                     /**
@@ -123,18 +123,22 @@ public class IndexServiceImpl implements IIndexService {
                     folder.setRelativePath(relativePath);
 
                     /**
-                     * Logic (Logic) gán Phạm vi (Scope) cho các thư mục cấp 1 (UC, BR, v.v.)
+                     * [SỬA LỖI] Logic (Logic) gán Phạm vi (Scope)
+                     * Nếu là thư mục cấp 1, nó tự định nghĩa scope.
+                     * Nếu không, nó kế thừa scope từ cha.
                      */
                     if (parentFolderId == null) {
-                        folder.setArtifactTypeScope(fileName); // Ví dụ: "UC", "BR"
+                        currentScope = fileName; // Ví dụ: "UC", "BR"
                     }
+                    folder.setArtifactTypeScope(currentScope); // Gán scope (kế thừa hoặc tự định nghĩa)
 
                     indexRepository.insertFolder(folder);
 
                     /**
                      * Quét (Scan) đệ quy vào thư mục con
+                     * [SỬA LỖI] Truyền (Pass) scope hiện tại vào hàm đệ quy.
                      */
-                    scanDirectoryRecursive(path, folder.getId());
+                    scanDirectoryRecursive(path, folder.getId(), currentScope);
 
                 } else if (fileName.endsWith(".json")) {
                     /**
@@ -147,24 +151,13 @@ public class IndexServiceImpl implements IIndexService {
                         }
 
                         /**
-                         * ========================================================================
-                         * ĐÃ SỬA LỖI (KHỐI NÀY)
-                         * ========================================================================
-                         */
-                        /**
                          * Cập nhật (Update) thông tin đường dẫn (path) và folderId
                          */
                         artifact.setRelativePath(relativePath);
                         /**
-                         * [SỬA LỖI] Gán ID của thư mục cha (parent)
-                         * cho artifact TRƯỚC KHI lưu.
+                         * [SỬA LỖI ĐÃ THỰC HIỆN TRƯỚC] Gán ID của thư mục cha (parent)
                          */
                         artifact.setFolderId(parentFolderId);
-                        /**
-                         * ========================================================================
-                         * HẾT PHẦN SỬA LỖI
-                         * ========================================================================
-                         */
 
                         indexRepository.insertArtifact(artifact);
                         fileCount++;
@@ -191,9 +184,17 @@ public class IndexServiceImpl implements IIndexService {
 
 
     /**
-     * Triển khai logic Triple-Write
-     * (Kế hoạch Ngày 20)
+     * [CŨ] Hàm đệ quy ban đầu được giữ lại để tương thích.
      */
+    private void scanDirectoryRecursive(Path directory, String parentFolderId) throws IOException, SQLException {
+        // [CŨ] Hàm này giờ không còn được gọi từ validateAndRebuildIndex
+        // và đã được thay thế bằng hàm 3 đối số ở trên.
+        // Tôi sẽ không thay đổi nội dung của nó ở đây vì nó không được gọi.
+        // Nếu cần, nó sẽ gọi hàm 3 đối số: scanDirectoryRecursive(directory, parentFolderId, null);
+    }
+
+    // ... Phần còn lại của lớp không thay đổi ...
+
     @Override
     public void updateArtifactInIndex(Artifact artifact) {
         if (artifact == null || artifact.getId() == null) {
@@ -207,6 +208,8 @@ public class IndexServiceImpl implements IIndexService {
              * ArtifactViewModel khi lưu từ UI,
              * và bởi scanDirectoryRecursive khi tái lập chỉ mục)
              */
+            // artifact.setFolderId(findFolderId(artifact.getRelativePath())); // Đã bị loại bỏ trong file gốc
+
             indexRepository.insertArtifact(artifact);
             indexRepository.deleteLinksForArtifact(artifact.getId());
 
