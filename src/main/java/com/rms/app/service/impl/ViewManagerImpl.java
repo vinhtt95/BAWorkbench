@@ -18,6 +18,9 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+
 import java.io.IOException;
 import java.net.URL;
 
@@ -99,6 +102,15 @@ public class ViewManagerImpl implements IViewManager {
             String tabTitle = (artifact != null) ? artifact.getId() : "New " + template.getPrefixId();
             Tab newTab = new Tab(tabTitle);
             newTab.setContent(viewRoot);
+
+            /**
+             * [SỬA LỖI] Gán ID artifact vào userData
+             * để MainViewModel có thể kiểm tra mà không cần đọc text.
+             */
+            if (artifact != null) {
+                newTab.setUserData(artifact.getId());
+            }
+
             return newTab;
 
         } catch (IOException e) {
@@ -134,7 +146,24 @@ public class ViewManagerImpl implements IViewManager {
          * Tạo một Stage (Cửa sổ) mới
          */
         Stage newStage = new Stage();
-        newStage.setTitle(tab.getText());
+
+        /**
+         * [SỬA LỖI] Lấy tên tab từ graphic (Label)
+         * thay vì tab.getText() (đang là null)
+         */
+        try {
+            if (tab.getGraphic() instanceof HBox) {
+                HBox graphic = (HBox) tab.getGraphic();
+                if (!graphic.getChildren().isEmpty() && graphic.getChildren().get(0) instanceof Label) {
+                    newStage.setTitle(((Label) graphic.getChildren().get(0)).getText());
+                }
+            } else {
+                newStage.setTitle(tab.getText()); // Fallback
+            }
+        } catch (Exception e) {
+            newStage.setTitle("Tab");
+        }
+
 
         /**
          * Lấy kích thước (size) của nội dung
@@ -172,7 +201,7 @@ public class ViewManagerImpl implements IViewManager {
          * Logic "Re-dock" (Gắn lại)
          */
         newStage.setOnCloseRequest(event -> {
-            logger.debug("Đang re-dock (gắn lại) tab: {}", tab.getText());
+            logger.debug("Đang re-dock (gắn lại) tab..."); // Đã xóa tên tab (là null)
 
             /**
              * [SỬA LỖI] Gỡ (remove) content khỏi StackPane

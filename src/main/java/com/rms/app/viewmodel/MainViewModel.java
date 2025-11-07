@@ -112,15 +112,35 @@ public class MainViewModel {
      */
     public void updateBacklinks(Tab selectedTab) {
         currentBacklinks.clear();
-        if (selectedTab == null || "Welcome".equals(selectedTab.getText())) {
+        if (selectedTab == null) {
             currentBacklinks.add("(Chọn một artifact để xem)");
             return;
         }
-        String artifactId = selectedTab.getText();
-        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard") || artifactId.startsWith("Export Templates") || artifactId.startsWith("Import Wizard") || artifactId.startsWith("Project Graph")) {
-            currentBacklinks.add("(Không áp dụng)");
-            return;
+
+        /**
+         * [SỬA LỖI] Đọc ID từ userData
+         * thay vì getText() (vốn đang là null).
+         */
+        Object userData = selectedTab.getUserData();
+        String artifactId = null;
+        if (userData instanceof String) {
+            artifactId = (String) userData;
         }
+
+        /**
+         * Nếu không có ID (ví dụ: tab Welcome, Form Builder...),
+         * thì kiểm tra text (chỉ dùng cho các tab không phải artifact).
+         */
+        if (artifactId == null) {
+            String tabText = selectedTab.getText(); // Lấy text (ví dụ: "Welcome")
+            if (tabText == null || "Welcome".equals(tabText) || tabText.startsWith("New ") || tabText.startsWith("Form Builder") || tabText.startsWith("Releases Config") || tabText.startsWith("Dashboard") || tabText.startsWith("Export Templates") || tabText.startsWith("Import Wizard") || tabText.startsWith("Project Graph")) {
+                currentBacklinks.add("(Không áp dụng)");
+                return;
+            }
+            // Fallback nếu tab là artifact nhưng chưa có userData (lỗi)
+            artifactId = tabText;
+        }
+
         try {
             List<Artifact> backlinks = searchService.getBacklinks(artifactId);
             if (backlinks.isEmpty()) {
@@ -183,13 +203,19 @@ public class MainViewModel {
             return;
         }
         String id = new File(relativePath).getName().replace(".json", "");
+
+        /**
+         * [SỬA LỖI] Thay đổi logic kiểm tra tab
+         * từ tab.getText() (bị null) sang tab.getUserData().
+         */
         for (Tab tab : mainTabPane.getTabs()) {
-            if (tab.getText().equals(id)) {
+            if (id.equals(tab.getUserData())) {
                 mainTabPane.getSelectionModel().select(tab);
                 logger.info("Tab cho {} đã mở, chuyển sang tab này.", id);
                 return;
             }
         }
+
         try {
             Artifact artifact = artifactRepository.load(relativePath);
             if (artifact == null) {
@@ -256,12 +282,18 @@ public class MainViewModel {
         refreshProjectTree();
         String id = new File(relativePath).getName().replace(".json", "");
         Tab tabToClose = null;
+
+        /**
+         * [SỬA LỖI] Thay đổi logic tìm tab
+         * từ tab.getText() (bị null) sang tab.getUserData().
+         */
         for (Tab tab : mainTabPane.getTabs()) {
-            if (tab.getText().equals(id)) {
+            if (id.equals(tab.getUserData())) {
                 tabToClose = tab;
                 break;
             }
         }
+
         if (tabToClose != null) {
             mainTabPane.getTabs().remove(tabToClose);
         }

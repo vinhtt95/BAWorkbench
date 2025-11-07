@@ -121,14 +121,24 @@ public class MainView {
      */
     private void attachDragHandlers(Tab tab) {
         /**
-         * Bỏ qua (Skip) tab "Welcome"
-         * hoặc bất kỳ tab nào đã được xử lý (có graphic)
+         * [SỬA LỖI] Kiểm tra 'graphic' TRƯỚC
+         * vì các tab được gắn lại (re-dock) có text là null
+         * nhưng graphic không null.
          */
-        if (tab.getText().equals("Welcome") || tab.getGraphic() != null) {
+        if (tab.getGraphic() != null) {
             return;
         }
 
-        Label tabLabel = new Label(tab.getText());
+        /**
+         * Nếu graphic là null,
+         * chúng ta mới kiểm tra text (ví dụ: cho tab "Welcome").
+         */
+        String tabText = tab.getText(); // Lấy text một lần
+        if (tabText != null && tabText.equals("Welcome")) {
+            return;
+        }
+
+        Label tabLabel = new Label(tabText); // Dùng text đã lấy
 
         /**
          * [SỬA LỖI] Sử dụng HBox làm graphic
@@ -139,17 +149,24 @@ public class MainView {
         tab.setGraphic(tabGraphicContainer);
 
         /**
+         * [SỬA LỖI] Đặt text của tab thành null
+         * để tránh hiển thị tên bị trùng lặp.
+         */
+        tab.setText(null);
+
+        /**
          * Bắt đầu Kéo (Drag)
          */
         tabGraphicContainer.setOnDragDetected(event -> {
-            if (tab.getText().equals("Welcome")) {
+            String currentTabText = tabLabel.getText(); // Đọc text từ Label
+            if (currentTabText == null || currentTabText.equals("Welcome")) {
                 event.consume();
                 return;
             }
 
             Dragboard db = tabGraphicContainer.startDragAndDrop(TransferMode.MOVE);
             ClipboardContent content = new ClipboardContent();
-            content.putString(tab.getText());
+            content.putString(currentTabText); // Sử dụng text từ Label
             db.setContent(content);
 
             draggingTab = tab; /** Đánh dấu (flag) tab đang kéo (drag) */
@@ -183,7 +200,8 @@ public class MainView {
              * Logic "Undock" (Tháo)
              */
             if (tabPaneBounds == null || !tabPaneBounds.contains(dropX, dropY)) {
-                logger.info("Đã phát hiện Thả (Drop) Tab '{}' ra ngoài. Đang undocking...", tabToUndock.getText());
+                String text = tabLabel.getText(); // Sử dụng text từ Label
+                logger.info("Đã phát hiện Thả (Drop) Tab '{}' ra ngoài. Đang undocking...", text);
 
                 Platform.runLater(() -> {
                     if (mainTabPane.getTabs().contains(tabToUndock)) {
