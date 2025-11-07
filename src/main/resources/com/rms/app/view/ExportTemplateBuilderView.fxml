@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<SplitPane dividerPositions="0.25, 0.75" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.rms.app.view.ExportTemplateBuilderView">
+    <items>
+        <VBox styleClass="sidebar" minWidth="150" prefWidth="200">
+            <Label styleClass="sidebar-title" text="Export Templates"/>
+            <ListView fx:id="templateListView" VBox.vgrow="ALWAYS"/>
+            <Button onAction="#handleNewTemplate" text="New Template" maxWidth="Infinity" style="-fx-margin: 5 0 0 0;"/>
+        </VBox>
+
+        <BorderPane fx:id="editorPane" visible="false">
+            <top>
+                <VBox style="-fx-border-color: -fx-base; -fx-border-width: 0 0 1 0; -fx-padding: 10;">
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="Template Name:"/>
+                        <TextField fx:id="templateNameField" HBox.hgrow="ALWAYS"/>
+                        <Button onAction="#handleSaveTemplate" text="Save Template"/>
+                    </HBox>
+                </VBox>
+            </top>
+            <center>
+                <VBox spacing="5" style="-fx-padding: 10;">
+                    <Label styleClass="sidebar-title" text="Sections (Kéo-thả để sắp xếp)"/>
+                    <ListView fx:id="sectionsListView" VBox.vgrow="ALWAYS"/>
+                    <HBox spacing="5">
+                        <Button onAction="#handleAddSection" text="Add Section"/>
+                        <Button onAction="#handleRemoveSection" text="Remove Selected"/>
+                    </HBox>
+                </VBox>
+            </center>
+        </BorderPane>
+
+        <VBox fx:id="propertiesPane" styleClass="sidebar" spacing="5" minWidth="200" prefWidth="300" visible="false">
+            <padding>
+                <Insets top="5" right="5" bottom="5" left="5"/>
+            </padding>
+            <Label styleClass="sidebar-title" text="Section Properties"/>
+
+            <Label text="Section Title:"/>
+            <TextField fx:id="titleField"/>
+
+            <Label text="Section Type:"/>
+            <ComboBox fx:id="typeComboBox" maxWidth="Infinity"/>
+
+            <VBox fx:id="staticPane" spacing="5" managed="false" visible="false">
+                <Label text="Content (Markdown):"/>
+                <TextArea fx:id="contentField" VBox.vgrow="ALWAYS" prefRowCount="10"/>
+            </VBox>
+
+            <VBox fx:id="dynamicPane" spacing="5" managed="false" visible="false">
+                <Label text="Query: Artifact Type"/>
+                <ComboBox fx:id="queryTypeComboBox" maxWidth="Infinity"/>
+                <Label text="Query: Status (Để trống = All)"/>
+                <ComboBox fx:id="queryStatusComboBox" editable="true" maxWidth="Infinity"/>
+                <Label text="Display Format:"/>
+                <ComboBox fx:id="displayFormatComboBox" maxWidth="Infinity"/>
+            </VBox>
+
+        </VBox>
+    </items>
+</SplitPane>

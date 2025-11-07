@@ -45,10 +45,6 @@ public class MainViewModel {
     private final IArtifactRepository artifactRepository;
     private final ISearchService searchService;
     private final IIndexService indexService;
-
-    /**
-     * [THÊM MỚI NGÀY 30]
-     */
     private final IExportService exportService;
 
     private final ObservableList<String> currentBacklinks = FXCollections.observableArrayList();
@@ -118,14 +114,14 @@ public class MainViewModel {
      * @param selectedTab Tab hiện tại đang được chọn
      */
     public void updateBacklinks(Tab selectedTab) {
-        // ... (Không thay đổi) ...
+        // ... (Cập nhật để bỏ qua tab mới) ...
         currentBacklinks.clear();
         if (selectedTab == null || "Welcome".equals(selectedTab.getText())) {
             currentBacklinks.add("(Chọn một artifact để xem)");
             return;
         }
         String artifactId = selectedTab.getText();
-        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard")) {
+        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard") || artifactId.startsWith("Export Templates")) {
             currentBacklinks.add("(Không áp dụng)");
             return;
         }
@@ -320,23 +316,15 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI NGÀY 30]
      * Logic nghiệp vụ cho UC-PUB-02 (Xuất Excel).
-     * Kích hoạt FileChooser và chạy tác vụ (Task) nền.
      */
     public void exportProjectToExcel() {
-        /**
-         * Lấy Stage (cửa sổ) hiện tại
-         */
+        // ... (Không thay đổi) ...
         if (mainTabPane == null || mainTabPane.getScene() == null || mainTabPane.getScene().getWindow() == null) {
             projectStateService.setStatusMessage("Lỗi: Không thể mở hộp thoại lưu file.");
             return;
         }
         Stage stage = (Stage) mainTabPane.getScene().getWindow();
-
-        /**
-         * Bước 5.0 (UC-PUB-02): BA chọn vị trí lưu file
-         */
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Export Project to Excel");
         fileChooser.setInitialFileName(projectStateService.getCurrentProjectDirectory().getName() + "_Export.xlsx");
@@ -344,20 +332,12 @@ public class MainViewModel {
         File file = fileChooser.showSaveDialog(stage);
 
         if (file != null) {
-            /**
-             * Bước 3.0 & 4.0 (UC-PUB-02): Lấy danh sách Types
-             * (Tạm thời bỏ qua checklist, xuất tất cả)
-             */
             try {
                 List<String> allTemplateNames = templateService.loadAllTemplateNames();
                 if (allTemplateNames.isEmpty()) {
                     projectStateService.setStatusMessage("Không có loại (template) nào để xuất.");
                     return;
                 }
-
-                /**
-                 * Bước 7.0 (UC-PUB-02): Chạy trên luồng nền (NFR)
-                 */
                 Task<Void> exportTask = new Task<>() {
                     @Override
                     protected Void call() throws Exception {
@@ -366,11 +346,26 @@ public class MainViewModel {
                     }
                 };
                 new Thread(exportTask).start();
-
             } catch (IOException e) {
                 logger.error("Không thể tải danh sách template để xuất.", e);
                 projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 32]
+     * Mở tab Trình thiết kế Template Xuất bản (UC-CFG-03).
+     */
+    public void openExportTemplateBuilderTab() {
+        try {
+            Tab newTab = viewManager.openViewInNewTab(
+                    "/com/rms/app/view/ExportTemplateBuilderView.fxml", "Export Templates"
+            );
+            this.mainTabPane.getTabs().add(newTab);
+            mainTabPane.getSelectionModel().select(newTab);
+        } catch (IOException e) {
+            logger.error("Không thể tải ExportTemplateBuilderView", e);
         }
     }
 

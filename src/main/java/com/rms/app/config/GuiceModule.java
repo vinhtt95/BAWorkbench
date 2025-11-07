@@ -7,7 +7,9 @@ import com.rms.app.repository.SqliteIndexRepository;
 import com.rms.app.service.*;
 import com.rms.app.service.impl.*;
 import com.rms.app.view.DashboardView;
+import com.rms.app.view.ExportTemplateBuilderView;
 import com.rms.app.viewmodel.DashboardViewModel;
+import com.rms.app.viewmodel.ExportTemplateBuilderViewModel;
 import com.rms.app.viewmodel.MainViewModel;
 import com.rms.app.view.FlowBuilderControl;
 
@@ -21,12 +23,14 @@ public class GuiceModule extends AbstractModule {
          */
         bind(MainViewModel.class).in(Singleton.class);
         bind(DashboardViewModel.class);
+        bind(ExportTemplateBuilderViewModel.class);
 
         /**
          * Views (Controllers)
          */
         bind(FlowBuilderControl.class);
         bind(DashboardView.class);
+        bind(ExportTemplateBuilderView.class);
 
 
         /**

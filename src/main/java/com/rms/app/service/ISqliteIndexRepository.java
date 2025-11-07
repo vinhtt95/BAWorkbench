@@ -98,7 +98,6 @@ public interface ISqliteIndexRepository {
     List<Artifact> getArtifactsByStatus(String status) throws SQLException;
 
     /**
-     * [THÊM MỚI NGÀY 30]
      * Lấy tất cả các artifact (chỉ ID, Name, Type)
      * khớp với một Loại (Type) cụ thể (dùng cho Xuất Excel).
      *
@@ -107,4 +106,14 @@ public interface ISqliteIndexRepository {
      * @throws SQLException Nếu lỗi CSDL
      */
     List<Artifact> getArtifactsByType(String type) throws SQLException;
+
+    /**
+     * [THÊM MỚI NGÀY 32]
+     * Lấy danh sách các Loại (Type) duy nhất (distinct)
+     * từ CSDL Chỉ mục (dùng cho Export Query Builder).
+     *
+     * @return Danh sách các tên Loại (ví dụ: "UC", "BR", "TSK")
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    List<String> getDefinedTypes() throws SQLException;
 }

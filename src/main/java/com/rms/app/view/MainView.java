@@ -52,8 +52,7 @@ public class MainView {
     }
 
     /**
-     * Khởi tạo Controller, liên kết (bind) các thuộc tính ViewModel
-     * và thiết lập các trình lắng nghe sự kiện ban đầu.
+     * Khởi tạo Controller.
      */
     @FXML
     public void initialize() {
@@ -290,13 +289,21 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI NGÀY 30]
      * Xử lý sự kiện nhấn "File > Export to Excel...".
-     * Tuân thủ UC-PUB-02.
      */
     @FXML
     private void handleExportExcel() {
         viewModel.exportProjectToExcel();
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 32]
+     * Xử lý sự kiện nhấn "Settings > Export Template Builder...".
+     * Tuân thủ UC-CFG-03.
+     */
+    @FXML
+    private void handleOpenExportTemplateBuilder() {
+        viewModel.openExportTemplateBuilderTab();
     }
 
 
