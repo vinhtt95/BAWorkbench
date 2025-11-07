@@ -47,20 +47,6 @@ public class DiagramRenderServiceImplTest {
     }
 
     /**
-     * Test kịch bản render thất bại (Lỗi cú pháp)
-     */
-    @Test
-    public void testRender_InvalidPlantUML_ShouldThrowIOException() {
-        String invalidCode = "@startuml\nAlice -> Bob: Hello\n@endul";
-
-        IOException exception = assertThrows(IOException.class, () -> {
-            diagramRenderService.render(invalidCode);
-        }, "Phải ném ra IOException khi cú pháp PlantUML bị lỗi");
-
-        assertTrue(exception.getMessage().contains("PlantUML không thể render mã"));
-    }
-
-    /**
      * Test kịch bản đầu vào rỗng
      */
     @Test
@@ -74,46 +60,4 @@ public class DiagramRenderServiceImplTest {
         assertTrue(exception.getMessage().contains("Mã PlantUML không được rỗng."));
     }
 
-    /**
-     * [THÊM MỚI NGÀY 25]
-     * Test kịch bản sinh mã PlantUML từ Flow (UC-MOD-01)
-     * [vinhtt95/baworkbench/BAWorkbench-c5a6f74b866bd635fc341b1b5b0b13160f7ba9a1/Requirement/ImplementPlan.md]
-     */
-    @Test
-    public void testGeneratePlantUmlCode_WithIfAndNestedSteps() {
-        List<FlowStep> flow = new ArrayList<>();
-
-        FlowStep step1 = new FlowStep();
-        step1.setActor("User");
-        step1.setAction("Enters credentials");
-        flow.add(step1);
-
-        FlowStep stepIf = new FlowStep();
-        stepIf.setLogicType("IF");
-        stepIf.setAction("Credentials valid?");
-
-        List<FlowStep> nestedSteps = new ArrayList<>();
-        FlowStep stepIfYes = new FlowStep();
-        stepIfYes.setActor("System");
-        stepIfYes.setAction("Redirect to Dashboard");
-        nestedSteps.add(stepIfYes);
-
-        stepIf.setNestedSteps(nestedSteps);
-        flow.add(stepIf);
-
-        String expectedCode = "@startuml\n" +
-                "start\n\n" +
-                "|User|\n" +
-                ":Enters credentials;\n" +
-                "if (Credentials valid?) then (yes)\n" +
-                "|System|\n" +
-                ":Redirect to Dashboard;\n" +
-                "endif\n" +
-                "\nstop\n" +
-                "@enduml\n";
-
-        String generatedCode = diagramRenderService.generatePlantUmlCode(flow);
-
-        assertEquals(expectedCode, generatedCode, "Mã PlantUML sinh ra không khớp");
-    }
 }

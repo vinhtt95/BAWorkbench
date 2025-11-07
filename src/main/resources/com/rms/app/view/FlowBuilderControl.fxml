@@ -3,31 +3,52 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Pos?>
 
-<VBox spacing="10" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1">
-    <children>
-        <TableView fx:id="stepsTableView" editable="true" prefHeight="300">
-            <columns>
-                <TableColumn fx:id="stepActorColumn" prefWidth="150" text="Actor"/>
-                <TableColumn fx:id="stepActionColumn" prefWidth="400" text="Action / Logic"/>
-            </columns>
+<SplitPane dividerPositions="0.25" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.rms.app.view.FormBuilderView">
+    <items>
+        <VBox styleClass="sidebar" minWidth="150" prefWidth="200">
+            <Label styleClass="sidebar-title" text="Artifact Types"/>
+            <ListView fx:id="templateListView" VBox.vgrow="ALWAYS"/>
+            <Button onAction="#handleNewTemplate" text="New Template" maxWidth="Infinity" style="-fx-margin: 5 0 0 0;"/>
+        </VBox>
 
-            <columnResizePolicy>
-                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-            </columnResizePolicy>
-        </TableView>
+        <BorderPane fx:id="editorPane" visible="false"> <top>
+            <VBox style="-fx-border-color: -fx-base; -fx-border-width: 0 0 1 0; -fx-padding: 10;">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Template Name:"/>
+                    <TextField fx:id="templateNameField" prefWidth="200" HBox.hgrow="NEVER"/>
+                    <Label text="Prefix ID:"/>
+                    <TextField fx:id="prefixIdField" prefWidth="80" HBox.hgrow="NEVER"/>
+                    <Pane HBox.hgrow="ALWAYS"/>
+                    <Button onAction="#handleSaveTemplate" text="Save Template"/>
+                </HBox>
+            </VBox>
+        </top>
+            <center>
+                <SplitPane dividerPositions="0.2, 0.8">
+                    <VBox styleClass="sidebar">
+                        <Label styleClass="sidebar-title" text="Toolbox"/>
+                        <ListView fx:id="toolboxListView"/>
+                    </VBox>
 
-        <HBox spacing="5">
-            <Button onAction="#handleAddStep" text="Add Step"/>
-            <Button onAction="#handleAddLogic" text="Add If/Then"/>
-            <Button onAction="#handleRemoveStep" text="Remove Selected" styleClass="button-danger"/>
+                    <ScrollPane fitToWidth="true" fitToHeight="true">
+                        <VBox fx:id="formPreviewBox" spacing="10" style="-fx-padding: 10;">
+                            <Label text="Kéo các trường từ Toolbox thả vào đây"/>
+                        </VBox>
+                    </ScrollPane>
 
-            <Pane HBox.hgrow="ALWAYS"/>
-            <Button onAction="#handleMoveUp" text="Move Up"/>
-            <Button onAction="#handleMoveDown" text="Move Down"/>
-        </HBox>
-    </children>
-    <padding>
-        <Insets top="5" bottom="5"/>
-    </padding>
-</VBox>
+                    <VBox styleClass="sidebar">
+                        <Label styleClass="sidebar-title" text="Properties"/>
+                        <GridPane fx:id="propertiesPane" vgap="5" hgap="5">
+                            <padding>
+                                <Insets top="5" right="5" bottom="5" left="5"/>
+                            </padding>
+                        </GridPane>
+                    </VBox>
+                </SplitPane>
+            </center>
+        </BorderPane>
+    </items>
+</SplitPane>
