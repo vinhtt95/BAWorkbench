@@ -7,15 +7,14 @@ import java.util.Map;
 
 /**
  * POJO cơ sở cho mọi đối tượng yêu cầu.
- * [SỬA LỖI NGÀY 29] Triển khai (implements) Serializable
- * để cho phép đối tượng này được truyền (pass) vào Dragboard (Kanban).
+ * [CẬP NHẬT] Thêm templateId để hỗ trợ Versioning.
  */
 public class Artifact implements Serializable {
 
     /**
      * ID phiên bản để đảm bảo tính tương thích (compatibility) khi Serializable.
      */
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L; // [CẬP NHẬT] Tăng SUID
 
     @JsonProperty("id")
     private String id;
@@ -24,7 +23,16 @@ public class Artifact implements Serializable {
     private String name;
 
     @JsonProperty("artifactType")
-    private String artifactType; // Ví dụ: "UC", "BR"
+    private String artifactType; // Ví dụ: "UC", "BR" (Tiền tố Logic)
+
+    /**
+     * [MỚI] ID phiên bản template chính xác
+     * (ví dụ: "UC_v1", "UC_v2")
+     * Dùng để đảm bảo artifact luôn được render bằng đúng form
+     * mà nó đã được tạo ra.
+     */
+    @JsonProperty("templateId")
+    private String templateId;
 
     /**
      * Một map linh hoạt để lưu trữ tất cả các trường (fields)
@@ -57,6 +65,14 @@ public class Artifact implements Serializable {
 
     public void setArtifactType(String artifactType) {
         this.artifactType = artifactType;
+    }
+
+    public String getTemplateId() {
+        return templateId;
+    }
+
+    public void setTemplateId(String templateId) {
+        this.templateId = templateId;
     }
 
     public Map<String, Object> getFields() {

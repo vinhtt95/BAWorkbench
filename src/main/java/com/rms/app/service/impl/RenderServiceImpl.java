@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 /**
  * Triển khai logic render Form động (UC-DEV-01)
  * và logic Autocomplete (UC-DEV-02).
+ * [CẬP NHẬT] Hỗ trợ đọc Dropdown options từ FieldTemplate.
  */
 public class RenderServiceImpl implements IRenderService {
 
@@ -171,7 +172,8 @@ public class RenderServiceImpl implements IRenderService {
 
     /**
      * Lấy các tùy chọn (options) cho ComboBox (Dropdown).
-     * Hỗ trợ nguồn động (ví dụ: @Releases) cho UC-MGT-03.
+     * [CẬP NHẬT] Hỗ trợ nguồn động (ví dụ: @Releases),
+     * nguồn tĩnh (ví dụ: "Status"), và nguồn tùy chỉnh (từ Form Builder).
      *
      * @param field Template của trường (field)
      * @return Danh sách các tùy chọn (options)
@@ -179,6 +181,21 @@ public class RenderServiceImpl implements IRenderService {
     private ObservableList<String> getDropdownOptions(ArtifactTemplate.FieldTemplate field) {
         ObservableList<String> options = FXCollections.observableArrayList();
 
+        /**
+         * Ưu tiên 1: Nguồn tùy chỉnh từ Form Builder (ví dụ: options: { source: "Option 1\nOption 2" })
+         */
+        if (field.getOptions() != null && field.getOptions().containsKey("source")) {
+            Object sourceObj = field.getOptions().get("source");
+            if (sourceObj instanceof String) {
+                String sourceString = (String) sourceObj;
+                options.addAll(sourceString.split("\\r?\\n")); // Tách theo dòng mới
+                return options;
+            }
+        }
+
+        /**
+         * Ưu tiên 2: Nguồn động (Hardcoded)
+         */
         if ("Target Release".equalsIgnoreCase(field.getName())) {
             try {
                 ProjectConfig config = projectService.getCurrentProjectConfig();
@@ -196,7 +213,7 @@ public class RenderServiceImpl implements IRenderService {
             }
         } else {
             /**
-             * Nguồn tĩnh (ví dụ: "Status")
+             * Ưu tiên 3: Nguồn tĩnh (Hardcoded - ví dụ: "Status")
              */
             options.addAll("Draft", "In Review", "Approved");
         }

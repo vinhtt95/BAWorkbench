@@ -3,7 +3,8 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Pos?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
 
 <SplitPane dividerPositions="0.25" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.rms.app.view.FormBuilderView">
@@ -22,8 +23,10 @@
                         <TextField fx:id="templateNameField" prefWidth="200" HBox.hgrow="NEVER"/>
                         <Label text="Prefix ID:"/>
                         <TextField fx:id="prefixIdField" prefWidth="80" HBox.hgrow="NEVER"/>
+                        <Label text="Version:"/>
+                        <Label fx:id="versionLabel" text="1" style="-fx-font-weight: bold;"/>
                         <Pane HBox.hgrow="ALWAYS"/>
-                        <Button onAction="#handleSaveTemplate" text="Save Template"/>
+                        <Button onAction="#handleSaveAsNewVersion" text="Save as New Version"/>
                     </HBox>
                 </VBox>
             </top>
@@ -34,19 +37,37 @@
                         <ListView fx:id="toolboxListView"/>
                     </VBox>
 
-                    <ScrollPane fitToWidth="true" fitToHeight="true">
-                        <VBox fx:id="formPreviewBox" spacing="10" style="-fx-padding: 10;">
-                            <Label text="Kéo các trường từ Toolbox thả vào đây"/>
-                        </VBox>
-                    </ScrollPane>
+                    <VBox spacing="5" style="-fx-padding: 10;">
+                        <Label styleClass="sidebar-title" text="Form Preview"/>
+                        <HBox spacing="5" alignment="CENTER_LEFT">
+                            <Button fx:id="moveUpButton" onAction="#handleMoveUp" text="Up"/>
+                            <Button fx:id="moveDownButton" onAction="#handleMoveDown" text="Down"/>
+                            <Pane HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="removeFieldButton" onAction="#handleRemoveField" text="Remove" style="-fx-text-fill: #ff8888;"/>
+                        </HBox>
+                        <ListView fx:id="formPreviewListView" VBox.vgrow="ALWAYS"/>
+                    </VBox>
 
-                    <VBox styleClass="sidebar">
-                        <Label styleClass="sidebar-title" text="Properties"/>
-                        <GridPane fx:id="propertiesPane" vgap="5" hgap="5">
-                            <padding>
-                                <Insets top="5" right="5" bottom="5" left="5"/>
-                            </padding>
+                    <VBox fx:id="propertiesPaneContainer" styleClass="sidebar" spacing="10">
+                        <padding>
+                            <Insets top="5" right="5" bottom="5" left="5"/>
+                        </padding>
+                        <Label styleClass="sidebar-title" text="Field Properties"/>
+
+                        <GridPane fx:id="propertiesPane" vgap="5" hgap="5" visible="false">
+                            <Label text="Name:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <TextField fx:id="fieldNameField" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                            <Label text="Type:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <TextField fx:id="fieldTypeField" editable="false" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
                         </GridPane>
+
+                        <VBox fx:id="dropdownOptionsPane" spacing="5" managed="false" visible="false" VBox.vgrow="ALWAYS">
+                            <Label text="Dropdown Options (one per line):"/>
+                            <TextArea fx:id="dropdownOptionsArea" prefRowCount="10" VBox.vgrow="ALWAYS"/>
+                        </VBox>
+
+                        <Label fx:id="noFieldSelectedLabel" text="(Select a field from the Preview list to see its properties)"
+                               wrapText="true"/>
                     </VBox>
                 </SplitPane>
             </center>

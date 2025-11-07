@@ -29,6 +29,7 @@ import java.util.Optional;
 /**
  * "Brain" - Logic UI cho MainView.
  * Quản lý trạng thái chung của ứng dụng.
+ * [CẬP NHẬT] Hỗ trợ Versioning cho Form Template.
  */
 public class MainViewModel {
 
@@ -177,23 +178,29 @@ public class MainViewModel {
 
     /**
      * Logic cho "New Artifact"
+     * [CẬP NHẬT] Tải (load) phiên bản MỚI NHẤT của template.
      *
      * @param templateName Tên template (ví dụ: "Use Case")
      */
     public void createNewArtifact(String templateName) {
         try {
-            ArtifactTemplate template = templateService.loadTemplate(templateName);
+            ArtifactTemplate template = templateService.loadLatestTemplateByName(templateName);
+            if (template == null) {
+                throw new IOException("Không tìm thấy template (phiên bản mới nhất) cho: " + templateName);
+            }
             Tab newTab = viewManager.openArtifactTab(template);
             this.mainTabPane.getTabs().add(newTab);
             mainTabPane.getSelectionModel().select(newTab);
         } catch (IOException e) {
             logger.error("Không thể tải template: " + templateName, e);
-            projectStateService.setStatusMessage("Lỗi: \"Ghi đè (Override)" + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
 
     /**
      * Logic mở Artifact đã tồn tại
+     * [CẬP NHẬT] Tải (load) phiên bản template LỊCH SỬ
+     * dựa trên artifact.getTemplateId().
      *
      * @param relativePath Đường dẫn tương đối (ví dụ: "UC/UC001.json")
      */
@@ -221,9 +228,24 @@ public class MainViewModel {
             if (artifact == null) {
                 throw new IOException("Không tìm thấy artifact: " + relativePath);
             }
-            ArtifactTemplate template = templateService.loadTemplateByPrefix(artifact.getArtifactType());
+
+            // [CẬP NHẬT] Logic Versioning
+            String templateId = artifact.getTemplateId();
+            ArtifactTemplate template;
+            if (templateId == null || templateId.isEmpty()) {
+                // Fallback (Phương án dự phòng) cho các artifact cũ
+                // (trước khi có versioning)
+                logger.warn("Artifact {} không có templateId. Đang thử tải (load) " +
+                        "phiên bản mới nhất theo prefix...", artifact.getId());
+                template = templateService.loadLatestTemplateByPrefix(artifact.getArtifactType());
+            } else {
+                // Logic chính: Tải (load) ĐÚNG phiên bản
+                template = templateService.loadTemplateById(templateId);
+            }
+
             if (template == null) {
-                throw new IOException("Không tìm thấy template cho loại: " + artifact.getArtifactType());
+                throw new IOException("Không tìm thấy template (ID: " + templateId + ") " +
+                        "cho loại: " + artifact.getArtifactType());
             }
             Tab newTab = viewManager.openArtifactTab(artifact, template);
             this.mainTabPane.getTabs().add(newTab);
@@ -247,9 +269,11 @@ public class MainViewModel {
         try {
             /**
              * 1. Tìm (Find) template (loại)
+             * [CẬP NHẬT] Tải (load) phiên bản mới nhất
+             * (vì chúng ta không biết đường dẫn)
              */
             String prefix = artifactId.split("-")[0];
-            ArtifactTemplate template = templateService.loadTemplateByPrefix(prefix);
+            ArtifactTemplate template = templateService.loadLatestTemplateByPrefix(prefix);
             if (template == null) {
                 throw new IOException("Không tìm thấy template cho prefix: " + prefix);
             }
@@ -261,12 +285,13 @@ public class MainViewModel {
 
             /**
              * 3. Gọi (Call) hàm mở (open) hiện có
+             * (Hàm openArtifact sẽ tự xử lý việc tải (load) đúng phiên bản)
              */
             openArtifact(relativePath);
 
         } catch (Exception e) {
             logger.error("Không thể drill-down đến {}: {}", artifactId, e.getMessage());
-            projectStateService.setStatusMessage("Lỗi: \"Toàn bộ các Use Case chi tiết (đã được tạo ở các bước trước) sẽ được đưa vào đây, hoặc tham chiếu đến thư mục `UseCases/`.*" + e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: " + e.getMessage());
         }
     }
 
@@ -408,6 +433,7 @@ public class MainViewModel {
 
         if (file != null) {
             try {
+                // [CẬP NHẬT] Tải (load) tên logic
                 List<String> allTemplateNames = templateService.loadAllTemplateNames();
                 if (allTemplateNames.isEmpty()) {
                     projectStateService.setStatusMessage("Không có loại (template) nào để xuất.");

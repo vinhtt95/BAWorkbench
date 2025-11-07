@@ -31,6 +31,7 @@ import java.util.Map;
  * "Brain" cho ArtifactView.
  * Quản lý trạng thái, logic UI, và binding cho một Artifact.
  * Xử lý logic Auto-save.
+ * [CẬP NHẬT] Hỗ trợ Versioning cho Form Template.
  */
 public class ArtifactViewModel {
     private static final Logger logger = LoggerFactory.getLogger(ArtifactViewModel.class);
@@ -95,6 +96,7 @@ public class ArtifactViewModel {
     /**
      * Nạp dữ liệu (nếu có) VÀ template (luôn có) vào ViewModel.
      * Được gọi bởi ArtifactView.initialize().
+     * [CẬP NHẬT] Gán templateId cho artifact mới.
      *
      * @param template       Template (form) của artifact
      * @param loadedArtifact Artifact đã load (hoặc null nếu tạo mới)
@@ -108,14 +110,18 @@ public class ArtifactViewModel {
         this.templatePrefix = template.getPrefixId();
 
         if (loadedArtifact != null) {
+            // --- MỞ ARTIFACT ĐÃ TỒN TẠI ---
             this.artifact = loadedArtifact;
             this.id.set(artifact.getId());
             this.name.set(artifact.getName());
-
+            // artifact.getTemplateId() đã tồn tại (ví dụ: "UC_v1")
         } else {
+            // --- TẠO ARTIFACT MỚI ---
             this.artifact = new Artifact();
             this.artifact.setFields(new HashMap<>());
             this.artifact.setArtifactType(this.templatePrefix);
+            // [MỚI] Gán ID phiên bản template
+            this.artifact.setTemplateId(template.getTemplateId());
         }
     }
 
@@ -227,7 +233,8 @@ public class ArtifactViewModel {
             if (artifact.getId() == null) {
                 String newId = this.templatePrefix + "-" + (System.currentTimeMillis() % 100000);
                 artifact.setId(newId);
-                artifact.setArtifactType(this.templatePrefix);
+                // artifact.getArtifactType() và artifact.getTemplateId()
+                // đã được gán (set) trong initializeData()
                 id.set(newId);
             }
 

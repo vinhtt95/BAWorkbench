@@ -8,11 +8,13 @@ import java.util.List;
 
 /**
  * Interface cho DIP (SOLID)
+ * [CẬP NHẬT] Hỗ trợ Versioning cho Form Template
  */
 public interface ITemplateService {
 
     /**
      * Lưu một template (cấu hình Form) vào file .json
+     * (Sử dụng template.getTemplateId() làm tên file).
      * Tham chiếu UC-CFG-01 (Bước 9.0, 10.0)
      *
      * @param template Template Form
@@ -21,30 +23,45 @@ public interface ITemplateService {
     void saveTemplate(ArtifactTemplate template) throws IOException;
 
     /**
-     * Tải một template (cấu hình Form) từ file .json
+     * Tải (load) một phiên bản template (cấu hình Form) CỤ THỂ
+     * bằng ID của nó (ví dụ: "UC_v1").
      *
-     * @param templateName Tên template
+     * @param templateId ID phiên bản của template (ví dụ: "UC_v1")
      * @return Template Form
      * @throws IOException Nếu lỗi I/O
      */
-    ArtifactTemplate loadTemplate(String templateName) throws IOException;
+    ArtifactTemplate loadTemplateById(String templateId) throws IOException;
 
     /**
-     * Quét thư mục .config và trả về tên của tất cả template (Form)
+     * Quét thư mục .config và trả về tên LOGIC
+     * của tất cả template (Form).
+     * (Ví dụ: "Use Case", "Task" - loại bỏ các phiên bản trùng lặp)
      *
-     * @return Danh sách tên các template (ví dụ: "Use Case", "Task")
+     * @return Danh sách tên LOGIC của các template
      * @throws IOException Nếu không thể đọc thư mục
      */
     List<String> loadAllTemplateNames() throws IOException;
 
     /**
-     * Tìm và tải một template (Form) bằng Prefix ID của nó (ví dụ: "UC").
+     * Tìm (find) phiên bản MỚI NHẤT của một template
+     * bằng Tên Logic (templateName) của nó.
      *
-     * @param prefix Prefix ID (ví dụ: "UC", "BR")
-     * @return ArtifactTemplate tìm thấy, hoặc null nếu không tìm thấy
+     * @param templateName Tên logic (ví dụ: "Use Case")
+     * @return Phiên bản mới nhất của ArtifactTemplate
      * @throws IOException Nếu xảy ra lỗi đọc file
      */
-    ArtifactTemplate loadTemplateByPrefix(String prefix) throws IOException;
+    ArtifactTemplate loadLatestTemplateByName(String templateName) throws IOException;
+
+
+    /**
+     * Tìm (find) phiên bản MỚI NHẤT của một template
+     * bằng Prefix ID (tiền tố ID) của nó.
+     *
+     * @param prefix Prefix ID (ví dụ: "UC", "BR")
+     * @return Phiên bản mới nhất của ArtifactTemplate
+     * @throws IOException Nếu xảy ra lỗi đọc file
+     */
+    ArtifactTemplate loadLatestTemplateByPrefix(String prefix) throws IOException;
 
     /**
      * [THÊM MỚI NGÀY 32]

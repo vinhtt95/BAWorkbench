@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 /**
  * Triển khai (implementation) logic nghiệp vụ Xuất bản.
  * Tuân thủ Kế hoạch Ngày 30 (UC-PUB-02) và Ngày 31 (UC-PUB-01).
+ * [CẬP NHẬT] Sửa lỗi versioning, sử dụng loadLatestTemplateByName.
  */
 @Singleton
 public class ExportServiceImpl implements IExportService {
@@ -68,7 +69,10 @@ public class ExportServiceImpl implements IExportService {
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             for (String templateName : templateNamesToExport) {
                 try {
-                    ArtifactTemplate template = templateService.loadTemplate(templateName);
+                    /**
+                     * [SỬA LỖI] Sử dụng phiên bản mới nhất của template
+                     */
+                    ArtifactTemplate template = templateService.loadLatestTemplateByName(templateName);
                     if (template == null) {
                         logger.warn("Bỏ qua: Không tìm thấy template cho '{}'", templateName);
                         continue;

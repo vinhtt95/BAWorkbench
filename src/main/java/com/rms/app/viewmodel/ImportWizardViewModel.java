@@ -22,6 +22,7 @@ import java.util.Map;
 
 /**
  * "Brain" - Logic UI cho ImportWizardView (UC-PM-03).
+ * [CẬP NHẬT] Sửa lỗi versioning, sử dụng loadLatestTemplateByName.
  */
 public class ImportWizardViewModel {
 
@@ -31,8 +32,8 @@ public class ImportWizardViewModel {
     private final IProjectStateService projectStateService;
 
     private File loadedExcelFile;
-    private Map<String, List<String>> headerCache = new HashMap<>();
-    private Map<String, List<String>> fieldCache = new HashMap<>();
+    private final Map<String, List<String>> headerCache = new HashMap<>();
+    private final Map<String, List<String>> fieldCache = new HashMap<>();
 
     /**
      * Map (Ánh xạ) {SheetName -> TemplateName}
@@ -159,7 +160,10 @@ public class ImportWizardViewModel {
              * 3. Tải (load) các Trường (Field) của Template (và cache lại)
              */
             if (!fieldCache.containsKey(templateName)) {
-                ArtifactTemplate template = templateService.loadTemplate(templateName);
+                /**
+                 * [SỬA LỖI] Sử dụng phiên bản mới nhất của template
+                 */
+                ArtifactTemplate template = templateService.loadLatestTemplateByName(templateName);
                 List<String> fields = new ArrayList<>();
                 fields.add("id"); // Trường (field) đặc biệt
                 fields.add("name"); // Trường (field) đặc biệt

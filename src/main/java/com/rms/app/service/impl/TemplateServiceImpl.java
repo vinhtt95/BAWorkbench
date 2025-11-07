@@ -15,14 +15,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Triển khai (implementation) logic nghiệp vụ
  * quản lý cả Form Template (UC-CFG-01) và Export Template (UC-CFG-03).
+ * [CẬP NHẬT] Hỗ trợ Versioning cho Form Template.
  */
 public class TemplateServiceImpl implements ITemplateService {
 
@@ -58,7 +59,7 @@ public class TemplateServiceImpl implements ITemplateService {
     }
 
     /**
-     * Helper (hàm phụ) chuẩn hóa tên file
+     * Helper (hàm phụ) chuẩn hóa tên file (chỉ dùng cho Export)
      *
      * @param templateName Tên template
      * @return Tên file an toàn
@@ -88,8 +89,11 @@ public class TemplateServiceImpl implements ITemplateService {
 
     @Override
     public void saveTemplate(ArtifactTemplate template) throws IOException {
+        if (template.getTemplateId() == null || template.getTemplateId().isEmpty()) {
+            throw new IOException("Không thể lưu template: templateId là null hoặc rỗng.");
+        }
         File configDir = getConfigDirectory();
-        String fileName = sanitizeTemplateName(template.getTemplateName()) + FORM_TEMPLATE_SUFFIX;
+        String fileName = template.getTemplateId() + FORM_TEMPLATE_SUFFIX;
         File templateFile = new File(configDir, fileName);
 
         logger.info("Đang lưu Form template: {}", templateFile.getPath());
@@ -97,9 +101,9 @@ public class TemplateServiceImpl implements ITemplateService {
     }
 
     @Override
-    public ArtifactTemplate loadTemplate(String templateName) throws IOException {
+    public ArtifactTemplate loadTemplateById(String templateId) throws IOException {
         File configDir = getConfigDirectory();
-        String fileName = sanitizeTemplateName(templateName) + FORM_TEMPLATE_SUFFIX;
+        String fileName = templateId + FORM_TEMPLATE_SUFFIX;
         File templateFile = new File(configDir, fileName);
 
         if (!templateFile.exists()) {
@@ -109,10 +113,14 @@ public class TemplateServiceImpl implements ITemplateService {
         return objectMapper.readValue(templateFile, ArtifactTemplate.class);
     }
 
+    /**
+     * Quét tất cả các file .form.template.json,
+     * đọc chúng, và trả về một danh sách Tên Logic (templateName) duy nhất.
+     */
     @Override
     public List<String> loadAllTemplateNames() throws IOException {
         List<Path> templateFiles = getAllTemplateFilesBySuffix(FORM_TEMPLATE_SUFFIX);
-        List<String> templateNames = new ArrayList<>();
+        Set<String> templateNames = new HashSet<>();
 
         for (Path templateFile : templateFiles) {
             try {
@@ -124,31 +132,60 @@ public class TemplateServiceImpl implements ITemplateService {
                 logger.error("Không thể đọc form template file: {}", templateFile, e);
             }
         }
-        return templateNames;
+        return new ArrayList<>(templateNames);
     }
 
-    @Override
-    public ArtifactTemplate loadTemplateByPrefix(String prefix) throws IOException {
-        if (prefix == null || prefix.isEmpty()) {
+    /**
+     * Tải (load) tất cả các phiên bản của template,
+     * lọc (filter) theo một key (khóa),
+     * và trả về phiên bản mới nhất.
+     *
+     * @param filterFunction Hàm (function) để trích xuất (extract) key (ví dụ: template.getTemplateName())
+     * @param filterValue    Giá trị (value) để khớp (match) (ví dụ: "Use Case")
+     * @return Phiên bản mới nhất (hoặc null)
+     * @throws IOException Nếu lỗi I/O
+     */
+    private ArtifactTemplate loadLatestTemplate(
+            Function<ArtifactTemplate, String> filterFunction, String filterValue) throws IOException {
+
+        if (filterValue == null || filterValue.isEmpty()) {
             return null;
         }
+
         List<Path> templateFiles = getAllTemplateFilesBySuffix(FORM_TEMPLATE_SUFFIX);
+        ArtifactTemplate latestTemplate = null;
 
         for (Path templateFile : templateFiles) {
             try {
                 ArtifactTemplate template = objectMapper.readValue(templateFile.toFile(), ArtifactTemplate.class);
-                if (template != null && prefix.equals(template.getPrefixId())) {
-                    return template;
+                if (template != null && filterValue.equals(filterFunction.apply(template))) {
+                    if (latestTemplate == null || template.getVersion() > latestTemplate.getVersion()) {
+                        latestTemplate = template;
+                    }
                 }
             } catch (IOException e) {
-                logger.error("Không thể đọc form template file khi tìm prefix: {}", templateFile, e);
+                logger.error("Không thể đọc form template file khi tìm kiếm phiên bản mới nhất: {}", templateFile, e);
             }
         }
-        logger.warn("Không tìm thấy template nào cho prefix: {}", prefix);
-        return null;
+
+        if (latestTemplate == null) {
+            logger.warn("Không tìm thấy template nào cho giá trị lọc: {}", filterValue);
+        }
+        return latestTemplate;
     }
 
-    // --- Export Template (UC-CFG-03) [THÊM MỚI NGÀY 32] ---
+    @Override
+    public ArtifactTemplate loadLatestTemplateByName(String templateName) throws IOException {
+        return loadLatestTemplate(ArtifactTemplate::getTemplateName, templateName);
+    }
+
+    @Override
+    public ArtifactTemplate loadLatestTemplateByPrefix(String prefix) throws IOException {
+        return loadLatestTemplate(ArtifactTemplate::getPrefixId, prefix);
+    }
+
+
+    // --- Export Template (UC-CFG-03) [Không thay đổi] ---
 
     @Override
     public void saveExportTemplate(ExportTemplate template) throws IOException {

@@ -21,6 +21,7 @@ import java.util.Map;
 
 /**
  * Triển khai (implementation) logic nghiệp vụ Import (UC-PM-03).
+ * [CẬP NHẬT] Sửa lỗi versioning, sử dụng loadLatestTemplateByName.
  */
 @Singleton
 public class ImportServiceImpl implements IImportService {
@@ -104,7 +105,10 @@ public class ImportServiceImpl implements IImportService {
                 Sheet sheet = workbook.getSheet(sheetName);
                 if (sheet == null) continue;
 
-                ArtifactTemplate template = templateService.loadTemplate(templateName);
+                /**
+                 * [SỬA LỖI] Sử dụng phiên bản mới nhất của template
+                 */
+                ArtifactTemplate template = templateService.loadLatestTemplateByName(templateName);
                 if (template == null) {
                     logger.error("Bỏ qua Sheet '{}': Không tìm thấy Template '{}'", sheetName, templateName);
                     totalErrors++;
@@ -125,6 +129,8 @@ public class ImportServiceImpl implements IImportService {
                     try {
                         Artifact artifact = new Artifact();
                         artifact.setArtifactType(template.getPrefixId());
+                        // [CẬP NHẬT] Gán ID template version
+                        artifact.setTemplateId(template.getTemplateId());
                         artifact.setFields(new HashMap<>());
 
                         /**
