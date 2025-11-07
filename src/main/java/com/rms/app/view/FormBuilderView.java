@@ -390,7 +390,7 @@ public class FormBuilderView {
                     }
                 }
                 /**
-                 * Trường hợp 2: Thả-từ-Toolbox (Drop from Toolbox)
+                 * [ĐÃ SỬA] Trường hợp 2: Thả-từ-Toolbox (Drop from Toolbox)
                  */
                 else if (db.hasString()) {
                     String fieldType = db.getString();
@@ -400,24 +400,12 @@ public class FormBuilderView {
                     newField.setOptions(new HashMap<>());
 
                     /**
-                     * [ĐÃ SỬA] Thêm logic kiểm tra giới hạn (bounds check)
-                     * để fix IndexOutOfBoundsException
+                     * [SỬA LỖI] Để tránh lỗi IndexOutOfBoundsException,
+                     * khi thả (drop) một item MỚI từ Toolbox,
+                     * chúng ta sẽ LUÔN thêm nó vào CUỐI danh sách.
+                     * Điều này đơn giản hóa logic và ngăn ngừa crash.
                      */
-                    int thisIndex = getIndex();
-                    int listSize = viewModel.currentFields.size();
-
-                    if (thisIndex >= 0 && thisIndex < listSize) {
-                        /**
-                         * Thả (Drop) vào giữa danh sách (list)
-                         */
-                        viewModel.currentFields.add(thisIndex, newField);
-                    } else {
-                        /**
-                         * Thả (Drop) vào cuối
-                         * (bao gồm cả thisIndex == listSize hoặc lỗi)
-                         */
-                        viewModel.currentFields.add(newField);
-                    }
+                    viewModel.currentFields.add(newField);
                     success = true;
                 }
 

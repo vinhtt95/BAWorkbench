@@ -288,7 +288,12 @@ public class FormBuilderViewModel {
 
         try {
             templateService.saveTemplate(newTemplate);
-            projectStateService.setStatusMessage("Đã lưu phiên bản mới: " + newTemplate.getTemplateId());
+
+            /**
+             * [ĐÃ SỬA] Thay đổi tin nhắn trạng thái để khớp với MainView listener
+             * Tín hiệu này sẽ kích hoạt MainView.rebuildNewArtifactMenu()
+             */
+            projectStateService.setStatusMessage("Đã lưu template: " + newTemplate.getTemplateName());
             logger.info("Lưu template phiên bản mới thành công");
 
             /**
