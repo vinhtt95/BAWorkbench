@@ -15,6 +15,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.Node; // [ĐÃ SỬA] Thêm import
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane; // [ĐÃ SỬA] Thêm import
 import javafx.scene.control.TextField; // [ĐÃ SỬA] Thêm import
@@ -305,7 +306,7 @@ public class ArtifactViewModel {
                  */
                 if (this.parentRelativePath == null) {
                     logger.error("parentRelativePath là null khi lưu artifact mới. Auto-save thất bại.");
-                    throw new IOException("Không thể lưu artifact: parentRelativePath là null.");
+                    throw new IOException("Không thể lưu artifact: relativePath là null hoặc rỗng.");
                 }
 
                 String newPath = Path.of(this.parentRelativePath, newId + ".json").toString();
@@ -352,11 +353,42 @@ public class ArtifactViewModel {
     }
 
     /**
-     * [ĐÃ XÓA]
-     * Logic findMyTab() đã bị xóa
-     * và thay thế bằng việc lưu trữ 'myTab'
-     * khi khởi tạo (initialize).
+     * [ĐÃ SỬA] Helper (hàm phụ)
+     * để tìm (find) Tab (JavaFX)
+     * mà ViewModel này đang quản lý.
+     * (Logic cũ bị lỗi vì ID field chưa được render)
      */
+    private Tab findMyTab() {
+        if (myTab != null) {
+            return myTab;
+        }
+
+        /**
+         * Fallback (Phương án dự phòng)
+         * (Logic này không đáng tin cậy
+         * và chỉ được gọi nếu 'myTab' là null)
+         */
+        try {
+            Property<?> nameProp = dynamicFields.get("Name");
+            if (nameProp != null && nameProp.getValue() instanceof TextField) {
+                TextField nameFieldNode = (TextField) nameProp.getValue();
+                if (nameFieldNode.getScene() != null) {
+                    TabPane tabPane = (TabPane) nameFieldNode.getScene().lookup("#mainTabPane");
+                    if (tabPane != null) {
+                        for (Tab tab : tabPane.getTabs()) {
+                            if (tab.getContent() != null && tab.getContent().equals(nameFieldNode.getParent().getParent().getParent())) {
+                                this.myTab = tab; // Cache (Lưu) lại
+                                return tab;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Không thể tìm thấy Tab (findMyTab) để cập nhật UserData.");
+        }
+        return null;
+    }
 
 
     /**
@@ -376,7 +408,10 @@ public class ArtifactViewModel {
             }
 
             if (flowSteps.isEmpty()) {
-                logger.warn("Không tìm thấy dữ liệu Flow (FlowStep) trong artifact {}", artifact.getId());
+                // [SỬA LỖI] Không log lỗi nếu artifact là null (đang tạo mới)
+                if (artifact != null && artifact.getId() != null) {
+                    logger.warn("Không tìm thấy dữ liệu Flow (FlowStep) trong artifact {}", artifact.getId());
+                }
                 return null;
             }
 
@@ -386,7 +421,7 @@ public class ArtifactViewModel {
             return SwingFXUtils.toFXImage(awtImage, null);
 
         } catch (Exception e) {
-            logger.error("Không thể sinh sơ đồ cho {}: {}", artifact.getId(), e.getMessage());
+            logger.error("Không thể sinh sơ đồ: {}", e.getMessage());
             projectStateService.setStatusMessage("Lỗi render sơ đồ: " + e.getMessage());
             return null;
         }

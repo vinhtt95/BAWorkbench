@@ -17,7 +17,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
-import java.util.Map; // [MỚI] Import
+import java.util.Map;
 
 /**
  * "Dumb" View Controller cho ArtifactView.fxml.
@@ -80,8 +80,6 @@ public class ArtifactView {
             if (newParent != null && viewModel.isNotInitialized()) {
                 /**
                  * Tìm (Find) Tab (Pane) cha
-                 * (Đây là một hack, nhưng cần thiết
-                 * để lấy UserData)
                  */
                 Node tabPaneNode = formContainer.getScene().lookup("#mainTabPane");
                 if (tabPaneNode instanceof TabPane) {
@@ -91,7 +89,6 @@ public class ArtifactView {
                     /**
                      * Kiểm tra xem tab này có phải là tab
                      * chúng ta đang tìm không
-                     * (Nội dung (content) của tab là ScrollPane -> VBox)
                      */
                     if (thisTab != null && thisTab.getContent() == formContainer.getParent().getParent()) {
                         Object userData = thisTab.getUserData();
@@ -99,18 +96,14 @@ public class ArtifactView {
                         if (userData instanceof Map) {
                             /**
                              * TRƯỜNG HỢP 1: TẠO MỚI (NEW)
-                             * (UserData là Map)
                              */
                             viewModel.initializeData(thisTab);
                         } else {
                             /**
                              * TRƯỜNG HỢP 2: MỞ (OPEN)
-                             * (UserData là String ID
-                             * HOẶC artifactToLoad đã được set)
+                             * [ĐÃ SỬA] Truyền (Pass) 'thisTab' vào VM
                              */
-                            viewModel.initializeData(templateToRender, artifactToLoad);
-                            // Cập nhật UserData thành ID
-                            // (nếu nó chưa phải)
+                            viewModel.initializeData(templateToRender, artifactToLoad, thisTab);
                             if (artifactToLoad != null) {
                                 thisTab.setUserData(artifactToLoad.getId());
                             }
