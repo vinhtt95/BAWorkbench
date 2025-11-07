@@ -2,7 +2,7 @@ package com.rms.app.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import com.rms.app.model.Artifact; // Thêm import
+import com.rms.app.model.Artifact;
 import com.rms.app.service.IViewManager;
 import com.rms.app.viewmodel.MainViewModel;
 import com.rms.app.model.ArtifactTemplate;
@@ -12,7 +12,7 @@ import com.rms.app.service.IProjectStateService;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane; // [THÊM MỚI] Import
+import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,16 +108,30 @@ public class ViewManagerImpl implements IViewManager {
     }
 
     /**
-     * [THÊM MỚI] Triển khai (implementation)
-     * logic "undock" (tháo) tab (UI-02).
+     * [SỬA LỖI] Triển khai (implementation) logic "undock" (tháo) tab (UI-02).
      *
      * @param tab         Tab để "undock" (tháo ra)
      * @param mainTabPane TabPane gốc để "re-dock" (gắn lại) khi đóng
      */
     @Override
     public void openNewWindowForTab(Tab tab, TabPane mainTabPane) {
+        /**
+         * [SỬA LỖI] Thêm kiểm tra (check) null
+         * để xử lý lỗi (lỗi log) "tab" is null.
+         */
+        if (tab == null) {
+            logger.error("Attempted to undock a null tab. Operation aborted.");
+            return;
+        }
+
         Parent content = (Parent) tab.getContent();
         if (content == null) return;
+
+        /**
+         * [SỬA LỖI] Gỡ bỏ (remove) nội dung (content)
+         * khỏi tab TRƯỚC KHI thêm nó vào Scene mới.
+         */
+        tab.setContent(null);
 
         /**
          * Tạo một Stage (Cửa sổ) mới
