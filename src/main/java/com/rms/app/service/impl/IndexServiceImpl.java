@@ -3,27 +3,30 @@ package com.rms.app.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
+import com.rms.app.model.ProjectFolder;
 import com.rms.app.service.IIndexService;
 import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.ISqliteIndexRepository;
-import javafx.application.Platform; // [THÊM MỚI] Import
+import javafx.application.Platform;
 import javafx.concurrent.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
- * Triển khai (implementation) logic nghiệp vụ Lập Chỉ mục (Kế hoạch Ngày 19).
- * Điều phối Repository File (.json) và Repository CSDL (.db).
- * [CẬP NHẬT] Sửa lỗi ARTIFACTS_DIR không còn tồn tại.
+ * Triển khai logic nghiệp vụ Lập Chỉ mục.
+ * [CẬP NHẬT] Hỗ trợ quét (scan) đệ quy hệ thống file vật lý
+ * và lập chỉ mục (index) cả thư mục và file.
  */
 public class IndexServiceImpl implements IIndexService {
 
@@ -32,10 +35,10 @@ public class IndexServiceImpl implements IIndexService {
     private final ISqliteIndexRepository indexRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * Pattern Regex để tìm các link @ID (tham chiếu UC-DEV-02)
-     */
     private static final Pattern LINK_PATTERN = Pattern.compile("@([A-Za-z0-9_\\-]+)");
+    private Path projectRootPath;
+    private long fileCount = 0;
+    private long linkCount = 0;
 
     @Inject
     public IndexServiceImpl(IProjectStateService projectStateService, ISqliteIndexRepository indexRepository) {
@@ -50,83 +53,34 @@ public class IndexServiceImpl implements IIndexService {
             logger.warn("Không thể lập chỉ mục: Chưa mở dự án.");
             return;
         }
+        this.projectRootPath = projectRoot.toPath();
+        this.fileCount = 0;
+        this.linkCount = 0;
 
         File configDir = new File(projectRoot, ProjectServiceImpl.CONFIG_DIR);
-
-        /**
-         * [SỬA LỖI] Thư mục 'Artifacts' đã bị xóa.
-         * Thư mục để quét (scan) bây giờ chính là 'projectRoot'.
-         */
-        File artifactsDir = projectRoot;
-        // File artifactsDir = new File(projectRoot, ProjectServiceImpl.ARTIFACTS_DIR); // <- DÒNG LỖI
 
         Task<Void> indexingTask = new Task<>() {
             @Override
             protected Void call() throws Exception {
                 try {
                     logger.info("Bắt đầu Tái lập Chỉ mục (luồng nền)...");
-                    /**
-                     * [SỬA LỖI] Cập nhật trạng thái PHẢI chạy trên luồng FX
-                     */
                     Platform.runLater(() -> projectStateService.setStatusMessage("Đang quét và lập chỉ mục..."));
 
                     indexRepository.initializeDatabase(configDir);
                     indexRepository.clearIndex();
 
-                    if (!artifactsDir.exists()) {
-                        logger.warn("Thư mục dự án '{}' không tồn tại. Bỏ qua quét.", artifactsDir.getPath());
-                        return null;
-                    }
-
-                    long fileCount = 0;
-                    long linkCount = 0;
-
-                    try (Stream<Path> paths = Files.walk(artifactsDir.toPath())) {
-                        var jsonFiles = paths
-                                .filter(Files::isRegularFile)
-                                .filter(path -> path.toString().endsWith(".json"))
-                                // [MỚI] Bỏ qua các file .json trong .config
-                                .filter(path -> !path.toAbsolutePath().toString().contains(File.separator + ".config" + File.separator))
-                                .toList();
-
-                        for (Path jsonFile : jsonFiles) {
-                            try {
-                                Artifact artifact = objectMapper.readValue(jsonFile.toFile(), Artifact.class);
-                                if (artifact == null || artifact.getId() == null) {
-                                    continue;
-                                }
-
-                                indexRepository.insertArtifact(artifact);
-                                fileCount++;
-
-                                String fieldsAsString = artifact.getFields().toString();
-                                Matcher matcher = LINK_PATTERN.matcher(fieldsAsString);
-
-                                while (matcher.find()) {
-                                    String toId = matcher.group(1);
-                                    indexRepository.insertLink(artifact.getId(), toId);
-                                    linkCount++;
-                                }
-
-                            } catch (Exception e) {
-                                logger.error("Lỗi khi lập chỉ mục file {}: {}", jsonFile.getFileName(), e.getMessage());
-                            }
-                        }
-                    }
+                    /**
+                     * Bắt đầu quét (scan) đệ quy từ gốc (root)
+                     * (parentId là null cho cấp cao nhất)
+                     */
+                    scanDirectoryRecursive(projectRootPath, null);
 
                     String status = String.format("Hoàn tất. Đã lập chỉ mục %d đối tượng, %d liên kết.", fileCount, linkCount);
                     logger.info(status);
-                    /**
-                     * [SỬA LỖI] Gói (wrap) cập nhật UI trong Platform.runLater
-                     * Đây chính là dòng gây ra lỗi
-                     */
                     Platform.runLater(() -> projectStateService.setStatusMessage(status));
 
                 } catch (Exception e) {
                     logger.error("Lỗi nghiêm trọng khi Tái lập Chỉ mục", e);
-                    /**
-                     * [SỬA LỖI] Gói (wrap) cập nhật UI trong Platform.runLater
-                     */
                     Platform.runLater(() -> projectStateService.setStatusMessage("Lỗi: Không thể lập chỉ mục dự án."));
                 }
                 return null;
@@ -135,6 +89,92 @@ public class IndexServiceImpl implements IIndexService {
 
         new Thread(indexingTask).start();
     }
+
+    /**
+     * Helper (hàm phụ) đệ quy quét (scan) thư mục vật lý.
+     *
+     * @param directory    Thư mục hiện tại
+     * @param parentFolderId ID (UUID) của thư mục cha trong CSDL
+     * @throws IOException Nếu lỗi đọc file
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    private void scanDirectoryRecursive(Path directory, String parentFolderId) throws IOException, SQLException {
+        try (Stream<Path> stream = Files.list(directory)) {
+            for (Path path : stream.toList()) {
+                String fileName = path.getFileName().toString();
+
+                /**
+                 * Bỏ qua (Ignore) các thư mục cấu hình, build, và ẩn
+                 */
+                if (fileName.equals(ProjectServiceImpl.CONFIG_DIR) || fileName.equals("target") || fileName.startsWith(".")) {
+                    continue;
+                }
+
+                String relativePath = projectRootPath.relativize(path).toString();
+
+                if (Files.isDirectory(path)) {
+                    /**
+                     * 1. Đây là một THƯ MỤC
+                     */
+                    ProjectFolder folder = new ProjectFolder();
+                    folder.setId(UUID.randomUUID().toString());
+                    folder.setName(fileName);
+                    folder.setParentId(parentFolderId);
+                    folder.setRelativePath(relativePath);
+
+                    /**
+                     * Logic (Logic) gán Phạm vi (Scope) cho các thư mục cấp 1 (UC, BR, v.v.)
+                     */
+                    if (parentFolderId == null) {
+                        folder.setArtifactTypeScope(fileName); // Ví dụ: "UC", "BR"
+                    }
+
+                    indexRepository.insertFolder(folder);
+
+                    /**
+                     * Quét (Scan) đệ quy vào thư mục con
+                     */
+                    scanDirectoryRecursive(path, folder.getId());
+
+                } else if (fileName.endsWith(".json")) {
+                    /**
+                     * 2. Đây là một file JSON (Artifact)
+                     */
+                    try {
+                        Artifact artifact = objectMapper.readValue(path.toFile(), Artifact.class);
+                        if (artifact == null || artifact.getId() == null) {
+                            continue;
+                        }
+
+                        /**
+                         * Cập nhật (Update) thông tin đường dẫn (path) và folderId
+                         */
+                        artifact.setRelativePath(relativePath);
+                        // artifact.setFolderId(parentFolderId); // Bị lỗi, logic này phải do insertArtifact xử lý
+
+                        indexRepository.insertArtifact(artifact);
+                        fileCount++;
+
+                        /**
+                         * Lập chỉ mục (Index) các liên kết (link)
+                         */
+                        String fieldsAsString = artifact.getFields().toString();
+                        Matcher matcher = LINK_PATTERN.matcher(fieldsAsString);
+
+                        while (matcher.find()) {
+                            String toId = matcher.group(1);
+                            indexRepository.insertLink(artifact.getId(), toId);
+                            linkCount++;
+                        }
+
+                    } catch (Exception e) {
+                        logger.error("Lỗi khi lập chỉ mục file {}: {}", fileName, e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
 
     /**
      * Triển khai logic Triple-Write
@@ -147,8 +187,14 @@ public class IndexServiceImpl implements IIndexService {
         }
 
         try {
-            indexRepository.insertArtifact(artifact);
+            /**
+             * [CẬP NHẬT] Đảm bảo artifact có folderId chính xác
+             * (Logic này cần được hoàn thiện bằng cách
+             * truy vấn CSDL thư mục dựa trên relativePath)
+             */
+            // artifact.setFolderId(findFolderId(artifact.getRelativePath()));
 
+            indexRepository.insertArtifact(artifact);
             indexRepository.deleteLinksForArtifact(artifact.getId());
 
             String fieldsAsString = artifact.getFields().toString();
@@ -162,11 +208,6 @@ public class IndexServiceImpl implements IIndexService {
 
         } catch (SQLException e) {
             logger.error("Lỗi SQL khi cập nhật chỉ mục cho {}: {}", artifact.getId(), e.getMessage());
-            /**
-             * [SỬA LỖI] Gói (wrap) cập nhật UI trong Platform.runLater
-             * (Giả định rằng hàm này có thể được gọi từ luồng nền,
-             * ví dụ: Auto-save)
-             */
             Platform.runLater(() -> projectStateService.setStatusMessage("Lỗi: Không thể cập nhật CSDL chỉ mục."));
         }
     }
@@ -184,9 +225,6 @@ public class IndexServiceImpl implements IIndexService {
             logger.debug("Đã xóa chỉ mục cho {}", artifactId);
         } catch (SQLException e) {
             logger.error("Lỗi SQL khi xóa chỉ mục cho {}: {}", artifactId, e.getMessage());
-            /**
-             * [SỬA LỖI] Gói (wrap) cập nhật UI trong Platform.runLater
-             */
             Platform.runLater(() -> projectStateService.setStatusMessage("Lỗi: Không thể cập nhật CSDL chỉ mục."));
         }
     }

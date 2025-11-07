@@ -7,7 +7,8 @@ import java.util.Map;
 
 /**
  * Interface cho DIP (SOLID)
- * [CẬP NHẬT] Thêm phương thức lấy cây (tree)
+ * [CẬP NHẬT] Đã loại bỏ getArtifactsGroupedByType()
+ * để chuyển sang kiến trúc cây vật lý.
  */
 public interface ISearchService {
 
@@ -44,26 +45,25 @@ public interface ISearchService {
     Map<String, List<Artifact>> getArtifactsGroupedByStatus();
 
     /**
-     * [MỚI] Lấy tất cả các artifact, được nhóm (grouped) theo Loại (Type)
-     * để hiển thị trên Project TreeView.
-     *
-     * @return Map (ánh xạ) {TypeName -> List<Artifact>}
+     * [ĐÃ XÓA] getArtifactsGroupedByType() đã bị loại bỏ.
+     * Logic này giờ được xử lý bởi ProjectServiceImpl
+     * bằng cách truy vấn CSDL đệ quy.
      */
-    Map<String, List<Artifact>> getArtifactsGroupedByType();
+    // Map<String, List<Artifact>> getArtifactsGroupedByType();
 
 
     /**
      * Cập nhật Trạng thái (Status) của một artifact.
      * Tuân thủ UC-MGT-02 (Luồng 1.0, Bước 7.0) và F-MGT-03.
      *
-     * @param artifact   Đối tượng (chỉ chứa ID, Type) được kéo
+     * @param artifact   Đối tượng (chứa relativePath) được kéo
      * @param newStatus  Trạng thái (Status) mới (tên của cột được thả vào)
      * @throws IOException Nếu lỗi load hoặc save (Triple-Write)
      */
     void updateArtifactStatus(Artifact artifact, String newStatus) throws IOException;
 
     /**
-     * [THÊM MỚI] Lấy (fetch) tất cả Nút (Node) và Cạnh (Edge)
+     * Lấy (fetch) tất cả Nút (Node) và Cạnh (Edge)
      * từ CSDL Chỉ mục (Index DB).
      * Tuân thủ UC-MOD-02 (Ngày 36).
      *

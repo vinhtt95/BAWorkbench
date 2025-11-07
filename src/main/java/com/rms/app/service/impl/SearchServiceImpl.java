@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * Triển khai ISearchService.
  * Dịch vụ này hiện truy vấn trực tiếp CSDL Chỉ mục (SQLite).
- * [CẬP NHẬT] Thêm phương thức lấy cây (tree)
+ * [CẬP NHẬT] Đã loại bỏ logic nhóm (grouping) theo loại (type).
  */
 public class SearchServiceImpl implements ISearchService {
 
@@ -114,37 +114,15 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     /**
-     * [MỚI] Triển khai logic nghiệp vụ cho TreeView
-     *
-     * @return Map (Ánh xạ) {Type -> List<Artifact>}
+     * [ĐÃ XÓA] getArtifactsGroupedByType() đã bị loại bỏ.
      */
-    @Override
-    public Map<String, List<Artifact>> getArtifactsGroupedByType() {
-        Map<String, List<Artifact>> resultMap = new HashMap<>();
-        try {
-            /**
-             * 1. Lấy tất cả các Loại (Type)
-             */
-            List<String> types = indexRepository.getDefinedTypes();
-
-            /**
-             * 2. Với mỗi Loại, lấy các artifact (lá)
-             */
-            for (String type : types) {
-                List<Artifact> artifacts = indexRepository.getArtifactsByType(type);
-                resultMap.put(type, artifacts);
-            }
-        } catch (SQLException e) {
-            logger.error("Lỗi SQL khi nhóm (grouping) artifacts cho TreeView: {}", e.getMessage());
-        }
-        return resultMap;
-    }
+    // public Map<String, List<Artifact>> getArtifactsGroupedByType() { ... }
 
 
     /**
      * Triển khai logic cập nhật trạng thái (F-MGT-03).
      *
-     * @param artifact   Đối tượng (chỉ chứa ID, Type) được kéo
+     * @param artifact   Đối tượng (phải chứa relativePath) được kéo
      * @param newStatus  Trạng thái (Status) mới (tên của cột được thả vào)
      * @throws IOException Nếu lỗi load hoặc save (Triple-Write)
      */
@@ -155,12 +133,13 @@ public class SearchServiceImpl implements ISearchService {
         }
 
         /**
-         * 1. Xác định đường dẫn tương đối (Relative Path)
+         * 1. [ĐÃ SỬA] Sử dụng relativePath trực tiếp từ artifact
+         * (được cung cấp bởi CSDL Chỉ mục)
          */
-        if (artifact.getArtifactType() == null) {
+        String relativePath = artifact.getRelativePath();
+        if (relativePath == null || relativePath.isEmpty()) {
             throw new IOException("ArtifactType là null, không thể xác định đường dẫn file.");
         }
-        String relativePath = artifact.getArtifactType() + File.separator + artifact.getId() + ".json";
         logger.info("Đang cập nhật trạng thái cho: {}", relativePath);
 
         /**
@@ -181,8 +160,7 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     /**
-     * [THÊM MỚI] Triển khai (implementation)
-     * logic lấy (fetch) dữ liệu (data) đồ thị (UC-MOD-02).
+     * Triển khai (implementation) logic lấy (fetch) dữ liệu (data) đồ thị (UC-MOD-02).
      *
      * @return Map (Ánh xạ) chứa "nodes" và "edges"
      * @throws IOException Nếu lỗi CSDL (SQL)

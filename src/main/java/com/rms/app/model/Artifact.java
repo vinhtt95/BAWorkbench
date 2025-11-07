@@ -8,13 +8,14 @@ import java.util.Map;
 /**
  * POJO cơ sở cho mọi đối tượng yêu cầu.
  * [CẬP NHẬT] Thêm templateId để hỗ trợ Versioning.
+ * [CẬP NHẬT 2] Thêm relativePath để hỗ trợ cây thư mục đa cấp.
  */
 public class Artifact implements Serializable {
 
     /**
      * ID phiên bản để đảm bảo tính tương thích (compatibility) khi Serializable.
      */
-    private static final long serialVersionUID = 2L; // [CẬP NHẬT] Tăng SUID
+    private static final long serialVersionUID = 3L; // [CẬP NHẬT] Tăng SUID
 
     @JsonProperty("id")
     private String id;
@@ -24,6 +25,14 @@ public class Artifact implements Serializable {
 
     @JsonProperty("artifactType")
     private String artifactType; // Ví dụ: "UC", "BR" (Tiền tố Logic)
+
+    /**
+     * [MỚI] Đường dẫn vật lý tương đối từ gốc dự án
+     * Ví dụ: "UC/Tài Khoản/UC001.json"
+     * Đây là "Source of Truth" cho vị trí cây.
+     */
+    @JsonProperty("relativePath")
+    private String relativePath;
 
     /**
      * [MỚI] ID phiên bản template chính xác
@@ -65,6 +74,14 @@ public class Artifact implements Serializable {
 
     public void setArtifactType(String artifactType) {
         this.artifactType = artifactType;
+    }
+
+    public String getRelativePath() {
+        return relativePath;
+    }
+
+    public void setRelativePath(String relativePath) {
+        this.relativePath = relativePath;
     }
 
     public String getTemplateId() {

@@ -1,6 +1,6 @@
 package com.rms.app.repository;
 
-import com.fasterxml.jackson.core.type.TypeReference; // [THÊM MỚI] Import
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.inject.Inject;
@@ -22,8 +22,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Triển khai logic còn thiếu (TODOs) của Ngày 6
- * [CẬP NHẬT] Bỏ thư mục Artifacts
+ * Triển khai logic I/O.
+ * [CẬP NHẬT] Sửa đổi để lưu file dựa trên relativePath
+ * thay vì tự động tạo thư mục con (sub-directory).
  */
 public class JsonFileRepository implements IArtifactRepository {
 
@@ -38,11 +39,10 @@ public class JsonFileRepository implements IArtifactRepository {
         this.projectStateService = projectStateService;
         this.indexService = indexService;
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-        this.objectMapper.findAndRegisterModules(); // [SỬA LỖI] Đảm bảo JavaTime (LocalDate) được đăng ký
+        this.objectMapper.findAndRegisterModules();
     }
 
     /**
-     * [CẬP NHẬT] Triển khai hàm helper
      * Trả về thư mục gốc của dự án (Project Root)
      */
     private File getArtifactsRoot() throws IOException {
@@ -50,16 +50,14 @@ public class JsonFileRepository implements IArtifactRepository {
         if (projectRoot == null) {
             throw new IOException("Không có dự án nào đang mở.");
         }
-        // [XÓA] Bỏ logic thư mục 'Artifacts'
-        // File artifactsDir = new File(projectRoot, ProjectServiceImpl.ARTIFACTS_DIR);
         if (!projectRoot.exists()) {
             throw new IOException("Thư mục dự án '" + projectRoot.getPath() + "' không tồn tại.");
         }
-        return projectRoot; // [CẬP NHẬT] Trả về chính thư mục gốc
+        return projectRoot;
     }
 
     /**
-     * Helper mới để lấy file bằng đường dẫn tương đối
+     * Helper lấy file bằng đường dẫn tương đối
      */
     private File getArtifactFile(String relativePath) throws IOException {
         File artifactsDir = getArtifactsRoot();
@@ -72,33 +70,45 @@ public class JsonFileRepository implements IArtifactRepository {
             throw new IOException("Artifact hoặc Artifact ID không được null.");
         }
 
-        String artifactType = artifact.getArtifactType();
-        if (artifactType == null || artifactType.isEmpty()) {
-            throw new IOException("ArtifactType không được rỗng để lưu vào thư mục con.");
+        /**
+         * [ĐÃ SỬA] Logic lưu file giờ đây dựa vào relativePath
+         * được cung cấp bởi ViewModel.
+         */
+        if (artifact.getRelativePath() == null || artifact.getRelativePath().isEmpty()) {
+            throw new IOException("Không thể lưu artifact: relativePath là null hoặc rỗng.");
         }
 
-        File subDir = new File(getArtifactsRoot(), artifactType);
-        subDir.mkdirs();
+        File jsonFile = getArtifactFile(artifact.getRelativePath());
 
-        Path jsonPath = new File(subDir, artifact.getId() + ".json").toPath();
+        /**
+         * Đảm bảo các thư mục cha (parent directory) tồn tại
+         */
+        File parentDir = jsonFile.getParentFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdirs();
+        }
+
+        Path jsonPath = jsonFile.toPath();
         logger.debug("Đang lưu file: {}", jsonPath);
 
         objectMapper.writeValue(jsonPath.toFile(), artifact);
 
-        Path mdPath = new File(subDir, artifact.getId() + ".md").toPath();
+        /**
+         * Lưu file .md tương ứng
+         */
+        Path mdPath = new File(parentDir, artifact.getId() + ".md").toPath();
         String mdContent = generateMarkdown(artifact);
         Files.writeString(mdPath, mdContent);
 
         /**
          * Hoàn thành Triple-Write (F-DEV-05)
+         * (indexService sẽ đọc relativePath từ artifact)
          */
         indexService.updateArtifactInIndex(artifact);
     }
 
     /**
-     * [SỬA LỖI LẦN 2] Helper tạo nội dung Markdown.
-     * Hiện đã hỗ trợ định dạng (format) FlowStep,
-     * ngay cả khi 'value' là List<Map> (được tải từ file).
+     * [KHÔNG THAY ĐỔI] Helper tạo nội dung Markdown.
      */
     private String generateMarkdown(Artifact artifact) {
         StringBuilder sb = new StringBuilder();
@@ -109,52 +119,28 @@ public class JsonFileRepository implements IArtifactRepository {
 
             Object value = entry.getValue();
 
-            /**
-             * [SỬA LỖI LẦN 2] Kiểm tra xem đây có phải là một Flow (danh sách) không
-             */
             if (value instanceof List) {
                 List<?> list = (List<?>) value;
                 if (!list.isEmpty()) {
-                    /**
-                     * Cố gắng convert (chuyển đổi) danh sách (List) này thành List<FlowStep>.
-                     * Điều này xử lý trường hợp 'value' là List<Map> (khi tải từ file)
-                     * VÀ trường hợp 'value' là List<FlowStep> (khi lưu từ ViewModel).
-                     */
                     try {
                         List<FlowStep> steps = objectMapper.convertValue(
                                 list,
                                 new TypeReference<List<FlowStep>>() {}
                         );
 
-                        /**
-                         * Nếu convert thành công VÀ có vẻ là FlowStep (có actor hoặc action)
-                         * (Kiểm tra 'get(0)' là an toàn vì chúng ta đã kiểm tra 'isEmpty()')
-                         */
                         if (steps != null && !steps.isEmpty() && (steps.get(0).getActor() != null || steps.get(0).getAction() != null)) {
                             sb.append(formatFlowStepsToMarkdown(steps));
                         } else {
-                            /**
-                             * Không phải là FlowStep, in ra như cũ
-                             */
                             sb.append(value.toString());
                         }
                     } catch (Exception e) {
-                        /**
-                         * Không thể convert, đây là một danh sách (List) thông thường.
-                         */
                         logger.warn("Không thể convert List sang FlowStep, in ra giá trị thô: {}", e.getMessage());
                         sb.append(value.toString());
                     }
                 } else {
-                    /**
-                     * Danh sách rỗng, in ra như cũ
-                     */
                     sb.append(value.toString());
                 }
             } else {
-                /**
-                 * Không phải là danh sách (List), giữ nguyên hành vi cũ
-                 */
                 sb.append(value != null ? value.toString() : "*N/A*");
             }
 
@@ -164,9 +150,8 @@ public class JsonFileRepository implements IArtifactRepository {
     }
 
     /**
-     * Helper (hàm phụ) để định dạng (format)
+     * [KHÔNG THAY ĐỔI] Helper (hàm phụ) để định dạng (format)
      * một danh sách FlowStep thành bảng Markdown.
-     * (Tuân thủ CodingConvention về Javadoc)
      *
      * @param steps Danh sách các bước (FlowStep)
      * @return Chuỗi (String) Markdown đã định dạng
@@ -181,42 +166,23 @@ public class JsonFileRepository implements IArtifactRepository {
                 String actor = (step.getActor() != null) ? step.getActor() : "";
                 String action = (step.getAction() != null) ? step.getAction() : "";
 
-                /**
-                 * Xử lý logic IF/ELSE (làm cho chúng nổi bật)
-                 */
                 if ("IF".equalsIgnoreCase(step.getLogicType()) || "ELSE".equalsIgnoreCase(step.getLogicType())) {
                     sb.append("| **").append(actor).append("** | **").append(action).append("** |\n");
-
-                    /**
-                     * Thêm các bước lồng nhau (nested) với thụt đầu dòng (indent)
-                     */
                     if (step.getNestedSteps() != null) {
                         for (FlowStep nestedStep : step.getNestedSteps()) {
                             String nestedActor = (nestedStep.getActor() != null) ? nestedStep.getActor() : "";
                             String nestedAction = (nestedStep.getAction() != null) ? nestedStep.getAction() : "";
-                            /**
-                             * Dùng &nbsp; để lùi vào
-                             */
                             sb.append("| *&nbsp;&nbsp;&nbsp;&nbsp; ").append(nestedActor).append("* | *").append(nestedAction).append("* |\n");
                         }
                     }
                 } else {
-                    /**
-                     * Bước (step) thông thường
-                     */
                     sb.append("| ").append(actor).append(" | ").append(action).append(" |\n");
                 }
             }
             return sb.toString();
         } catch (Exception e) {
             logger.warn("Lỗi khi định dạng (format) FlowSteps sang Markdown", e);
-            /**
-             * Fallback (Phương án dự phòng): Trả về JSON (vẫn tốt hơn là object reference)
-             */
             try {
-                /**
-                 * Sử dụng objectMapper đã tồn tại trong lớp
-                 */
                 return this.objectMapper.writeValueAsString(steps);
             } catch (Exception ex) {
                 return "[Lỗi định dạng Flow]";
