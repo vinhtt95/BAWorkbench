@@ -2,10 +2,20 @@ package com.rms.app.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serializable;
 import java.util.Map;
 
-// POJO cơ sở cho mọi đối tượng yêu cầu
-public class Artifact {
+/**
+ * POJO cơ sở cho mọi đối tượng yêu cầu.
+ * [SỬA LỖI NGÀY 29] Triển khai (implements) Serializable
+ * để cho phép đối tượng này được truyền (pass) vào Dragboard (Kanban).
+ */
+public class Artifact implements Serializable {
+
+    /**
+     * ID phiên bản để đảm bảo tính tương thích (compatibility) khi Serializable.
+     */
+    private static final long serialVersionUID = 1L;
 
     @JsonProperty("id")
     private String id;
@@ -16,8 +26,10 @@ public class Artifact {
     @JsonProperty("artifactType")
     private String artifactType; // Ví dụ: "UC", "BR"
 
-    // Một map linh hoạt để lưu trữ tất cả các trường (fields)
-    // được định nghĩa trong Form Builder (UC-CFG-01)
+    /**
+     * Một map linh hoạt để lưu trữ tất cả các trường (fields)
+     * được định nghĩa trong Form Builder (UC-CFG-01)
+     */
     @JsonProperty("fields")
     private Map<String, Object> fields;
 

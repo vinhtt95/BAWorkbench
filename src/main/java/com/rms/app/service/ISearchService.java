@@ -12,6 +12,8 @@ public interface ISearchService {
 
     /**
      * Quét thư mục Artifacts/ và xây dựng index
+     *
+     * @throws IOException Nếu lỗi I/O
      */
     void buildIndex() throws IOException;
 
@@ -33,11 +35,21 @@ public interface ISearchService {
     List<Artifact> getBacklinks(String artifactId);
 
     /**
-     * [THÊM MỚI NGÀY 28]
      * Lấy tất cả các artifact, được nhóm (grouped) theo Trạng thái (Status)
      * để hiển thị trên Bảng Kanban (UC-MGT-02).
      *
      * @return Map (ánh xạ) {StatusName -> List<Artifact>}
      */
     Map<String, List<Artifact>> getArtifactsGroupedByStatus();
+
+    /**
+     * [THÊM MỚI NGÀY 29]
+     * Cập nhật Trạng thái (Status) của một artifact.
+     * Tuân thủ UC-MGT-02 (Luồng 1.0, Bước 7.0) và F-MGT-03.
+     *
+     * @param artifact   Đối tượng (chỉ chứa ID, Type) được kéo
+     * @param newStatus  Trạng thái (Status) mới (tên của cột được thả vào)
+     * @throws IOException Nếu lỗi load hoặc save (Triple-Write)
+     */
+    void updateArtifactStatus(Artifact artifact, String newStatus) throws IOException;
 }

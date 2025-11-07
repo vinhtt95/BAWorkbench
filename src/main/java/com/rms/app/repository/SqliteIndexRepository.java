@@ -85,11 +85,21 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
             }
         }
 
+        /**
+         * [SỬA LỖI NGÀY 29]
+         * Xử lý lỗi (Error 1) [SQLITE_CONSTRAINT_NOTNULL].
+         * Nếu Tên (Name) là null (do file .json bị lỗi hoặc thiếu),
+         * chúng ta sử dụng ID làm Tên (Name) thay thế để tuân thủ
+         * ràng buộc NOT NULL của CSDL.
+         */
+        String name = (artifact.getName() != null) ? artifact.getName() :
+                (artifact.getId() != null ? artifact.getId() : "Untitled");
+
         String sql = "INSERT OR REPLACE INTO artifacts (id, name, type, status) VALUES(?,?,?,?);";
 
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, artifact.getId());
-            pstmt.setString(2, artifact.getName());
+            pstmt.setString(2, name);
             pstmt.setString(3, artifact.getArtifactType());
             pstmt.setString(4, status);
             pstmt.executeUpdate();
@@ -170,9 +180,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         return results;
     }
 
-    /**
-     * [THÊM MỚI NGÀY 28] Triển khai logic query
-     */
     @Override
     public List<String> getDefinedStatuses() throws SQLException {
         List<String> results = new ArrayList<>();
@@ -187,9 +194,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         return results;
     }
 
-    /**
-     * [THÊM MỚI NGÀY 28] Triển khai logic query
-     */
     @Override
     public List<Artifact> getArtifactsByStatus(String status) throws SQLException {
         List<Artifact> results = new ArrayList<>();

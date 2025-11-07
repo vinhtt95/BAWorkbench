@@ -2,13 +2,20 @@ package com.rms.app.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * POJO đại diện cho một bước trong Flow Builder (UC-DEV-01)
- *
+ * [SỬA LỖI NGÀY 29] Triển khai (implements) Serializable
+ * để đảm bảo toàn bộ đối tượng Artifact có thể được truyền (pass) vào Dragboard.
  */
-public class FlowStep {
+public class FlowStep implements Serializable {
+
+    /**
+     * ID phiên bản để đảm bảo tính tương thích (compatibility) khi Serializable.
+     */
+    private static final long serialVersionUID = 1L;
 
     @JsonProperty("actor")
     private String actor;
