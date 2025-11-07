@@ -6,16 +6,17 @@ import com.rms.app.repository.JsonFileRepository;
 import com.rms.app.repository.SqliteIndexRepository;
 import com.rms.app.service.*;
 import com.rms.app.service.impl.*;
+import com.rms.app.view.BPMNEditorControl; // [THÊM MỚI] Import
 import com.rms.app.view.DashboardView;
 import com.rms.app.view.ExportTemplateBuilderView;
 import com.rms.app.view.ImportWizardView;
-import com.rms.app.view.ProjectGraphView; // [THÊM MỚI] Import
+import com.rms.app.view.ProjectGraphView;
 import com.rms.app.viewmodel.DashboardViewModel;
 import com.rms.app.viewmodel.ExportTemplateBuilderViewModel;
 import com.rms.app.viewmodel.ImportWizardViewModel;
 import com.rms.app.viewmodel.MainViewModel;
 import com.rms.app.view.FlowBuilderControl;
-import com.rms.app.viewmodel.ProjectGraphViewModel; // [THÊM MỚI] Import
+import com.rms.app.viewmodel.ProjectGraphViewModel;
 
 public class GuiceModule extends AbstractModule {
     @Override
@@ -29,16 +30,17 @@ public class GuiceModule extends AbstractModule {
         bind(DashboardViewModel.class);
         bind(ExportTemplateBuilderViewModel.class);
         bind(ImportWizardViewModel.class);
-        bind(ProjectGraphViewModel.class); // [THÊM MỚI]
+        bind(ProjectGraphViewModel.class);
 
         /**
          * Views (Controllers)
          */
         bind(FlowBuilderControl.class);
+        bind(BPMNEditorControl.class); // [THÊM MỚI]
         bind(DashboardView.class);
         bind(ExportTemplateBuilderView.class);
         bind(ImportWizardView.class);
-        bind(ProjectGraphView.class); // [THÊM MỚI]
+        bind(ProjectGraphView.class);
 
 
         /**

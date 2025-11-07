@@ -209,6 +209,43 @@ public class MainViewModel {
     }
 
     /**
+     * [THÊM MỚI] Mở một artifact bằng ID của nó.
+     * Dùng cho F-MOD-05 (Drill-down).
+     *
+     * @param artifactId ID của artifact (ví dụ: "UC001")
+     */
+    public void openArtifactById(String artifactId) {
+        if (artifactId == null || artifactId.isEmpty()) {
+            return;
+        }
+        try {
+            /**
+             * 1. Tìm (Find) template (loại)
+             */
+            String prefix = artifactId.split("-")[0];
+            ArtifactTemplate template = templateService.loadTemplateByPrefix(prefix);
+            if (template == null) {
+                throw new IOException("Không tìm thấy template cho prefix: " + prefix);
+            }
+
+            /**
+             * 2. Xây dựng (Build) đường dẫn tương đối (relative path)
+             */
+            String relativePath = template.getPrefixId() + File.separator + artifactId + ".json";
+
+            /**
+             * 3. Gọi (Call) hàm mở (open) hiện có
+             */
+            openArtifact(relativePath);
+
+        } catch (Exception e) {
+            logger.error("Không thể drill-down đến {}: {}", artifactId, e.getMessage());
+            projectStateService.setStatusMessage("Lỗi: \"Toàn bộ các Use Case chi tiết (đã được tạo ở các bước trước) sẽ được đưa vào đây, hoặc tham chiếu đến thư mục `UseCases/`.*" + e.getMessage());
+        }
+    }
+
+
+    /**
      * Logic nghiệp vụ Xóa Artifact
      *
      * @param relativePath Đường dẫn tương đối của file cần xóa

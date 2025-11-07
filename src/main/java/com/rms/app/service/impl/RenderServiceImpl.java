@@ -9,8 +9,10 @@ import com.rms.app.model.ProjectConfig;
 import com.rms.app.service.IRenderService;
 import com.rms.app.service.IProjectService;
 import com.rms.app.service.ISearchService;
+import com.rms.app.view.BPMNEditorControl; // [THÊM MỚI] Import
 import com.rms.app.view.FlowBuilderControl;
 import com.rms.app.viewmodel.ArtifactViewModel;
+import com.rms.app.viewmodel.MainViewModel; // [THÊM MỚI] Import
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
@@ -49,12 +51,19 @@ public class RenderServiceImpl implements IRenderService {
      */
     private final IProjectService projectService;
 
+    /**
+     * [THÊM MỚI] Inject MainViewModel (Singleton) để truyền (pass) vào BPMNEditor
+     * cho chức năng drill-down (F-MOD-05).
+     */
+    private final MainViewModel mainViewModel;
+
 
     @Inject
-    public RenderServiceImpl(Injector injector, IProjectService projectService) {
+    public RenderServiceImpl(Injector injector, IProjectService projectService, MainViewModel mainViewModel) {
         this.injector = injector;
         this.searchService = injector.getInstance(ISearchService.class);
         this.projectService = projectService;
+        this.mainViewModel = mainViewModel; // [THÊM MỚI]
         this.autocompletePopup = new ContextMenu();
     }
 
@@ -97,6 +106,20 @@ public class RenderServiceImpl implements IRenderService {
                 return new Label("Lỗi khi tải Flow Builder");
             }
         }
+
+        /**
+         * [THÊM MỚI] Logic render cho F-MOD-05
+         */
+        if ("BPMN Editor".equals(field.getType())) {
+            try {
+                StringProperty xmlProperty = viewModel.getStringProperty(field.getName());
+                return loadBPMNEditorControl(xmlProperty, viewModel, mainViewModel);
+            } catch (IOException e) {
+                logger.error("Không thể tải BPMNEditorControl.fxml", e);
+                return new Label("Lỗi khi tải BPMN Editor");
+            }
+        }
+
 
         switch (field.getType()) {
             case "Text (Single-line)":
@@ -260,6 +283,30 @@ public class RenderServiceImpl implements IRenderService {
 
         return controlRoot;
     }
+
+    /**
+     * [THÊM MỚI] Tải (load) FXML control BPMNEditorControl
+     * và inject (tiêm) data (dữ liệu) (XML) vào.
+     *
+     * @param xmlProperty       Property (thuộc tính) chứa XML
+     * @param artifactViewModel ViewModel của Artifact
+     * @param mainViewModel     ViewModel Chính (để drill-down)
+     * @return Node (control) BPMNEditor
+     * @throws IOException Nếu không thể tải FXML
+     */
+    private Node loadBPMNEditorControl(StringProperty xmlProperty, ArtifactViewModel artifactViewModel, MainViewModel mainViewModel) throws IOException {
+        String fxmlPath = "/com/rms/app/view/BPMNEditorControl.fxml";
+        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+
+        BPMNEditorControl controller = injector.getInstance(BPMNEditorControl.class);
+        loader.setController(controller);
+        Parent controlRoot = loader.load();
+
+        controller.setData(xmlProperty, artifactViewModel, mainViewModel);
+
+        return controlRoot;
+    }
+
 
     /**
      * Helper tạo nhóm Label + Control cho Form.

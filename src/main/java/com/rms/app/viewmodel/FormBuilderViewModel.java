@@ -42,7 +42,8 @@ public class FormBuilderViewModel {
             "Linker (@ID)",
             "Flow Builder",
             "DatePicker",
-            "Figma Link" // [THÊM MỚI] UC-DEV-04 (Ngày 37)
+            "Figma Link",
+            "BPMN Editor" // [THÊM MỚI] F-MOD-05
     );
 
     // --- Properties cho Cột Properties (MỚI) ---

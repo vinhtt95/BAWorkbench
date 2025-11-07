@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BPMN Editor</title>
+
+    <link rel="stylesheet" href="lib/bpmn-js.css">
+    <script src="lib/bpmn-modeler.js"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #2a2b2e; /* Nền của control */
+        }
+        #canvas {
+            height: 100%;
+            width: 100%;
+        }
+        /* Ghi đè (Override) logo bpmn.io */
+        .bjs-powered-by {
+            display: none !important;
+        }
+        /* Tùy chỉnh (Customize) canvas để khớp (match) dark mode */
+        .djs-container {
+            background-color: #2a2b2e !important;
+        }
+        .djs-palette {
+            background-color: #1E1F20 !important;
+        }
+        .djs-palette .entry {
+            color: #E3E3E3 !important;
+        }
+        .djs-palette .entry:hover {
+            background-color: #007bff !important;
+        }
+    </style>
+</head>
+<body>
+<div id="canvas"></div>
+
+<script>
+    var bpmnModeler = new BpmnJS({
+        container: '#canvas',
+        keyboard: {
+            bindTo: window
+        }
+    });
+
+    /**
+     * Báo cho Java biết trình chỉnh sửa (editor) đã sẵn sàng (ready).
+     */
+    function notifyJavaEditorReady() {
+        if (window.javaBridge) {
+            javaBridge.onEditorReady();
+        } else {
+            console.error("JavaBridge is not available.");
+        }
+    }
+
+    /**
+     * Báo cho Java biết XML đã thay đổi (để Auto-save).
+     */
+    async function notifyJavaXmlChanged() {
+        try {
+            const { xml } = await bpmnModeler.saveXML({ format: true });
+            /**
+             * Mã hóa (Encode) Base64 vì XML chứa các ký tự đặc biệt
+             */
+            const encodedXml = btoa(unescape(encodeURIComponent(xml)));
+            if (window.javaBridge) {
+                javaBridge.onXmlChanged(encodedXml);
+            }
+        } catch (err) {
+            console.error('Lỗi khi lưu XML:', err);
+        }
+    }
+
+    /**
+     * Báo cho Java biết một đối tượng (element) đã được double-click (để Drill-down).
+     */
+    function notifyJavaDrillDown(element) {
+        if (window.javaBridge && element && element.businessObject) {
+            const name = element.businessObject.name || '';
+            /**
+             * Chỉ kích hoạt (fire) nếu tên (name) chứa một @ID
+             */
+            if (name.includes('@')) {
+                javaBridge.onElementDrillDown(element.id, name);
+            }
+        }
+    }
+
+
+    /**
+     * Tải (load) XML từ Java (dưới dạng Base64) vào trình chỉnh sửa (editor).
+     */
+    async function loadBpmnXml(encodedXml) {
+        try {
+            const decodedXml = decodeURIComponent(escape(atob(encodedXml)));
+            await bpmnModeler.importXML(decodedXml);
+            bpmnModeler.get('canvas').zoom('fit-viewport');
+        } catch (err) {
+            console.error('Lỗi khi import XML:', err);
+        }
+    }
+
+    /**
+     * Gắn (Attach) listener (trình lắng nghe) Auto-save
+     */
+    bpmnModeler.on('commandStack.changed', notifyJavaXmlChanged);
+
+    /**
+     * Gắn (Attach) listener (trình lắng nghe) Drill-down (F-MOD-05)
+     */
+    bpmnModeler.on('element.dblclick', function(event) {
+        notifyJavaDrillDown(event.element);
+    });
+
+
+    /**
+     * Bắt đầu
+     */
+    notifyJavaEditorReady();
+
+</script>
+</body>
+</html>
