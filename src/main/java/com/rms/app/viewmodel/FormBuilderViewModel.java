@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * "Brain" - Logic UI cho FormBuilderView
- * [CẬP NHẬT] Hỗ trợ Sửa, Sắp xếp, Xóa,
+ * Hỗ trợ Sửa, Sắp xếp, Xóa,
  * Cấu hình Thuộc tính (Options), và Versioning.
  */
 public class FormBuilderViewModel {
@@ -28,20 +28,28 @@ public class FormBuilderViewModel {
     private final ITemplateService templateService;
     private final IProjectStateService projectStateService;
 
-    // --- Cột 1: Danh sách Template (Logic) ---
+    /**
+     * Cột 1: Danh sách Template (Logic)
+     */
     public final ObservableList<String> templateNames = FXCollections.observableArrayList();
 
-    // --- Cột 2: Trình chỉnh sửa (Editor) ---
+    /**
+     * Cột 2: Trình chỉnh sửa (Editor)
+     */
     private final SimpleObjectProperty<ArtifactTemplate> currentTemplate = new SimpleObjectProperty<>(null);
     public final StringProperty templateName = new SimpleStringProperty();
     public final StringProperty prefixId = new SimpleStringProperty();
     public final IntegerProperty currentVersion = new SimpleIntegerProperty();
     public final StringProperty templateId = new SimpleStringProperty(); // (ví dụ: "UC_v1")
 
-    // --- Cột 2: Danh sách Trường (Field) (Preview) ---
+    /**
+     * Cột 2: Danh sách Trường (Field) (Preview)
+     */
     public final ObservableList<ArtifactTemplate.FieldTemplate> currentFields = FXCollections.observableArrayList();
 
-    // --- Cột 2: Hộp công cụ (Toolbox) ---
+    /**
+     * Cột 2: Hộp công cụ (Toolbox)
+     */
     public final ObservableList<String> toolboxItems = FXCollections.observableArrayList(
             // Các loại trường F-CFG-02
             "Text (Single-line)",
@@ -51,16 +59,20 @@ public class FormBuilderViewModel {
             "Flow Builder",
             "DatePicker",
             "Figma Link",
-            "BPMN Editor" // [THÊM MỚI] F-MOD-05
+            "BPMN Editor" // F-MOD-05
     );
 
-    // --- Cột 3: Thuộc tính (Properties) ---
+    /**
+     * Cột 3: Thuộc tính (Properties)
+     */
     private final SimpleObjectProperty<ArtifactTemplate.FieldTemplate> selectedField = new SimpleObjectProperty<>(null);
     public final StringProperty currentFieldName = new SimpleStringProperty();
     public final StringProperty currentFieldType = new SimpleStringProperty();
     public final StringProperty currentFieldOptions = new SimpleStringProperty(); // (Cho Dropdown)
 
-    // Listener (trình lắng nghe) binding (thủ công)
+    /**
+     * Listener (trình lắng nghe) binding (thủ công)
+     */
     private ChangeListener<String> nameUpdateListener;
     private ChangeListener<String> optionsUpdateListener;
 
@@ -76,7 +88,9 @@ public class FormBuilderViewModel {
          */
         selectedField.addListener((obs, oldField, newField) -> {
 
-            // 1. Hủy (remove) listener cũ
+            /**
+             * 1. Hủy (remove) listener cũ
+             */
             if (nameUpdateListener != null) {
                 currentFieldName.removeListener(nameUpdateListener);
             }
@@ -85,16 +99,22 @@ public class FormBuilderViewModel {
             }
 
             if (newField != null) {
-                // 2. Cập nhật ViewModel TỪ Model (POJO)
+                /**
+                 * 2. Cập nhật ViewModel TỪ Model (POJO)
+                 */
                 currentFieldName.set(newField.getName());
                 currentFieldType.set(newField.getType()); // Loại (Type) không cho phép sửa
 
-                // 3. Cập nhật Tùy chọn (Options) (cho Dropdown)
+                /**
+                 * 3. Cập nhật Tùy chọn (Options) (cho Dropdown)
+                 */
                 if ("Dropdown".equals(newField.getType())) {
                     if (newField.getOptions() == null) {
                         newField.setOptions(new HashMap<>());
                     }
-                    // Đọc từ Map và chuyển thành String (phân tách bằng dòng mới)
+                    /**
+                     * Đọc từ Map và chuyển thành String (phân tách bằng dòng mới)
+                     */
                     Object source = newField.getOptions().get("source");
                     if (source instanceof String) {
                         currentFieldOptions.set((String) source);
@@ -106,11 +126,18 @@ public class FormBuilderViewModel {
                 }
 
 
-                // 4. Tạo listener mới để cập nhật Model (POJO) TỪ ViewModel
+                /**
+                 * 4. Tạo listener mới để cập nhật Model (POJO) TỪ ViewModel
+                 */
                 nameUpdateListener = (o, oldVal, newVal) -> {
                     if (newField != null) {
                         newField.setName(newVal); // Cập nhật POJO
-                        refreshSelectedField(); // Buộc (force) ListView refresh
+
+                        /**
+                         * [ĐÃ SỬA] Đã loại bỏ refreshSelectedField()
+                         * để khắc phục lỗi UX giật lag khi gõ.
+                         */
+                        // refreshSelectedField();
                     }
                 };
 
@@ -120,12 +147,16 @@ public class FormBuilderViewModel {
                     }
                 };
 
-                // 5. Thêm (add) listener
+                /**
+                 * 5. Thêm (add) listener
+                 */
                 currentFieldName.addListener(nameUpdateListener);
                 currentFieldOptions.addListener(optionsUpdateListener);
 
             } else {
-                // Xóa (clear) Cột 3
+                /**
+                 * Xóa (clear) Cột 3
+                 */
                 currentFieldName.set("");
                 currentFieldType.set("");
                 currentFieldOptions.set("");
@@ -213,6 +244,8 @@ public class FormBuilderViewModel {
 
     /**
      * Trả về ReadOnlyProperty.
+     *
+     * @return ReadOnlyObjectProperty (cho selectedField)
      */
     public ReadOnlyObjectProperty<ArtifactTemplate.FieldTemplate> selectedFieldProperty() {
         return selectedField;
@@ -220,6 +253,8 @@ public class FormBuilderViewModel {
 
     /**
      * Trả về ReadOnlyProperty.
+     *
+     * @return ReadOnlyObjectProperty (cho currentTemplate)
      */
     public ReadOnlyObjectProperty<ArtifactTemplate> currentTemplateProperty() {
         return currentTemplate;
@@ -237,10 +272,14 @@ public class FormBuilderViewModel {
             return;
         }
 
-        // Tạo một đối tượng template MỚI
+        /**
+         * Tạo một đối tượng template MỚI
+         */
         ArtifactTemplate newTemplate = new ArtifactTemplate();
 
-        // Sao chép và tăng (increment) phiên bản
+        /**
+         * Sao chép và tăng (increment) phiên bản
+         */
         newTemplate.setTemplateName(templateName.get());
         newTemplate.setPrefixId(prefixId.get());
         newTemplate.setVersion(oldTemplate.getVersion() + 1);
@@ -252,10 +291,14 @@ public class FormBuilderViewModel {
             projectStateService.setStatusMessage("Đã lưu phiên bản mới: " + newTemplate.getTemplateId());
             logger.info("Lưu template phiên bản mới thành công");
 
-            // Tải lại (reload) danh sách (sẽ không thay đổi)
+            /**
+             * Tải lại (reload) danh sách (sẽ không thay đổi)
+             */
             loadTemplateNames();
-            // Tải (load) lại trình chỉnh sửa (editor)
-            // để trỏ đến phiên bản mới (ví dụ: v2)
+            /**
+             * Tải (load) lại trình chỉnh sửa (editor)
+             * để trỏ đến phiên bản mới (ví dụ: v2)
+             */
             loadTemplateForEditing(newTemplate.getTemplateName());
 
         } catch (IOException e) {
@@ -265,7 +308,7 @@ public class FormBuilderViewModel {
     }
 
     /**
-     * [MỚI] Xóa trường (field) đã chọn
+     * Xóa trường (field) đã chọn
      */
     public void removeSelectedField() {
         if (selectedField.get() != null) {
@@ -275,7 +318,7 @@ public class FormBuilderViewModel {
     }
 
     /**
-     * [MỚI] Di chuyển trường (field) đã chọn lên trên
+     * Di chuyển trường (field) đã chọn lên trên
      */
     public void moveSelectedFieldUp() {
         ArtifactTemplate.FieldTemplate field = selectedField.get();
@@ -287,7 +330,7 @@ public class FormBuilderViewModel {
     }
 
     /**
-     * [MỚI] Di chuyển trường (field) đã chọn xuống dưới
+     * Di chuyển trường (field) đã chọn xuống dưới
      */
     public void moveSelectedFieldDown() {
         ArtifactTemplate.FieldTemplate field = selectedField.get();
@@ -301,6 +344,8 @@ public class FormBuilderViewModel {
     /**
      * Helper (hàm phụ) để buộc (force) ListView refresh (làm mới)
      * khi tên (name) thay đổi.
+     * (Hàm này hiện không được gọi từ nameUpdateListener
+     * để tránh giật lag UX).
      */
     private void refreshSelectedField() {
         int index = currentFields.indexOf(selectedField.get());

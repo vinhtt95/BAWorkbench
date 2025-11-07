@@ -16,15 +16,16 @@ import javafx.scene.layout.VBox;
 import java.util.HashMap;
 
 /**
- * [CẬP NHẬT]
  * "Dumb" View Controller
  * Đã nâng cấp để hỗ trợ Sắp xếp, Xóa, Thuộc tính (Options),
  * và dùng ListView cho Preview.
- * [SỬA LỖI] Sửa lỗi UX khi Up/Down (selection không di chuyển).
+ * Sửa lỗi UX khi Up/Down (selection không di chuyển).
  */
 public class FormBuilderView {
 
-    // --- FXML (CẬP NHẬT) ---
+    /**
+     * FXML (CẬP NHẬT)
+     */
     @FXML private ListView<String> templateListView;
     @FXML private BorderPane editorPane;
     @FXML private TextField templateNameField;
@@ -32,15 +33,25 @@ public class FormBuilderView {
     @FXML private Label versionLabel;
     @FXML private ListView<String> toolboxListView;
 
-    // [CẬP NHẬT] Thay VBox bằng ListView
+    /**
+     * [CẬP NHẬT] Thay VBox bằng ListView
+     */
     @FXML private ListView<ArtifactTemplate.FieldTemplate> formPreviewListView;
     @FXML private Button moveUpButton;
     @FXML private Button moveDownButton;
     @FXML private Button removeFieldButton;
 
-    // [CẬP NHẬT] Cột Properties
+    /**
+     * [CẬP NHẬT] Cột Properties
+     */
     @FXML private VBox propertiesPaneContainer;
-    @FXML private GridPane propertiesPane;
+
+    /**
+     * [ĐÃ SỬA] Thay đổi từ GridPane sang VBox
+     * để khớp với FXML mới
+     */
+    @FXML private VBox propertiesPane;
+
     @FXML private Label noFieldSelectedLabel;
     @FXML private TextField fieldNameField;
     @FXML private TextField fieldTypeField;
@@ -64,36 +75,52 @@ public class FormBuilderView {
 
     @FXML
     public void initialize() {
-        // --- 1. Binding (Liên kết) Cột Trái (Danh sách Template) ---
+        /**
+         * 1. Binding (Liên kết) Cột Trái (Danh sách Template)
+         */
         templateListView.setItems(viewModel.templateNames);
         viewModel.loadTemplateNames(); // Tải dữ liệu
 
-        // Khi click vào danh sách template
+        /**
+         * Khi click vào danh sách template
+         */
         templateListView.getSelectionModel().selectedItemProperty().addListener((obs, oldName, newName) -> {
             viewModel.loadTemplateForEditing(newName);
         });
 
-        // Khi ViewModel tải template xong, hiển thị/ẩn trình chỉnh sửa
+        /**
+         * Khi ViewModel tải template xong, hiển thị/ẩn trình chỉnh sửa
+         */
         viewModel.currentTemplateProperty().addListener((obs, oldT, newT) -> {
             editorPane.setVisible(newT != null);
         });
 
-        // --- 2. Binding (Liên kết) Trình Chỉnh sửa (Editor) ---
+        /**
+         * 2. Binding (Liên kết) Trình Chỉnh sửa (Editor)
+         */
         templateNameField.textProperty().bindBidirectional(viewModel.templateName);
         prefixIdField.textProperty().bindBidirectional(viewModel.prefixId);
         versionLabel.textProperty().bind(viewModel.currentVersion.asString());
         toolboxListView.setItems(viewModel.toolboxItems);
 
-        // --- 3. Binding (Liên kết) Cột Giữa (Preview) ---
+        /**
+         * 3. Binding (Liên kết) Cột Giữa (Preview)
+         */
         formPreviewListView.setItems(viewModel.currentFields);
-        // Tùy chỉnh cách ListView hiển thị
+        /**
+         * Tùy chỉnh cách ListView hiển thị
+         */
         formPreviewListView.setCellFactory(lv -> new FieldTemplateListCell());
 
-        // Liên kết field đã chọn trong VM với ListView
+        /**
+         * Liên kết field đã chọn trong VM với ListView
+         */
         formPreviewListView.getSelectionModel().selectedItemProperty().addListener((obs, oldField, newField) -> {
             viewModel.selectField(newField);
         });
-        // (Binding ngược lại)
+        /**
+         * (Binding ngược lại)
+         */
         viewModel.selectedFieldProperty().addListener((obs, oldField, newField) -> {
             if (newField != formPreviewListView.getSelectionModel().getSelectedItem()) {
                 formPreviewListView.getSelectionModel().select(newField);
@@ -101,19 +128,27 @@ public class FormBuilderView {
             formPreviewListView.refresh(); // Refresh để highlight
         });
 
-        // Vô hiệu hóa (disable) các nút nếu không có gì được chọn
+        /**
+         * Vô hiệu hóa (disable) các nút nếu không có gì được chọn
+         */
         moveUpButton.disableProperty().bind(viewModel.selectedFieldProperty().isNull());
         moveDownButton.disableProperty().bind(viewModel.selectedFieldProperty().isNull());
         removeFieldButton.disableProperty().bind(viewModel.selectedFieldProperty().isNull());
 
 
-        // --- 4. Logic Kéo-thả (CẬP NHẬT) ---
+        /**
+         * 4. Logic Kéo-thả (CẬP NHẬT)
+         */
         setupToolboxDrag();
         setupPreviewDrop(); // Thả (drop) TỪ Toolbox
-        // (Kéo-thả BÊN TRONG ListView
-        // được xử lý trong custom ListCell)
+        /**
+         * (Kéo-thả BÊN TRONG ListView
+         * được xử lý trong custom ListCell)
+         */
 
-        // --- 5. Logic Cột Properties (CẬP NHẬT) ---
+        /**
+         * 5. Logic Cột Properties (CẬP NHẬT)
+         */
         bindPropertiesPane();
     }
 
@@ -121,27 +156,37 @@ public class FormBuilderView {
      * [MỚI] Liên kết Cột Thuộc tính (Properties) (Cột 3)
      */
     private void bindPropertiesPane() {
-        // Ẩn/Hiện toàn bộ panel
+        /**
+         * Ẩn/Hiện toàn bộ panel
+         */
         propertiesPane.visibleProperty().bind(viewModel.selectedFieldProperty().isNotNull());
         propertiesPane.managedProperty().bind(viewModel.selectedFieldProperty().isNotNull());
         noFieldSelectedLabel.visibleProperty().bind(viewModel.selectedFieldProperty().isNull());
         noFieldSelectedLabel.managedProperty().bind(viewModel.selectedFieldProperty().isNull());
 
-        // Bind các trường (field) chung
+        /**
+         * Bind các trường (field) chung
+         */
         fieldNameField.textProperty().bindBidirectional(viewModel.currentFieldName);
         fieldTypeField.textProperty().bind(viewModel.currentFieldType);
 
-        // Bind các trường (field) tùy chọn (Dropdown)
+        /**
+         * Bind các trường (field) tùy chọn (Dropdown)
+         */
         dropdownOptionsArea.textProperty().bindBidirectional(viewModel.currentFieldOptions);
 
-        // Ẩn/Hiện panel tùy chọn (options)
-        // (Chỉ lắng nghe kiểu (type) thay đổi)
+        /**
+         * Ẩn/Hiện panel tùy chọn (options)
+         * (Chỉ lắng nghe kiểu (type) thay đổi)
+         */
         viewModel.currentFieldType.addListener((obs, oldType, newType) -> {
             boolean isDropdown = "Dropdown".equals(newType);
             dropdownOptionsPane.setVisible(isDropdown);
             dropdownOptionsPane.setManaged(isDropdown);
         });
-        // Đặt (set) trạng thái ban đầu
+        /**
+         * Đặt (set) trạng thái ban đầu
+         */
         dropdownOptionsPane.setVisible(false);
         dropdownOptionsPane.setManaged(false);
     }
@@ -170,7 +215,9 @@ public class FormBuilderView {
         int selectedIndex = formPreviewListView.getSelectionModel().getSelectedIndex();
         viewModel.moveSelectedFieldUp(); // ViewModel chỉ hoán đổi (swap) list
 
-        // [FIX] View tự cập nhật lại selection
+        /**
+         * [FIX] View tự cập nhật lại selection
+         */
         if (selectedIndex > 0) {
             formPreviewListView.getSelectionModel().select(selectedIndex - 1);
         }
@@ -185,7 +232,9 @@ public class FormBuilderView {
         int selectedIndex = formPreviewListView.getSelectionModel().getSelectedIndex();
         viewModel.moveSelectedFieldDown(); // ViewModel chỉ hoán đổi (swap) list
 
-        // [FIX] View tự cập nhật lại selection
+        /**
+         * [FIX] View tự cập nhật lại selection
+         */
         if (selectedIndex < viewModel.currentFields.size() - 1) {
             formPreviewListView.getSelectionModel().select(selectedIndex + 1);
         }
@@ -214,22 +263,28 @@ public class FormBuilderView {
      */
     private void setupPreviewDrop() {
         formPreviewListView.setOnDragOver(event -> {
-            // Chỉ chấp nhận nếu kéo (drag) từ Toolbox
-            // (Không phải là một FieldTemplate)
+            /**
+             * Chỉ chấp nhận nếu kéo (drag) từ Toolbox
+             * (Không phải là một FieldTemplate)
+             */
             if (event.getGestureSource() != formPreviewListView && event.getDragboard().hasString()) {
                 event.acceptTransferModes(TransferMode.COPY);
             }
             event.consume();
         });
 
-        // Xử lý khi thả
+        /**
+         * Xử lý khi thả
+         */
         formPreviewListView.setOnDragDropped(event -> {
             Dragboard db = event.getDragboard();
             boolean success = false;
             if (db.hasString()) {
                 String fieldType = db.getString();
 
-                // Thêm vào ViewModel
+                /**
+                 * Thêm vào ViewModel
+                 */
                 ArtifactTemplate.FieldTemplate newField = new ArtifactTemplate.FieldTemplate();
                 newField.setName(fieldType); // Tên tạm thời
                 newField.setType(fieldType);
@@ -281,7 +336,9 @@ public class FormBuilderView {
                     int draggedIndex = viewModel.currentFields.indexOf(draggedField);
                     int thisIndex = getIndex();
 
-                    // Di chuyển
+                    /**
+                     * Di chuyển
+                     */
                     viewModel.currentFields.remove(draggedIndex);
                     viewModel.currentFields.add(thisIndex, draggedField);
 
@@ -301,11 +358,15 @@ public class FormBuilderView {
             } else {
                 setText(field.getName() + " (" + field.getType() + ")");
 
-                // [SỬA LỖI] Luôn đặt màu text
-                // để tránh lỗi "UI mù mắt"
+                /**
+                 * [SỬA LỖI] Luôn đặt màu text
+                 * để tránh lỗi "UI mù mắt"
+                 */
                 String textFill = "-fx-text-fill: #E3E3E3;";
 
-                // [MỚI] Highlight (làm nổi bật) nếu được chọn
+                /**
+                 * [MỚI] Highlight (làm nổi bật) nếu được chọn
+                 */
                 if (viewModel.selectedFieldProperty().get() == field) {
                     setStyle("-fx-border-color: -fx-accent; " +
                             "-fx-border-width: 1px; " +
