@@ -59,8 +59,14 @@ public class MainView {
         viewModel.setMainTabPane(mainTabPane);
 
         projectTreeView.rootProperty().bind(viewModel.projectRootProperty());
+
+        /**
+         * [SỬA LỖI] Xóa bỏ binding (liên kết) kép.
+         * Chỉ binding (liên kết) vào "Nguồn Chân lý" (Source of Truth) duy nhất
+         * là projectStateService.
+         */
         statusLabel.textProperty().bind(projectStateService.statusMessageProperty());
-        statusLabel.textProperty().bind(viewModel.statusMessageProperty());
+        // DÒNG BỊ XÓA: statusLabel.textProperty().bind(viewModel.statusMessageProperty());
 
         Tab welcomeTab = new Tab("Welcome");
         welcomeTab.setContent(new javafx.scene.control.Label("Chào mừng đến với RMS v1.0"));

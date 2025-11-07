@@ -36,7 +36,8 @@ public class MainViewModel {
     private final IProjectService projectService;
 
     private final ObjectProperty<TreeItem<String>> projectRoot;
-    private final StringProperty statusMessage;
+    // [SỬA LỖI] Xóa 'statusMessage' cục bộ
+    // private final StringProperty statusMessage;
     private final ObjectProperty<ProjectConfig> currentProject;
 
     private final ObjectProperty<File> currentProjectDirectory;
@@ -71,7 +72,8 @@ public class MainViewModel {
         this.exportService = exportService;
 
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
-        this.statusMessage = new SimpleStringProperty("Sẵn sàng.");
+        // [SỬA LỖI] Xóa khởi tạo 'statusMessage'
+        // this.statusMessage = new SimpleStringProperty("Sẵn sàng.");
         this.currentProject = new SimpleObjectProperty<>(null);
 
         this.currentProjectDirectory = new SimpleObjectProperty<>(null);
@@ -150,7 +152,10 @@ public class MainViewModel {
             boolean success = projectService.createProject(projectName, directory);
             if (success) {
                 openProject(directory);
-                statusMessage.set("Tạo dự án mới thành công: " + projectName);
+                /**
+                 * [SỬA LỖI] Cập nhật vào projectStateService
+                 */
+                projectStateService.setStatusMessage("Tạo dự án mới thành công: " + projectName);
             }
         } catch (IOException e) {
             logger.error("Lỗi tạo dự án", e);
@@ -483,9 +488,11 @@ public class MainViewModel {
     public ObjectProperty<TreeItem<String>> projectRootProperty() {
         return projectRoot;
     }
-    public StringProperty statusMessageProperty() {
-        return statusMessage;
-    }
+
+    // [SỬA LỖI] Xóa phương thức này
+    // public StringProperty statusMessageProperty() {
+    //    return statusMessage;
+    // }
 
     public void setMainTabPane(TabPane mainTabPane) {
         this.mainTabPane = mainTabPane;
