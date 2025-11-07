@@ -73,11 +73,12 @@ public class ArtifactView {
 
         /**
          * [ĐÃ SỬA] Logic khởi tạo (Initialization logic)
-         * đã được chuyển sang listener (trình lắng nghe)
-         * để đảm bảo UserData của Tab đã sẵn sàng.
+         * được chuyển sang 'sceneProperty' listener.
+         * Listener này chỉ kích hoạt (fire) khi 'Scene'
+         * đã tồn tại, tránh lỗi NullPointerException.
          */
-        formContainer.parentProperty().addListener((obs, oldParent, newParent) -> {
-            if (newParent != null && viewModel.isNotInitialized()) {
+        formContainer.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null && viewModel.isNotInitialized()) {
                 /**
                  * Tìm (Find) Tab (Pane) cha
                  */
