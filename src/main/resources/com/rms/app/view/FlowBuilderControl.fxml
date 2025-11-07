@@ -4,30 +4,31 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox spacing="10" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1">
-    <children>
-        <TableView fx:id="stepsTableView" editable="true" prefHeight="300">
-            <columns>
-                <TableColumn fx:id="stepActorColumn" prefWidth="150" text="Actor"/>
-                <TableColumn fx:id="stepActionColumn" prefWidth="400" text="Action / Logic"/>
-            </columns>
-
-            <columnResizePolicy>
-                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-            </columnResizePolicy>
-        </TableView>
-
-        <HBox spacing="5">
-            <Button onAction="#handleAddStep" text="Add Step"/>
-            <Button onAction="#handleAddLogic" text="Add If/Then"/>
-            <Button onAction="#handleRemoveStep" text="Remove Selected" styleClass="button-danger"/>
-
-            <Pane HBox.hgrow="ALWAYS"/>
-            <Button onAction="#handleMoveUp" text="Move Up"/>
-            <Button onAction="#handleMoveDown" text="Move Down"/>
-        </HBox>
-    </children>
+<VBox spacing="10" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.rms.app.view.FlowBuilderControl">
     <padding>
-        <Insets top="5" bottom="5"/>
+        <Insets top="5" right="5" bottom="5" left="5"/>
     </padding>
+
+    <HBox spacing="5" alignment="CENTER_LEFT">
+        <Label text="Flow Steps" style="-fx-font-weight: bold;"/>
+        <Pane HBox.hgrow="ALWAYS"/>
+        <Button text="Add Step" onAction="#handleAddStep"/>
+        <Button text="Add If/Then" onAction="#handleAddLogic"/>
+        <Button text="Remove" onAction="#handleRemoveStep"/>
+        <Button text="Up" onAction="#handleMoveUp"/>
+        <Button text="Down" onAction="#handleMoveDown"/>
+    </HBox>
+
+    <TableView fx:id="stepsTableView" editable="true" VBox.vgrow="ALWAYS"
+               prefHeight="200" prefWidth="600">
+        <columns>
+            <TableColumn fx:id="stepActorColumn" text="Actor / Logic" prefWidth="150"/>
+            <TableColumn fx:id="stepActionColumn" text="Action / Condition" prefWidth="400"/>
+        </columns>
+        <columnResizePolicy>
+            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+        </columnResizePolicy>
+    </TableView>
+
 </VBox>
