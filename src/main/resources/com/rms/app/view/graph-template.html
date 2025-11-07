@@ -11,7 +11,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #1E1F20; /* Khớp với dark-theme.css */
+            background-color: #1E1F20; /* Nền tối ngay lập tức */
         }
         #graph {
             width: 100%;
@@ -37,7 +37,20 @@
         edges: edges
     };
 
-    // 5. Cấu hình (Options) đồ thị (đã được tinh chỉnh (tune) cho dark mode)
+    // [FIX] Định nghĩa các màu chuẩn từ dark-theme.css
+    const darkBg = '#2a2b2e';       // Nền control (luôn tối)
+    const darkFont = '#E3E3E3';      // Chữ (luôn trắng)
+    const defaultBorder = '#3c3f41';   // Viền xám mặc định
+
+    // [FIX] Tách biệt màu CLICK (Highlight) và màu HOVER (Di chuột)
+    const highlightBg = '#007bff';    // Màu xanh primary (khi CLICK)
+    const highlightBorder = '#E3E3E3'; // Viền trắng (khi CLICK)
+
+    const hoverBg = '#3c3f41';        // Nền xám nhạt hơn (khi HOVER)
+    const hoverBorder = '#888888';   // Viền xám sáng hơn (khi HOVER)
+
+
+    // 5. Cấu hình (Options) đồ thị
     var options = {
         layout: {
             improvedLayout: false
@@ -45,24 +58,72 @@
         nodes: {
             shape: 'box',
             font: {
-                color: '#E3E3E3',
+                color: darkFont, // Chữ luôn trắng
                 size: 16
             },
-            color: {
-                border: '#007bff',
-                background: '#2a2b2e',
-                highlight: {
-                    border: '#FFFFFF',
-                    background: '#007bff'
-                }
+            margin: 10,
+            shapeProperties: {
+                borderRadius: 4 // Bo góc
+            }
+        },
+        /**
+         * [FIX] Thêm mục 'hover' riêng biệt vào 'color'
+         * để phân biệt với 'highlight'
+         */
+        groups: {
+            // Định nghĩa màu viền cho các loại artifact
+            UC: {
+                color: {
+                    background: darkBg,
+                    border: '#007bff', // Viền xanh (Màu primary)
+                    highlight: { background: highlightBg, border: highlightBorder },
+                    hover: { background: hoverBg, border: hoverBorder } // [MỚI]
+                },
+                font: { color: darkFont }
             },
-            margin: 10
+            BR: {
+                color: {
+                    background: darkBg,
+                    border: '#8a63d2', // Viền tím
+                    highlight: { background: highlightBg, border: highlightBorder },
+                    hover: { background: hoverBg, border: hoverBorder } // [MỚI]
+                },
+                font: { color: darkFont }
+            },
+            TSK: {
+                color: {
+                    background: darkBg,
+                    border: '#E67E22', // Viền cam
+                    highlight: { background: highlightBg, border: highlightBorder },
+                    hover: { background: hoverBg, border: hoverBorder } // [MỚI]
+                },
+                font: { color: darkFont }
+            },
+            REL: {
+                color: {
+                    background: darkBg,
+                    border: '#1ABC9C', // Viền xanh ngọc
+                    highlight: { background: highlightBg, border: highlightBorder },
+                    hover: { background: hoverBg, border: hoverBorder } // [MỚI]
+                },
+                font: { color: darkFont }
+            },
+            // Mặc định cho các loại khác (FN, ACT, BPMN...)
+            default: {
+                color: {
+                    background: darkBg,
+                    border: defaultBorder, // Viền xám mặc định
+                    highlight: { background: highlightBg, border: highlightBorder },
+                    hover: { background: hoverBg, border: hoverBorder } // [MỚI]
+                },
+                font: { color: darkFont }
+            }
         },
         edges: {
             arrows: 'to',
             color: {
-                color: '#888888',
-                highlight: '#007bff',
+                color: '#888888', // Cạnh màu xám
+                highlight: darkFont, // Cạnh highlight màu trắng
                 inherit: false
             },
             smooth: {
@@ -71,6 +132,7 @@
                 roundness: 0.4
             }
         },
+        // [GIỮ NGUYÊN] Vẫn giữ layout vật lý (động)
         physics: {
             solver: 'forceAtlas2Based',
             forceAtlas2Based: {
@@ -83,12 +145,24 @@
             minVelocity: 0.75
         },
         interaction: {
-            hover: true,
-            tooltipDelay: 200
+            hover: true, // Bật tính năng hover
+            tooltipDelay: 200,
+            navigationButtons: true,
+            keyboard: true
         }
     };
 
-    // 6. Khởi tạo (Initialize) Đồ thị (Graph)
+    // 6. Tùy chỉnh (customize) các group không được định nghĩa ở trên
+    // Đảm bảo MỌI group đều có màu tối
+    const allGroups = [...new Set(nodesJson.map(node => node.group))];
+    allGroups.forEach(groupName => {
+        if (groupName && !options.groups[groupName]) {
+            // Gán màu 'default' (đã fix) cho bất kỳ group nào chưa được định nghĩa
+            options.groups[groupName] = options.groups.default;
+        }
+    });
+
+    // 7. Khởi tạo (Initialize) Đồ thị (Graph)
     var network = new vis.Network(container, data, options);
 </script>
 </body>
