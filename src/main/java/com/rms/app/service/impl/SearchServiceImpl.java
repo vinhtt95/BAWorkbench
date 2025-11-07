@@ -19,6 +19,7 @@ import java.util.Map;
 /**
  * Triển khai ISearchService.
  * Dịch vụ này hiện truy vấn trực tiếp CSDL Chỉ mục (SQLite).
+ * [CẬP NHẬT] Thêm phương thức lấy cây (tree)
  */
 public class SearchServiceImpl implements ISearchService {
 
@@ -111,6 +112,34 @@ public class SearchServiceImpl implements ISearchService {
         }
         return resultMap;
     }
+
+    /**
+     * [MỚI] Triển khai logic nghiệp vụ cho TreeView
+     *
+     * @return Map (Ánh xạ) {Type -> List<Artifact>}
+     */
+    @Override
+    public Map<String, List<Artifact>> getArtifactsGroupedByType() {
+        Map<String, List<Artifact>> resultMap = new HashMap<>();
+        try {
+            /**
+             * 1. Lấy tất cả các Loại (Type)
+             */
+            List<String> types = indexRepository.getDefinedTypes();
+
+            /**
+             * 2. Với mỗi Loại, lấy các artifact (lá)
+             */
+            for (String type : types) {
+                List<Artifact> artifacts = indexRepository.getArtifactsByType(type);
+                resultMap.put(type, artifacts);
+            }
+        } catch (SQLException e) {
+            logger.error("Lỗi SQL khi nhóm (grouping) artifacts cho TreeView: {}", e.getMessage());
+        }
+        return resultMap;
+    }
+
 
     /**
      * Triển khai logic cập nhật trạng thái (F-MGT-03).

@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 /**
  * Triển khai (implementation) logic nghiệp vụ Lập Chỉ mục (Kế hoạch Ngày 19).
  * Điều phối Repository File (.json) và Repository CSDL (.db).
+ * [CẬP NHẬT] Sửa lỗi ARTIFACTS_DIR không còn tồn tại.
  */
 public class IndexServiceImpl implements IIndexService {
 
@@ -51,7 +52,13 @@ public class IndexServiceImpl implements IIndexService {
         }
 
         File configDir = new File(projectRoot, ProjectServiceImpl.CONFIG_DIR);
-        File artifactsDir = new File(projectRoot, ProjectServiceImpl.ARTIFACTS_DIR);
+
+        /**
+         * [SỬA LỖI] Thư mục 'Artifacts' đã bị xóa.
+         * Thư mục để quét (scan) bây giờ chính là 'projectRoot'.
+         */
+        File artifactsDir = projectRoot;
+        // File artifactsDir = new File(projectRoot, ProjectServiceImpl.ARTIFACTS_DIR); // <- DÒNG LỖI
 
         Task<Void> indexingTask = new Task<>() {
             @Override
@@ -67,7 +74,7 @@ public class IndexServiceImpl implements IIndexService {
                     indexRepository.clearIndex();
 
                     if (!artifactsDir.exists()) {
-                        logger.warn("Thư mục 'Artifacts' không tồn tại. Bỏ qua quét.");
+                        logger.warn("Thư mục dự án '{}' không tồn tại. Bỏ qua quét.", artifactsDir.getPath());
                         return null;
                     }
 
@@ -78,6 +85,8 @@ public class IndexServiceImpl implements IIndexService {
                         var jsonFiles = paths
                                 .filter(Files::isRegularFile)
                                 .filter(path -> path.toString().endsWith(".json"))
+                                // [MỚI] Bỏ qua các file .json trong .config
+                                .filter(path -> !path.toAbsolutePath().toString().contains(File.separator + ".config" + File.separator))
                                 .toList();
 
                         for (Path jsonFile : jsonFiles) {

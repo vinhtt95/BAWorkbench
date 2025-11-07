@@ -7,6 +7,7 @@ import java.util.Map;
 
 /**
  * Interface cho DIP (SOLID)
+ * [CẬP NHẬT] Thêm phương thức lấy cây (tree)
  */
 public interface ISearchService {
 
@@ -41,6 +42,15 @@ public interface ISearchService {
      * @return Map (ánh xạ) {StatusName -> List<Artifact>}
      */
     Map<String, List<Artifact>> getArtifactsGroupedByStatus();
+
+    /**
+     * [MỚI] Lấy tất cả các artifact, được nhóm (grouped) theo Loại (Type)
+     * để hiển thị trên Project TreeView.
+     *
+     * @return Map (ánh xạ) {TypeName -> List<Artifact>}
+     */
+    Map<String, List<Artifact>> getArtifactsGroupedByType();
+
 
     /**
      * Cập nhật Trạng thái (Status) của một artifact.

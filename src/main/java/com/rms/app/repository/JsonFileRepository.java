@@ -23,6 +23,7 @@ import java.util.Map;
 
 /**
  * Triển khai logic còn thiếu (TODOs) của Ngày 6
+ * [CẬP NHẬT] Bỏ thư mục Artifacts
  */
 public class JsonFileRepository implements IArtifactRepository {
 
@@ -37,21 +38,24 @@ public class JsonFileRepository implements IArtifactRepository {
         this.projectStateService = projectStateService;
         this.indexService = indexService;
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        this.objectMapper.findAndRegisterModules(); // [SỬA LỖI] Đảm bảo JavaTime (LocalDate) được đăng ký
     }
 
     /**
-     * Triển khai hàm helper
+     * [CẬP NHẬT] Triển khai hàm helper
+     * Trả về thư mục gốc của dự án (Project Root)
      */
     private File getArtifactsRoot() throws IOException {
         File projectRoot = projectStateService.getCurrentProjectDirectory();
         if (projectRoot == null) {
             throw new IOException("Không có dự án nào đang mở.");
         }
-        File artifactsDir = new File(projectRoot, ProjectServiceImpl.ARTIFACTS_DIR);
-        if (!artifactsDir.exists()) {
-            throw new IOException("Thư mục 'Artifacts' không tồn tại.");
+        // [XÓA] Bỏ logic thư mục 'Artifacts'
+        // File artifactsDir = new File(projectRoot, ProjectServiceImpl.ARTIFACTS_DIR);
+        if (!projectRoot.exists()) {
+            throw new IOException("Thư mục dự án '" + projectRoot.getPath() + "' không tồn tại.");
         }
-        return artifactsDir;
+        return projectRoot; // [CẬP NHẬT] Trả về chính thư mục gốc
     }
 
     /**
@@ -126,7 +130,7 @@ public class JsonFileRepository implements IArtifactRepository {
                          * Nếu convert thành công VÀ có vẻ là FlowStep (có actor hoặc action)
                          * (Kiểm tra 'get(0)' là an toàn vì chúng ta đã kiểm tra 'isEmpty()')
                          */
-                        if (steps != null && (steps.get(0).getActor() != null || steps.get(0).getAction() != null)) {
+                        if (steps != null && !steps.isEmpty() && (steps.get(0).getActor() != null || steps.get(0).getAction() != null)) {
                             sb.append(formatFlowStepsToMarkdown(steps));
                         } else {
                             /**

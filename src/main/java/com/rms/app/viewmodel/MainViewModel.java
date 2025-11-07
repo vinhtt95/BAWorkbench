@@ -29,7 +29,7 @@ import java.util.Optional;
 /**
  * "Brain" - Logic UI cho MainView.
  * Quản lý trạng thái chung của ứng dụng.
- * [CẬP NHẬT] Hỗ trợ Versioning cho Form Template.
+ * [CẬP NHẬT] Hỗ trợ BacklinksListView bằng Artifact objects.
  */
 public class MainViewModel {
 
@@ -48,7 +48,12 @@ public class MainViewModel {
     private final IIndexService indexService;
     private final IExportService exportService;
 
-    private final ObservableList<String> currentBacklinks = FXCollections.observableArrayList();
+    /**
+     * [SỬA LỖI] Thay đổi từ String sang Artifact
+     * để lưu trữ thông tin Type (loại)
+     * cho việc điều hướng (navigation)
+     */
+    private final ObservableList<Artifact> currentBacklinks = FXCollections.observableArrayList();
 
     private TabPane mainTabPane;
 
@@ -100,9 +105,9 @@ public class MainViewModel {
     /**
      * Getter cho Backlinks
      *
-     * @return Danh sách (Observable) các backlinks
+     * @return Danh sách (Observable) các backlinks (Artifacts)
      */
-    public ObservableList<String> getCurrentBacklinks() {
+    public ObservableList<Artifact> getCurrentBacklinks() {
         return currentBacklinks;
     }
 
@@ -114,7 +119,7 @@ public class MainViewModel {
     public void updateBacklinks(Tab selectedTab) {
         currentBacklinks.clear();
         if (selectedTab == null) {
-            currentBacklinks.add("(Chọn một artifact để xem)");
+            // currentBacklinks.add("(Chọn một artifact để xem)"); // Không thể thêm String
             return;
         }
 
@@ -135,7 +140,7 @@ public class MainViewModel {
         if (artifactId == null) {
             String tabText = selectedTab.getText(); // Lấy text (ví dụ: "Welcome")
             if (tabText == null || "Welcome".equals(tabText) || tabText.startsWith("New ") || tabText.startsWith("Form Builder") || tabText.startsWith("Releases Config") || tabText.startsWith("Dashboard") || tabText.startsWith("Export Templates") || tabText.startsWith("Import Wizard") || tabText.startsWith("Project Graph")) {
-                currentBacklinks.add("(Không áp dụng)");
+                // currentBacklinks.add("(Không áp dụng)"); // Không thể thêm String
                 return;
             }
             // Fallback nếu tab là artifact nhưng chưa có userData (lỗi)
@@ -145,15 +150,18 @@ public class MainViewModel {
         try {
             List<Artifact> backlinks = searchService.getBacklinks(artifactId);
             if (backlinks.isEmpty()) {
-                currentBacklinks.add("(Không có liên kết ngược nào)");
+                // currentBacklinks.add("(Không có liên kết ngược nào)"); // Không thể thêm String
             } else {
-                for (Artifact backlink : backlinks) {
-                    currentBacklinks.add(backlink.getId() + ": " + backlink.getName());
-                }
+                /**
+                 * [SỬA LỖI] Thêm (add)
+                 * toàn bộ đối tượng (object) Artifact,
+                 * không phải String
+                 */
+                currentBacklinks.addAll(backlinks);
             }
         } catch (Exception e) {
             logger.error("Lỗi khi tải backlinks cho {}: {}", artifactId, e.getMessage());
-            currentBacklinks.add("(Lỗi khi tải backlinks)");
+            // currentBacklinks.add("(Lỗi khi tải backlinks)"); // Không thể thêm String
         }
     }
 

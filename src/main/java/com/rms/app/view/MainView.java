@@ -1,7 +1,9 @@
 package com.rms.app.view;
 
 import com.google.inject.Inject;
+import com.rms.app.model.Artifact; // [MỚI] Import
 import com.rms.app.service.IViewManager;
+import com.rms.app.service.impl.ProjectServiceImpl; // [MỚI] Import
 import com.rms.app.viewmodel.MainViewModel;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
@@ -15,7 +17,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.ITemplateService;
-import com.rms.app.service.impl.ProjectServiceImpl;
+// [XÓA] Import này không còn cần thiết
+// import com.rms.app.service.impl.ProjectServiceImpl;
 import javafx.scene.input.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +32,7 @@ import java.util.Optional;
  * "Dumb" View Controller cho MainView.fxml.
  * Chịu trách nhiệm binding dữ liệu và chuyển tiếp sự kiện
  * (ví dụ: click) đến MainViewModel.
+ * [CẬP NHẬT] Sửa lỗi Backlinks click và TreeView click.
  */
 public class MainView {
 
@@ -40,7 +44,10 @@ public class MainView {
     @FXML private Label statusLabel;
 
     @FXML private TitledPane backlinksPane;
-    @FXML private ListView<String> backlinksListView;
+    /**
+     * [SỬA LỖI] Thay đổi từ String sang Artifact
+     */
+    @FXML private ListView<Artifact> backlinksListView;
 
     private final MainViewModel viewModel;
     private final IProjectStateService projectStateService;
@@ -219,43 +226,61 @@ public class MainView {
     }
 
     /**
-     * Thiết lập logic UI cho bảng Backlinks (Cột phải).
+     * [CẬP NHẬT] Thiết lập logic UI cho bảng Backlinks (Cột phải).
      */
     private void setupBacklinksPanel() {
         backlinksListView.setItems(viewModel.getCurrentBacklinks());
         rightAccordion.setExpandedPane(backlinksPane);
+
+        // [MỚI] Thêm CellFactory để render Artifact
+        backlinksListView.setCellFactory(lv -> new ListCell<Artifact>() {
+            @Override
+            protected void updateItem(Artifact artifact, boolean empty) {
+                super.updateItem(artifact, empty);
+                if (empty || artifact == null) {
+                    setText(null);
+                } else {
+                    setText(artifact.getId() + ": " + artifact.getName());
+                }
+            }
+        });
+
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             viewModel.updateBacklinks(newTab);
         });
         viewModel.updateBacklinks(mainTabPane.getSelectionModel().getSelectedItem());
 
+        // [SỬA LỖI] Cập nhật logic click
         backlinksListView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
-                String selected = backlinksListView.getSelectionModel().getSelectedItem();
-                if (selected != null && selected.contains(":")) {
-                    String artifactId = selected.split(":")[0].trim();
-                    logger.warn("Điều hướng Backlink chưa được triển khai đầy đủ để hỗ trợ cấu trúc thư mục con.");
-                    viewModel.openArtifact(artifactId + ".json");
+                Artifact selected = backlinksListView.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    // Xây dựng (build) đường dẫn (path) chính xác
+                    String relativePath = selected.getArtifactType() + File.separator + selected.getId() + ".json";
+                    logger.info("Đang mở artifact (từ backlink): " + relativePath);
+                    viewModel.openArtifact(relativePath);
                 }
             }
         });
     }
 
     /**
-     * Thiết lập trình lắng nghe sự kiện click chuột cho TreeView (Cột trái).
+     * [CẬP NHẬT] Thiết lập trình lắng nghe sự kiện
+     * click chuột cho TreeView (Cột trái).
+     * Giờ đây nó sẽ tìm ArtifactTreeItem.
      */
     private void setupTreeViewClickListener() {
         projectTreeView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
+
+                // [SỬA LỖI] Chỉ kiểm tra isLeaf,
+                // và gọi getSelectedArtifactPath
                 if (selectedItem != null && selectedItem.isLeaf()) {
-                    String fileName = selectedItem.getValue();
-                    if (fileName.endsWith(".json")) {
-                        String relativePath = getSelectedArtifactPath(selectedItem);
-                        if (relativePath != null) {
-                            logger.info("Đang mở artifact: " + relativePath);
-                            viewModel.openArtifact(relativePath);
-                        }
+                    String relativePath = getSelectedArtifactPath(selectedItem);
+                    if (relativePath != null) {
+                        logger.info("Đang mở artifact: " + relativePath);
+                        viewModel.openArtifact(relativePath); // Đây là dòng 283 (trong log của bạn)
                     }
                 }
             }
@@ -286,23 +311,26 @@ public class MainView {
     }
 
     /**
-     * Xử lý sự kiện khi người dùng chọn "Delete" từ Context Menu.
+     * [CẬP NHẬT] Xử lý sự kiện khi người dùng chọn "Delete".
+     * Sửa lại logic để hoạt động với ArtifactTreeItem.
      */
     @FXML
     private void handleDeleteArtifact() {
         TreeItem<String> selectedItem = projectTreeView.getSelectionModel().getSelectedItem();
-        if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
-            showErrorAlert("Lỗi Xóa", "Vui lòng chọn một file artifact (.json) để xóa.");
+
+        // [CẬP NHẬT] Lấy (get) path
+        // (sẽ là null nếu nó là thư mục)
+        String relativePath = getSelectedArtifactPath(selectedItem);
+
+        if (relativePath == null) {
+            showErrorAlert("Lỗi Xóa", "Vui lòng chọn một artifact (ví dụ: 'Đăng nhập người dùng') để xóa.");
             return;
         }
-
-        String relativePath = getSelectedArtifactPath(selectedItem);
-        if (relativePath == null) return;
 
         Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
         confirmAlert.setTitle("Xác nhận Xóa");
         confirmAlert.setHeaderText("Bạn có chắc muốn xóa " + selectedItem.getValue() + "?");
-        confirmAlert.setContentText("Hành động này không thể hoàn tác.");
+        confirmAlert.setContentText("Hành động này không thể hoàn tác. Đường dẫn: " + relativePath);
 
         Optional<ButtonType> result = confirmAlert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
@@ -342,24 +370,17 @@ public class MainView {
     }
 
     /**
-     * Hàm helper lấy đường dẫn tương đối của artifact từ TreeItem được chọn.
+     * [CẬP NHẬT] Hàm helper lấy đường dẫn tương đối (relative path)
+     * từ TreeItem được chọn.
      *
      * @param selectedItem Mục (item) được chọn trong TreeView
      * @return Đường dẫn tương đối (ví dụ: "UC/UC001.json") hoặc null
      */
     private String getSelectedArtifactPath(TreeItem<String> selectedItem) {
-        if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
-            return null;
+        if (selectedItem instanceof ProjectServiceImpl.ArtifactTreeItem) {
+            return ((ProjectServiceImpl.ArtifactTreeItem) selectedItem).getRelativePath();
         }
-
-        String relativePath = selectedItem.getValue();
-        TreeItem<String> parent = selectedItem.getParent();
-
-        while (parent != null && !parent.getValue().equals(ProjectServiceImpl.ARTIFACTS_DIR) && !parent.getValue().equals(projectTreeView.getRoot().getValue())) {
-            relativePath = parent.getValue() + File.separator + relativePath;
-            parent = parent.getParent();
-        }
-        return relativePath;
+        return null; // Đây là một thư mục (folder) hoặc root
     }
 
     /**

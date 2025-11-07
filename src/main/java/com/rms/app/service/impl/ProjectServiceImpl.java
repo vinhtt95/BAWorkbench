@@ -2,10 +2,12 @@ package com.rms.app.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.rms.app.model.Artifact;
 import com.rms.app.model.ProjectConfig;
 import com.rms.app.service.IIndexService;
 import com.rms.app.service.IProjectService;
 import com.rms.app.service.IProjectStateService;
+import com.rms.app.service.ISearchService; // [MỚI] Import
 import javafx.scene.control.TreeItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,10 +16,16 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator; // [SỬA LỖI] ĐÃ THÊM IMPORT
+import java.util.List;
+import java.util.Map;
 import com.google.inject.Inject;
 
 /**
  * Triển khai (implementation) logic nghiệp vụ Quản lý Dự án (UC-PM-01, UC-PM-02).
+ * [CẬP NHẬT] Bỏ thư mục Artifacts, xây dựng TreeView từ CSDL Chỉ mục.
  */
 public class ProjectServiceImpl implements IProjectService {
 
@@ -25,9 +33,10 @@ public class ProjectServiceImpl implements IProjectService {
     private final ObjectMapper objectMapper;
     private final IIndexService indexService;
     private final IProjectStateService projectStateService;
+    private final ISearchService searchService; // [MỚI]
 
     public static final String CONFIG_DIR = ".config";
-    public static final String ARTIFACTS_DIR = "Artifacts";
+    // public static final String ARTIFACTS_DIR = "Artifacts"; // [XÓA]
     public static final String CONFIG_FILE = "project.json";
 
     /**
@@ -35,11 +44,42 @@ public class ProjectServiceImpl implements IProjectService {
      */
     private ProjectConfig currentProjectConfig;
 
+    /**
+     * [MỚI] Lớp (class) public lồng nhau (nested)
+     * để MainView có thể truy cập (access)
+     * và lấy (get) relativePath.
+     */
+    public static class ArtifactTreeItem extends TreeItem<String> {
+        private final String relativePath; // Ví dụ: "UC/UC001.json"
+
+        public ArtifactTreeItem(String displayName, String relativePath) {
+            super(displayName);
+            this.relativePath = relativePath;
+        }
+
+        public String getRelativePath() {
+            return relativePath;
+        }
+
+        /**
+         * Ghi đè (Override)
+         * để đảm bảo nó luôn là một 'lá' (leaf)
+         */
+        @Override
+        public boolean isLeaf() {
+            return true;
+        }
+    }
+
+
     @Inject
-    public ProjectServiceImpl(IIndexService indexService, IProjectStateService projectStateService) {
+    public ProjectServiceImpl(IIndexService indexService,
+                              IProjectStateService projectStateService,
+                              ISearchService searchService) { // [MỚI] Inject
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         this.indexService = indexService;
         this.projectStateService = projectStateService;
+        this.searchService = searchService; // [MỚI]
     }
 
     @Override
@@ -47,10 +87,12 @@ public class ProjectServiceImpl implements IProjectService {
         logger.info("Đang tạo dự án mới: {} tại {}", projectName, directory.getPath());
 
         File configDir = new File(directory, CONFIG_DIR);
-        File artifactsDir = new File(directory, ARTIFACTS_DIR);
+        // [XÓA] Bỏ thư mục Artifacts
+        // File artifactsDir = new File(directory, ARTIFACTS_DIR);
 
-        if (!configDir.mkdirs() || !artifactsDir.mkdirs()) {
-            throw new IOException("Không thể tạo thư mục dự án.");
+        // [CẬP NHẬT] Chỉ tạo .config
+        if (!configDir.mkdirs()) {
+            throw new IOException("Không thể tạo thư mục .config.");
         }
 
         ProjectConfig config = new ProjectConfig();
@@ -130,45 +172,65 @@ public class ProjectServiceImpl implements IProjectService {
         return this.currentProjectConfig;
     }
 
+    /**
+     * [TÁI CẤU TRÚC] Xây dựng TreeView từ CSDL Chỉ mục (Index DB)
+     * thay vì quét (scan) File System.
+     *
+     * @param projectRoot Thư mục gốc
+     * @return TreeItem (gốc)
+     */
     @Override
     public TreeItem<String> buildProjectTree(File projectRoot) {
         TreeItem<String> root = new TreeItem<>(projectRoot.getName());
         root.setExpanded(true);
 
-        File artifactsDir = new File(projectRoot, ARTIFACTS_DIR);
-        if(artifactsDir.exists() && artifactsDir.isDirectory()) {
-            TreeItem<String> artifactsNode = new TreeItem<>(ARTIFACTS_DIR);
-            artifactsNode.setExpanded(true);
-            root.getChildren().add(artifactsNode);
+        // [MỚI] Lấy (fetch) dữ liệu từ CSDL Chỉ mục (thông qua Service)
+        Map<String, List<Artifact>> groupedData = searchService.getArtifactsGroupedByType();
 
-            addNodesRecursively(artifactsDir, artifactsNode);
+        // Sắp xếp (sort) các thư mục (Type) theo Bảng chữ cái
+        List<String> sortedTypes = new ArrayList<>(groupedData.keySet());
+        Collections.sort(sortedTypes);
+
+        for (String type : sortedTypes) {
+            // [SỬA LỖI] Không setExpanded(true) cho thư mục rỗng
+            List<Artifact> artifacts = groupedData.get(type);
+            if (artifacts == null || artifacts.isEmpty()) {
+                continue; // Bỏ qua nếu không có artifact nào
+            }
+
+            TreeItem<String> typeNode = new TreeItem<>(type);
+            typeNode.setExpanded(true);
+            root.getChildren().add(typeNode); // [MỚI] Thêm trực tiếp vào root
+
+
+            // [MỚI] Sắp xếp (sort) các artifact (lá) theo Tên (Name)
+            artifacts.sort(Comparator.comparing(
+                    a -> (a.getName() != null ? a.getName() : a.getId()),
+                    String.CASE_INSENSITIVE_ORDER
+            ));
+
+            for (Artifact artifact : artifacts) {
+                // [MỚI] Hiển thị Tên (Name) (Goal 2)
+                String displayName = (artifact.getName() != null && !artifact.getName().isEmpty())
+                        ? artifact.getName()
+                        : artifact.getId(); // Fallback (Dự phòng) về ID nếu Tên (Name) rỗng
+
+                // [MỚI] Tạo đường dẫn (path) tương đối (ví dụ: "UC/UC001.json")
+                String relativePath = type + File.separator + artifact.getId() + ".json";
+
+                // [MỚI] Sử dụng ArtifactTreeItem tùy chỉnh
+                TreeItem<String> artifactNode = new ArtifactTreeItem(displayName, relativePath);
+                typeNode.getChildren().add(artifactNode);
+            }
         }
-
         return root;
     }
 
     /**
-     * Hàm quét đệ quy để xây dựng TreeView
-     *
-     * @param dir    Thư mục hiện tại để quét
-     * @param parent Nút (node) cha trong TreeView
+     * [XÓA] Phương thức này không còn được sử dụng
+     * vì TreeView hiện được xây dựng từ CSDL Chỉ mục (Index DB).
      */
-    private void addNodesRecursively(File dir, TreeItem<String> parent) {
-        File[] files = dir.listFiles();
-        if (files == null) return;
-
-        for (File file : files) {
-            if (file.isDirectory()) {
-                TreeItem<String> dirNode = new TreeItem<>(file.getName());
-                dirNode.setExpanded(true);
-                parent.getChildren().add(dirNode);
-                addNodesRecursively(file, dirNode);
-            } else if (file.getName().endsWith(".json")) {
-                TreeItem<String> fileNode = new TreeItem<>(file.getName());
-                parent.getChildren().add(fileNode);
-            }
-        }
-    }
+    // private void addNodesRecursively(File dir, TreeItem<String> parent) { ... }
 
 
     private void createGitIgnore(Path projectRoot) throws IOException {
