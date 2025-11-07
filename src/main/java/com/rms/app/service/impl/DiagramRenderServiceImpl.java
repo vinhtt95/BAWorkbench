@@ -45,7 +45,7 @@ public class DiagramRenderServiceImpl implements IDiagramRenderService {
          * để debug xem cú pháp đã đúng hay chưa.
          */
         logger.info("--- Mã PlantUML được sinh ra (bắt đầu) ---");
-        logger.info(plantUmlCode);
+//        logger.info(plantUmlCode);
         logger.info("--- Mã PlantUML được sinh ra (kết thúc) ---");
 
         try (ByteArrayOutputStream pngStream = new ByteArrayOutputStream()) {

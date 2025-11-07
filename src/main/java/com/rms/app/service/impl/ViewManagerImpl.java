@@ -13,6 +13,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,7 @@ public class ViewManagerImpl implements IViewManager {
              * Truyền cả template VÀ artifact (có thể null) vào
              */
             controller.setTemplate(template);
-            controller.setArtifact(artifact); // Sẽ là null nếu tạo mới
+            controller.setArtifact(artifact); /** Sẽ là null nếu tạo mới */
 
             loader.setController(controller);
 
@@ -115,10 +116,6 @@ public class ViewManagerImpl implements IViewManager {
      */
     @Override
     public void openNewWindowForTab(Tab tab, TabPane mainTabPane) {
-        /**
-         * [SỬA LỖI] Thêm kiểm tra (check) null
-         * để xử lý lỗi (lỗi log) "tab" is null.
-         */
         if (tab == null) {
             logger.error("Attempted to undock a null tab. Operation aborted.");
             return;
@@ -128,7 +125,7 @@ public class ViewManagerImpl implements IViewManager {
         if (content == null) return;
 
         /**
-         * [SỬA LỖI] Gỡ bỏ (remove) nội dung (content)
+         * Gỡ bỏ (remove) nội dung (content)
          * khỏi tab TRƯỚC KHI thêm nó vào Scene mới.
          */
         tab.setContent(null);
@@ -147,7 +144,15 @@ public class ViewManagerImpl implements IViewManager {
         width = (width <= 0) ? 800 : width;
         height = (height <= 0) ? 600 : height;
 
-        Scene scene = new Scene(content, width, height);
+        /**
+         * [SỬA LỖI] Tạo một root container MỚI (StackPane)
+         * và thêm 'content' (nút đã tồn tại) vào đó.
+         * KHÔNG thể đặt 'content' làm root của Scene mới
+         * vì nó đã từng thuộc về một scene-graph.
+         */
+        StackPane newRoot = new StackPane();
+        newRoot.getChildren().add(content);
+        Scene scene = new Scene(newRoot, width, height); /** Sử dụng newRoot */
 
         /**
          * Áp dụng CSS cho cửa sổ mới
@@ -168,6 +173,12 @@ public class ViewManagerImpl implements IViewManager {
          */
         newStage.setOnCloseRequest(event -> {
             logger.debug("Đang re-dock (gắn lại) tab: {}", tab.getText());
+
+            /**
+             * [SỬA LỖI] Gỡ (remove) content khỏi StackPane
+             * trước khi gán (assign) lại cho tab.
+             */
+            newRoot.getChildren().remove(content);
             tab.setContent(content);
             mainTabPane.getTabs().add(tab);
             mainTabPane.getSelectionModel().select(tab);

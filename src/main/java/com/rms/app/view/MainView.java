@@ -9,11 +9,10 @@ import javafx.fxml.FXML;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.ContextMenu;
 import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.ITemplateService;
 import com.rms.app.service.impl.ProjectServiceImpl;
@@ -94,7 +93,7 @@ public class MainView {
      */
     private void setupTabDragAndDrop() {
         /**
-         * 1. Lắng nghe các tab MỚI được thêm vào TabPane
+         * Lắng nghe các tab MỚI được thêm vào TabPane
          */
         mainTabPane.getTabs().addListener((ListChangeListener<Tab>) c -> {
             while (c.next()) {
@@ -107,7 +106,7 @@ public class MainView {
         });
 
         /**
-         * 2. Gắn (Attach) handler (trình xử lý) cho các tab đã tồn tại (ví dụ: "Welcome")
+         * Gắn (Attach) handler (trình xử lý) cho các tab đã tồn tại (ví dụ: "Welcome")
          */
         for (Tab tab : mainTabPane.getTabs()) {
             attachDragHandlers(tab);
@@ -115,7 +114,7 @@ public class MainView {
     }
 
     /**
-     * [SỬA LỖI] Gắn (Attach) các trình xử lý (handler)
+     * Gắn (Attach) các trình xử lý (handler)
      * kéo (drag) vào một Tab.
      *
      * @param tab Tab cần xử lý
@@ -130,43 +129,50 @@ public class MainView {
         }
 
         Label tabLabel = new Label(tab.getText());
-        tab.setGraphic(tabLabel);
 
         /**
-         * 1. Bắt đầu Kéo (Drag)
+         * [SỬA LỖI] Sử dụng HBox làm graphic
+         * để tăng vùng có thể click/kéo.
          */
-        tabLabel.setOnDragDetected(event -> {
+        HBox tabGraphicContainer = new HBox(tabLabel);
+        tabGraphicContainer.setStyle("-fx-padding: 4px 8px 4px 8px; -fx-alignment: CENTER;");
+        tab.setGraphic(tabGraphicContainer);
+
+        /**
+         * Bắt đầu Kéo (Drag)
+         */
+        tabGraphicContainer.setOnDragDetected(event -> {
             if (tab.getText().equals("Welcome")) {
                 event.consume();
                 return;
             }
 
-            Dragboard db = tabLabel.startDragAndDrop(TransferMode.MOVE);
+            Dragboard db = tabGraphicContainer.startDragAndDrop(TransferMode.MOVE);
             ClipboardContent content = new ClipboardContent();
             content.putString(tab.getText());
             db.setContent(content);
 
-            draggingTab = tab; // Đánh dấu (flag) tab đang kéo (drag)
+            draggingTab = tab; /** Đánh dấu (flag) tab đang kéo (drag) */
 
-            db.setDragView(tabLabel.snapshot(null, null));
+            db.setDragView(tabGraphicContainer.snapshot(null, null));
             event.consume();
         });
 
         /**
-         * 2. [SỬA LỖI] Xử lý Thả (Drop)
+         * Xử lý Thả (Drop)
          */
-        tabLabel.setOnDragDone(event -> {
+        tabGraphicContainer.setOnDragDone(event -> {
             if (draggingTab == null) {
                 return;
             }
 
             /**
-             * [SỬA LỖI] Chụp (Capture) tab vào một biến (variable) final
+             * Chụp (Capture) tab vào một biến (variable) final
              * TRƯỚC KHI set 'draggingTab' thành null
              * để tránh lỗi Race Condition / NullPointerException.
              */
             final Tab tabToUndock = draggingTab;
-            draggingTab = null; // Đặt (Set) lại cờ (flag)
+            draggingTab = null; /** Đặt (Set) lại cờ (flag) */
 
             Bounds tabPaneBounds = mainTabPane.localToScreen(mainTabPane.getBoundsInLocal());
 
@@ -174,7 +180,7 @@ public class MainView {
             double dropY = event.getScreenY();
 
             /**
-             * 3. Logic "Undock" (Tháo)
+             * Logic "Undock" (Tháo)
              */
             if (tabPaneBounds == null || !tabPaneBounds.contains(dropX, dropY)) {
                 logger.info("Đã phát hiện Thả (Drop) Tab '{}' ra ngoài. Đang undocking...", tabToUndock.getText());
@@ -183,7 +189,7 @@ public class MainView {
                     if (mainTabPane.getTabs().contains(tabToUndock)) {
                         mainTabPane.getTabs().remove(tabToUndock);
                         /**
-                         * [SỬA LỖI] Sử dụng biến (variable) đã chụp (captured)
+                         * Sử dụng biến (variable) đã chụp (captured)
                          */
                         viewManager.openNewWindowForTab(tabToUndock, mainTabPane);
                     }
@@ -193,7 +199,6 @@ public class MainView {
             event.consume();
         });
     }
-
 
     /**
      * Thiết lập logic UI cho bảng Backlinks (Cột phải).
@@ -205,6 +210,7 @@ public class MainView {
             viewModel.updateBacklinks(newTab);
         });
         viewModel.updateBacklinks(mainTabPane.getSelectionModel().getSelectedItem());
+
         backlinksListView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 String selected = backlinksListView.getSelectionModel().getSelectedItem();
@@ -253,8 +259,10 @@ public class MainView {
             }
         });
         rebuildNewArtifactMenu(newMenu);
+
         MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(e -> handleDeleteArtifact());
+
         treeContextMenu.getItems().addAll(newMenu, new SeparatorMenuItem(), deleteItem);
         projectTreeView.setContextMenu(treeContextMenu);
     }
@@ -269,12 +277,15 @@ public class MainView {
             showErrorAlert("Lỗi Xóa", "Vui lòng chọn một file artifact (.json) để xóa.");
             return;
         }
+
         String relativePath = getSelectedArtifactPath(selectedItem);
         if (relativePath == null) return;
+
         Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
         confirmAlert.setTitle("Xác nhận Xóa");
         confirmAlert.setHeaderText("Bạn có chắc muốn xóa " + selectedItem.getValue() + "?");
         confirmAlert.setContentText("Hành động này không thể hoàn tác.");
+
         Optional<ButtonType> result = confirmAlert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
@@ -322,8 +333,10 @@ public class MainView {
         if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
             return null;
         }
+
         String relativePath = selectedItem.getValue();
         TreeItem<String> parent = selectedItem.getParent();
+
         while (parent != null && !parent.getValue().equals(ProjectServiceImpl.ARTIFACTS_DIR) && !parent.getValue().equals(projectTreeView.getRoot().getValue())) {
             relativePath = parent.getValue() + File.separator + relativePath;
             parent = parent.getParent();
@@ -427,9 +440,9 @@ public class MainView {
     }
 
     /**
-    Checklist) Xử lý sự kiện nhấn "File > Export to Document..."
-    * Tuân thủ UC-PUB-01 (Ngày 33).
-    */
+     * Xử lý sự kiện nhấn "File > Export to Document..."
+     * Tuân thủ UC-PUB-01 (Ngày 33).
+     */
     @FXML
     private void handleExportToDocument() {
         viewModel.openExportToDocumentDialog();
