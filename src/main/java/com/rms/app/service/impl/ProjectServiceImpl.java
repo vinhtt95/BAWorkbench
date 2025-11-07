@@ -3,7 +3,9 @@ package com.rms.app.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.rms.app.model.ProjectConfig;
+import com.rms.app.service.IIndexService;
 import com.rms.app.service.IProjectService;
+import com.rms.app.service.IProjectStateService;
 import javafx.scene.control.TreeItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,27 +15,31 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import com.google.inject.Inject;
-import com.rms.app.service.IIndexService;
 
+/**
+ * Triển khai (implementation) logic nghiệp vụ Quản lý Dự án (UC-PM-01, UC-PM-02).
+ */
 public class ProjectServiceImpl implements IProjectService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
     private final ObjectMapper objectMapper;
     private final IIndexService indexService;
+    private final IProjectStateService projectStateService;
 
     public static final String CONFIG_DIR = ".config";
     public static final String ARTIFACTS_DIR = "Artifacts";
     public static final String CONFIG_FILE = "project.json";
 
     /**
-     * [THÊM MỚI NGÀY 27] Lưu trữ config hiện tại
+     * Lưu trữ config hiện tại trong bộ nhớ.
      */
     private ProjectConfig currentProjectConfig;
 
     @Inject
-    public ProjectServiceImpl(IIndexService indexService) {
+    public ProjectServiceImpl(IIndexService indexService, IProjectStateService projectStateService) {
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         this.indexService = indexService;
+        this.projectStateService = projectStateService;
     }
 
     @Override
@@ -55,11 +61,25 @@ public class ProjectServiceImpl implements IProjectService {
 
         createGitIgnore(directory.toPath());
 
-        // [THÊM MỚI NGÀY 27] Đặt config khi tạo mới
         this.currentProjectConfig = config;
 
         return true;
     }
+
+    /**
+     * Helper lấy đường dẫn file cấu hình (project.json).
+     *
+     * @return File
+     * @throws IOException Nếu chưa mở dự án
+     */
+    private File getConfigFile() throws IOException {
+        File projectRoot = projectStateService.getCurrentProjectDirectory();
+        if (projectRoot == null) {
+            throw new IOException("Không có dự án nào đang mở.");
+        }
+        return new File(projectRoot, CONFIG_DIR + File.separator + CONFIG_FILE);
+    }
+
 
     @Override
     public ProjectConfig openProject(File directory) throws IOException {
@@ -73,17 +93,25 @@ public class ProjectServiceImpl implements IProjectService {
 
         ProjectConfig config = objectMapper.readValue(configFile, ProjectConfig.class);
 
-        // [THÊM MỚI NGÀY 27] Lưu trữ config đã tải
         this.currentProjectConfig = config;
 
         return config;
     }
 
     /**
-     * [THÊM MỚI NGÀY 27]
-     * Helper để các service khác lấy cấu hình dự án đang mở.
-     * Dùng cho UC-MGT-03 (Dropdown động).
+     * Triển khai [THÊM MỚI NGÀY 27]
      */
+    @Override
+    public void saveCurrentProjectConfig() throws IOException {
+        if (this.currentProjectConfig == null) {
+            throw new IOException("Không có cấu hình dự án nào đang tải để lưu.");
+        }
+        File configFile = getConfigFile();
+        logger.info("Đang lưu cấu hình dự án (ví dụ: Releases) vào: {}", configFile.getPath());
+        objectMapper.writeValue(configFile, this.currentProjectConfig);
+    }
+
+
     @Override
     public ProjectConfig getCurrentProjectConfig() {
         return this.currentProjectConfig;

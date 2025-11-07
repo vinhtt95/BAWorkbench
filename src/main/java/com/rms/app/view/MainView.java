@@ -23,6 +23,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * "Dumb" View Controller cho MainView.fxml.
+ * Chịu trách nhiệm binding dữ liệu và chuyển tiếp sự kiện
+ * (ví dụ: click) đến MainViewModel.
+ */
 public class MainView {
 
     private static final Logger logger = LoggerFactory.getLogger(MainView.class);
@@ -286,6 +291,16 @@ public class MainView {
     @FXML
     private void handleOpenFormBuilder() {
         viewModel.openFormBuilderTab();
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 27]
+     * Xử lý sự kiện nhấn "Settings > Releases Management...".
+     * Tuân thủ UC-CFG-02.
+     */
+    @FXML
+    private void handleOpenReleasesConfig() {
+        viewModel.openReleasesConfigTab();
     }
 
     /**

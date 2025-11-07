@@ -11,6 +11,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.SeparatorMenuItem?>
 
 <BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.rms.app.view.MainView" prefHeight="800" prefWidth="1280">
@@ -28,6 +29,7 @@
                 <Menu text="Settings">
                     <items>
                         <MenuItem onAction="#handleOpenFormBuilder" text="Artifact Types (Form Builder)"/>
+                        <MenuItem onAction="#handleOpenReleasesConfig" text="Releases Management..."/>
                     </items>
                 </Menu>
                 <Menu text="Help"/>

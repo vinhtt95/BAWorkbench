@@ -22,6 +22,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * "Brain" - Logic UI cho MainView.
+ * Quản lý trạng thái chung của ứng dụng.
+ */
 public class MainViewModel {
 
     private static final Logger logger = LoggerFactory.getLogger(MainViewModel.class);
@@ -40,6 +44,8 @@ public class MainViewModel {
     private final IIndexService indexService;
 
     private final ObservableList<String> currentBacklinks = FXCollections.observableArrayList();
+
+    private TabPane mainTabPane;
 
     @Inject
     public MainViewModel(IProjectService projectService,
@@ -88,6 +94,8 @@ public class MainViewModel {
 
     /**
      * Getter cho Backlinks
+     *
+     * @return Danh sách (Observable) các backlinks
      */
     public ObservableList<String> getCurrentBacklinks() {
         return currentBacklinks;
@@ -96,6 +104,8 @@ public class MainViewModel {
     /**
      * Logic cập nhật Backlinks khi đổi Tab
      * (Sẽ được gọi bởi MainView)
+     *
+     * @param selectedTab Tab hiện tại đang được chọn
      */
     public void updateBacklinks(Tab selectedTab) {
         currentBacklinks.clear();
@@ -105,7 +115,7 @@ public class MainViewModel {
         }
 
         String artifactId = selectedTab.getText();
-        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder")) {
+        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config")) {
             currentBacklinks.add("(Không áp dụng)");
             return;
         }
@@ -127,6 +137,9 @@ public class MainViewModel {
 
     /**
      * Logic nghiệp vụ cho UC-PM-01
+     *
+     * @param projectName Tên dự án
+     * @param directory Thư mục
      */
     public void createNewProject(String projectName, File directory) {
         try {
@@ -143,6 +156,8 @@ public class MainViewModel {
 
     /**
      * Logic cho "New Artifact"
+     *
+     * @param templateName Tên template (ví dụ: "Use Case")
      */
     public void createNewArtifact(String templateName) {
         try {
@@ -203,7 +218,7 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI NGÀY 23] Logic nghiệp vụ Xóa Artifact
+     * Logic nghiệp vụ Xóa Artifact
      *
      * @param relativePath Đường dẫn tương đối của file cần xóa
      * @throws IOException Nếu xóa thất bại (ví dụ: do vi phạm toàn vẹn)
@@ -231,6 +246,8 @@ public class MainViewModel {
 
     /**
      * Logic nghiệp vụ cho UC-PM-02
+     *
+     * @param directory Thư mục dự án
      */
     public void openProject(File directory) {
         try {
@@ -257,11 +274,9 @@ public class MainViewModel {
         }
     }
 
-
-    public File getCurrentProjectDirectory() {
-        return currentProjectDirectory.get();
-    }
-
+    /**
+     * Mở tab Cấu hình Form Builder (UC-CFG-01).
+     */
     public void openFormBuilderTab() {
         try {
             Tab newTab = viewManager.openViewInNewTab(
@@ -274,6 +289,23 @@ public class MainViewModel {
         }
     }
 
+    /**
+     * [THÊM MỚI NGÀY 27]
+     * Mở tab Cấu hình Releases (UC-CFG-02).
+     */
+    public void openReleasesConfigTab() {
+        try {
+            Tab newTab = viewManager.openViewInNewTab(
+                    "/com/rms/app/view/ReleasesView.fxml", "Releases Config"
+            );
+            this.mainTabPane.getTabs().add(newTab);
+            mainTabPane.getSelectionModel().select(newTab);
+        } catch (IOException e) {
+            logger.error("Không thể tải ReleasesView", e);
+        }
+    }
+
+
     public ObjectProperty<TreeItem<String>> projectRootProperty() {
         return projectRoot;
     }
@@ -281,7 +313,6 @@ public class MainViewModel {
         return statusMessage;
     }
 
-    private TabPane mainTabPane;
     public void setMainTabPane(TabPane mainTabPane) {
         this.mainTabPane = mainTabPane;
     }
