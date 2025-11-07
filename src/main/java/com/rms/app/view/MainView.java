@@ -3,7 +3,11 @@ package com.rms.app.view;
 import com.google.inject.Inject;
 import com.rms.app.service.IViewManager;
 import com.rms.app.viewmodel.MainViewModel;
+import javafx.application.Platform;
+import javafx.collections.ListChangeListener; // [THÊM MỚI] Import
 import javafx.fxml.FXML;
+import javafx.geometry.Bounds; // [THÊM MỚI] Import
+import javafx.scene.Node; // [THÊM MỚI] Import
 import javafx.scene.control.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -13,8 +17,7 @@ import javafx.scene.control.ContextMenu;
 import com.rms.app.service.IProjectStateService;
 import com.rms.app.service.ITemplateService;
 import com.rms.app.service.impl.ProjectServiceImpl;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.input.*; // [THÊM MỚI] Import
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,12 +46,22 @@ public class MainView {
     private final MainViewModel viewModel;
     private final IProjectStateService projectStateService;
     private final ITemplateService templateService;
+    private final IViewManager viewManager; // [THÊM MỚI]
+
+    /**
+     * [THÊM MỚI] Biến (field) để theo dõi Tab đang được kéo (drag)
+     */
+    private Tab draggingTab = null;
 
     @Inject
-    public MainView(MainViewModel viewModel, IProjectStateService projectStateService, ITemplateService templateService) {
+    public MainView(MainViewModel viewModel,
+                    IProjectStateService projectStateService,
+                    ITemplateService templateService,
+                    IViewManager viewManager) { // [CẬP NHẬT] Constructor
         this.viewModel = viewModel;
         this.projectStateService = projectStateService;
         this.templateService = templateService;
+        this.viewManager = viewManager; // [THÊM MỚI]
     }
 
     /**
@@ -69,8 +82,102 @@ public class MainView {
         setupTreeViewClickListener();
         setupBacklinksPanel();
 
-        System.out.println("MainView initialized. ViewModel is: " + viewModel);
+        /**
+         * [THÊM MỚI] Kích hoạt (activate) logic kéo-thả (drag-and-drop)
+         * cho các tab (UI-02)
+         */
+        setupTabDragAndDrop();
     }
+
+    /**
+     * [THÊM MỚI] Thiết lập logic Kéo-Thả (Drag-and-Drop)
+     * cho các tab (UI-02).
+     */
+    private void setupTabDragAndDrop() {
+        /**
+         * 1. Lắng nghe các tab MỚI được thêm vào TabPane
+         */
+        mainTabPane.getTabs().addListener((ListChangeListener<Tab>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    for (Tab newTab : c.getAddedSubList()) {
+                        attachDragHandlers(newTab);
+                    }
+                }
+            }
+        });
+
+        /**
+         * 2. Gắn (Attach) handler (trình xử lý) cho các tab đã tồn tại (ví dụ: "Welcome")
+         */
+        for (Tab tab : mainTabPane.getTabs()) {
+            attachDragHandlers(tab);
+        }
+
+        /**
+         * 3. Lắng nghe sự kiện thả (drop) trên Scene (Cảnh)
+         */
+        Platform.runLater(() -> {
+            Node root = statusLabel.getScene().getRoot();
+
+            root.setOnDragOver(event -> {
+                if (draggingTab != null) {
+                    event.acceptTransferModes(TransferMode.MOVE);
+                    event.consume();
+                }
+            });
+
+            /**
+             * 4. Xử lý logic "Undock" (Tháo)
+             */
+            root.setOnMouseDragReleased(event -> {
+                if (draggingTab != null) {
+                    Bounds tabPaneBounds = mainTabPane.getBoundsInParent();
+
+                    /**
+                     * Kiểm tra xem chuột có nằm BÊN NGOÀI TabPane không
+                     */
+                    if (!tabPaneBounds.contains(event.getX(), event.getY())) {
+                        logger.info("Đã phát hiện Thả (Drop) Tab '{}' ra ngoài. Đang undocking...", draggingTab.getText());
+                        mainTabPane.getTabs().remove(draggingTab);
+                        viewManager.openNewWindowForTab(draggingTab, mainTabPane);
+                    }
+                    draggingTab = null;
+                    event.consume();
+                }
+            });
+        });
+    }
+
+    /**
+     * [THÊM MỚI] Gắn (Attach) các trình xử lý (handler)
+     * kéo (drag) vào một Tab.
+     *
+     * @param tab Tab cần xử lý
+     */
+    private void attachDragHandlers(Tab tab) {
+        if (tab.getText().equals("Welcome")) {
+            return; // Không cho phép kéo (drag) tab Welcome
+        }
+
+        Label tabLabel = new Label(tab.getText());
+        tab.setGraphic(tabLabel);
+
+        tabLabel.setOnDragDetected(event -> {
+            Dragboard db = tabLabel.startDragAndDrop(TransferMode.MOVE);
+            ClipboardContent content = new ClipboardContent();
+            /**
+             * Đặt (Put) một chuỗi (string) đơn giản,
+             * chúng ta sẽ dùng biến (field) 'draggingTab'
+             */
+            content.putString(tab.getText());
+            db.setContent(content);
+            draggingTab = tab;
+            db.setDragView(tabLabel.snapshot(null, null));
+            event.consume();
+        });
+    }
+
 
     /**
      * Thiết lập logic UI cho bảng Backlinks (Cột phải).
@@ -322,7 +429,7 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI] Xử lý sự kiện nhấn nút "Rebuild Index".
+     * Xử lý sự kiện nhấn nút "Rebuild Index".
      * Tuân thủ UC-PM-04 (Ngày 37).
      */
     @FXML

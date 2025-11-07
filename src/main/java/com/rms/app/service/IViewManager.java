@@ -3,6 +3,7 @@ package com.rms.app.service;
 import com.rms.app.model.Artifact; // Thêm import
 import com.rms.app.model.ArtifactTemplate;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane; // [THÊM MỚI] Import
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -20,7 +21,7 @@ public interface IViewManager {
     Tab openArtifactTab(ArtifactTemplate template) throws IOException;
 
     /**
-     * [THÊM MỚI] Mở một Tab cho Artifact ĐÃ TỒN TẠI (có dữ liệu)
+     * Mở một Tab cho Artifact ĐÃ TỒN TẠI (có dữ liệu)
      *
      * @param artifact Dữ liệu artifact đã load
      * @param template Template (form) của artifact đó
@@ -28,4 +29,13 @@ public interface IViewManager {
      * @throws IOException Nếu không thể tải FXML
      */
     Tab openArtifactTab(Artifact artifact, ArtifactTemplate template) throws IOException;
+
+    /**
+     * [THÊM MỚI] Mở một Tab trong một Stage (Cửa sổ) mới.
+     * (Tuân thủ UI-02, Kế hoạch Ngày 3).
+     *
+     * @param tab         Tab để "undock" (tháo ra)
+     * @param mainTabPane TabPane gốc để "re-dock" (gắn lại) khi đóng
+     */
+    void openNewWindowForTab(Tab tab, TabPane mainTabPane);
 }
