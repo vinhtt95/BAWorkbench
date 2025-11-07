@@ -46,6 +46,10 @@ public class MainView {
         this.templateService = templateService;
     }
 
+    /**
+     * Khởi tạo Controller, liên kết (bind) các thuộc tính ViewModel
+     * và thiết lập các trình lắng nghe sự kiện ban đầu.
+     */
     @FXML
     public void initialize() {
         viewModel.setMainTabPane(mainTabPane);
@@ -66,7 +70,8 @@ public class MainView {
     }
 
     /**
-     * Triển khai UI cho Backlinks
+     * Thiết lập logic UI cho bảng Backlinks (Cột phải).
+     * Liên kết ListView với dữ liệu ViewModel và xử lý điều hướng khi double-click.
      */
     private void setupBacklinksPanel() {
 
@@ -95,7 +100,8 @@ public class MainView {
     }
 
     /**
-     * Cập nhật listener để xây dựng đường dẫn tương đối
+     * Thiết lập trình lắng nghe sự kiện click chuột cho TreeView (Cột trái).
+     * Xử lý double-click để mở artifact (.json).
      */
     private void setupTreeViewClickListener() {
         projectTreeView.setOnMouseClicked(event -> {
@@ -119,7 +125,8 @@ public class MainView {
     }
 
     /**
-     * Cập nhật Context Menu để thêm logic Xóa (Delete)
+     * Thiết lập Context Menu (menu chuột phải) cho TreeView.
+     * Bao gồm menu động "New Artifact" và "Delete".
      */
     private void setupTreeViewContextMenu() {
         ContextMenu treeContextMenu = new ContextMenu();
@@ -137,9 +144,6 @@ public class MainView {
 
         rebuildNewArtifactMenu(newMenu);
 
-        /**
-         * [THÊM MỚI NGÀY 23] Thêm MenuItem "Delete"
-         */
         MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(e -> handleDeleteArtifact());
 
@@ -149,7 +153,8 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI NGÀY 23] Logic Xử lý Xóa
+     * Xử lý sự kiện khi người dùng chọn "Delete" từ Context Menu.
+     * Hiển thị hộp thoại xác nhận và gọi ViewModel để xóa.
      */
     @FXML
     private void handleDeleteArtifact() {
@@ -172,17 +177,14 @@ public class MainView {
             try {
                 viewModel.deleteArtifact(relativePath);
             } catch (IOException e) {
-                /**
-                 * [NGÀY 23] Bắt lỗi vi phạm toàn vẹn từ Repository
-                 * Tham chiếu F-DEV-11
-                 */
                 showErrorAlert("Lỗi Toàn vẹn Dữ liệu", e.getMessage());
             }
         }
     }
 
     /**
-     * [THÊM MỚI] Hàm helper để rebuild menu "New Artifact"
+     * Hàm helper để xây dựng lại (rebuild) menu "New Artifact" một cách động.
+     * Được gọi khi dự án được mở hoặc khi template thay đổi.
      *
      * @param newMenu Menu (MenuItem) cần được xây dựng lại
      */
@@ -209,10 +211,10 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI] Helper lấy đường dẫn tương đối
+     * Hàm helper lấy đường dẫn tương đối của artifact từ TreeItem được chọn.
      *
      * @param selectedItem Mục (item) được chọn trong TreeView
-     * @return Đường dẫn tương đối (ví dụ: "UC/UC001.json")
+     * @return Đường dẫn tương đối (ví dụ: "UC/UC001.json") hoặc null
      */
     private String getSelectedArtifactPath(TreeItem<String> selectedItem) {
         if (selectedItem == null || !selectedItem.isLeaf() || !selectedItem.getValue().endsWith(".json")) {
@@ -230,7 +232,7 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI NGÀY 23] Helper hiển thị Alert Lỗi
+     * Hàm helper hiển thị Alert Lỗi cho người dùng.
      *
      * @param title   Tiêu đề của Alert
      * @param content Nội dung lỗi
@@ -243,7 +245,9 @@ public class MainView {
         alert.showAndWait();
     }
 
-
+    /**
+     * Xử lý sự kiện nhấn "File > New Project...".
+     */
     @FXML
     private void handleNewProject() {
         TextInputDialog nameDialog = new TextInputDialog("MyProject");
@@ -262,6 +266,9 @@ public class MainView {
         });
     }
 
+    /**
+     * Xử lý sự kiện nhấn "File > Open Project...".
+     */
     @FXML
     private void handleOpenProject() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -273,11 +280,18 @@ public class MainView {
         }
     }
 
+    /**
+     * Xử lý sự kiện nhấn "Settings > Artifact Types (Form Builder)".
+     */
     @FXML
     private void handleOpenFormBuilder() {
         viewModel.openFormBuilderTab();
     }
 
+    /**
+     * Hàm helper lấy Stage (cửa sổ) chính của ứng dụng.
+     * @return Stage chính
+     */
     private Stage getStage() {
         return (Stage) statusLabel.getScene().getWindow();
     }

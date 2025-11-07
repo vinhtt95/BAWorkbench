@@ -9,6 +9,8 @@
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.ListView?>
 
 <BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.rms.app.view.MainView" prefHeight="800" prefWidth="1280">
@@ -17,18 +19,15 @@
             <menus>
                 <Menu text="File">
                     <items>
-
                         <MenuItem onAction="#handleNewProject" text="New Project..." accelerator="Ctrl+N"/>
                         <MenuItem onAction="#handleOpenProject" text="Open Project..." accelerator="Ctrl+O"/>
                         <MenuItem text="Exit"/>
                     </items>
-
                 </Menu>
                 <Menu text="Edit"/>
                 <Menu text="Settings">
                     <items>
                         <MenuItem onAction="#handleOpenFormBuilder" text="Artifact Types (Form Builder)"/>
-
                     </items>
                 </Menu>
                 <Menu text="Help"/>
@@ -39,7 +38,6 @@
     <left>
         <VBox minWidth="200" prefWidth="250" styleClass="sidebar">
             <Label styleClass="sidebar-title" text="Project Explorer"/>
-
             <TreeView fx:id="projectTreeView" VBox.vgrow="ALWAYS"/>
         </VBox>
     </left>
@@ -62,9 +60,7 @@
     </right>
 
     <bottom>
-
-        <Label fx:id="statusLabel" style="-fx-padding: 4px;
- -fx-background-color: #3c3f41;"
+        <Label fx:id="statusLabel" style="-fx-padding: 4px; -fx-background-color: #3c3f41;"
                text="Status: Ready" BorderPane.alignment="CENTER_LEFT"/>
     </bottom>
 </BorderPane>
