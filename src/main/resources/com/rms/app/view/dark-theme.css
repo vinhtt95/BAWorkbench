@@ -121,3 +121,26 @@
     -fx-background-color: -fx-accent;
     -fx-text-fill: white;
 }
+
+
+/* --- [SỬA LỖI] UI "MÙ MẮT" TRONG LISTVIEW --- */
+.list-cell {
+    -fx-text-fill: #E3E3E3; /* Đảm bảo text luôn sáng */
+}
+.list-cell:focused, .list-cell:selected {
+    -fx-text-fill: #E3E3E3; /* Giữ text màu sáng khi được chọn */
+    -fx-background-color: -fx-accent; /* Highlight (làm nổi bật) nền */
+}
+
+
+/* --- [SỬA LỖI] Làm mỏng đường kẻ SplitPane --- */
+.split-pane-divider {
+    -fx-background-color: #3c3f41; /* Màu đường kẻ */
+    -fx-padding: 0 1px 0 1px; /* Chỉ dày 1px */
+    -fx-border-width: 0;
+}
+
+.split-pane {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}

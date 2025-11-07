@@ -20,6 +20,7 @@ import java.util.HashMap;
  * "Dumb" View Controller
  * Đã nâng cấp để hỗ trợ Sắp xếp, Xóa, Thuộc tính (Options),
  * và dùng ListView cho Preview.
+ * [SỬA LỖI] Sửa lỗi UX khi Up/Down (selection không di chuyển).
  */
 public class FormBuilderView {
 
@@ -160,14 +161,34 @@ public class FormBuilderView {
         viewModel.removeSelectedField();
     }
 
+    /**
+     * [SỬA LỖI UX] Cập nhật lại selection
+     * sau khi ViewModel di chuyển item.
+     */
     @FXML
     private void handleMoveUp() {
-        viewModel.moveSelectedFieldUp();
+        int selectedIndex = formPreviewListView.getSelectionModel().getSelectedIndex();
+        viewModel.moveSelectedFieldUp(); // ViewModel chỉ hoán đổi (swap) list
+
+        // [FIX] View tự cập nhật lại selection
+        if (selectedIndex > 0) {
+            formPreviewListView.getSelectionModel().select(selectedIndex - 1);
+        }
     }
 
+    /**
+     * [SỬA LỖI UX] Cập nhật lại selection
+     * sau khi ViewModel di chuyển item.
+     */
     @FXML
     private void handleMoveDown() {
-        viewModel.moveSelectedFieldDown();
+        int selectedIndex = formPreviewListView.getSelectionModel().getSelectedIndex();
+        viewModel.moveSelectedFieldDown(); // ViewModel chỉ hoán đổi (swap) list
+
+        // [FIX] View tự cập nhật lại selection
+        if (selectedIndex < viewModel.currentFields.size() - 1) {
+            formPreviewListView.getSelectionModel().select(selectedIndex + 1);
+        }
     }
 
     /**
@@ -279,15 +300,22 @@ public class FormBuilderView {
                 setStyle("");
             } else {
                 setText(field.getName() + " (" + field.getType() + ")");
+
+                // [SỬA LỖI] Luôn đặt màu text
+                // để tránh lỗi "UI mù mắt"
+                String textFill = "-fx-text-fill: #E3E3E3;";
+
                 // [MỚI] Highlight (làm nổi bật) nếu được chọn
                 if (viewModel.selectedFieldProperty().get() == field) {
                     setStyle("-fx-border-color: -fx-accent; " +
                             "-fx-border-width: 1px; " +
-                            "-fx-background-color: -fx-control-inner-background-alt;");
+                            "-fx-background-color: -fx-accent;" + // [SỬA LỖI] Dùng -fx-accent
+                            textFill);
                 } else {
                     setStyle("-fx-border-color: #555555; " +
                             "-fx-border-width: 0 0 1px 0; " +
-                            "-fx-padding: 8px;");
+                            "-fx-padding: 8px;" +
+                            textFill);
                 }
             }
         }

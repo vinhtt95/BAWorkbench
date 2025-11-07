@@ -9,7 +9,8 @@
 <SplitPane dividerPositions="0.25" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.rms.app.view.FormBuilderView">
     <items>
-        <VBox styleClass="sidebar" minWidth="150" prefWidth="200">
+        <VBox styleClass="sidebar" minWidth="200" prefWidth="200" maxWidth="250"
+              SplitPane.resizableWithParent="false">
             <Label styleClass="sidebar-title" text="Artifact Types"/>
             <ListView fx:id="templateListView" VBox.vgrow="ALWAYS"/>
             <Button onAction="#handleNewTemplate" text="New Template" maxWidth="Infinity" style="-fx-margin: 5 0 0 0;"/>
@@ -31,8 +32,9 @@
                 </VBox>
             </top>
             <center>
-                <SplitPane dividerPositions="0.2, 0.8">
-                    <VBox styleClass="sidebar">
+                <SplitPane dividerPositions="0.2, 0.75">
+                    <VBox styleClass="sidebar" minWidth="200" prefWidth="200" maxWidth="200"
+                          SplitPane.resizableWithParent="false">
                         <Label styleClass="sidebar-title" text="Toolbox"/>
                         <ListView fx:id="toolboxListView"/>
                     </VBox>
@@ -48,7 +50,9 @@
                         <ListView fx:id="formPreviewListView" VBox.vgrow="ALWAYS"/>
                     </VBox>
 
-                    <VBox fx:id="propertiesPaneContainer" styleClass="sidebar" spacing="10">
+                    <VBox fx:id="propertiesPaneContainer" styleClass="sidebar" spacing="10"
+                          minWidth="250" prefWidth="250" maxWidth="300"
+                          SplitPane.resizableWithParent="false">
                         <padding>
                             <Insets top="5" right="5" bottom="5" left="5"/>
                         </padding>
