@@ -51,7 +51,13 @@
     <right>
         <VBox minWidth="200" prefWidth="250" styleClass="sidebar">
             <Label styleClass="sidebar-title" text="Contextual Info"/>
-            <Accordion fx:id="rightAccordion"/>
+            <Accordion fx:id="rightAccordion">
+                <panes>
+                    <TitledPane fx:id="backlinksPane" text="Backlinks (Liên kết ngược)">
+                        <ListView fx:id="backlinksListView"/>
+                    </TitledPane>
+                </panes>
+            </Accordion>
         </VBox>
     </right>
 

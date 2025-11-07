@@ -32,6 +32,9 @@ public class MainView {
     @FXML private Accordion rightAccordion;
     @FXML private Label statusLabel;
 
+    @FXML private TitledPane backlinksPane;
+    @FXML private ListView<String> backlinksListView;
+
     private final MainViewModel viewModel;
     private final IProjectStateService projectStateService;
     private final ITemplateService templateService;
@@ -66,11 +69,9 @@ public class MainView {
      * Triển khai UI cho Backlinks
      */
     private void setupBacklinksPanel() {
-        ListView<String> backlinksListView = new ListView<>();
-        backlinksListView.setItems(viewModel.getCurrentBacklinks());
-        TitledPane backlinksPane = new TitledPane("Backlinks (Liên kết ngược)", backlinksListView);
 
-        rightAccordion.getPanes().add(backlinksPane);
+        backlinksListView.setItems(viewModel.getCurrentBacklinks());
+
         rightAccordion.setExpandedPane(backlinksPane);
 
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
@@ -78,6 +79,7 @@ public class MainView {
         });
 
         viewModel.updateBacklinks(mainTabPane.getSelectionModel().getSelectedItem());
+
 
         backlinksListView.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
