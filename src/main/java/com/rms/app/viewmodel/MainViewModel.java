@@ -115,7 +115,7 @@ public class MainViewModel {
         }
 
         String artifactId = selectedTab.getText();
-        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config")) {
+        if (artifactId.startsWith("New ") || artifactId.startsWith("Form Builder") || artifactId.startsWith("Releases Config") || artifactId.startsWith("Dashboard")) {
             currentBacklinks.add("(Không áp dụng)");
             return;
         }
@@ -290,7 +290,6 @@ public class MainViewModel {
     }
 
     /**
-     * [THÊM MỚI NGÀY 27]
      * Mở tab Cấu hình Releases (UC-CFG-02).
      */
     public void openReleasesConfigTab() {
@@ -302,6 +301,22 @@ public class MainViewModel {
             mainTabPane.getSelectionModel().select(newTab);
         } catch (IOException e) {
             logger.error("Không thể tải ReleasesView", e);
+        }
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 28]
+     * Mở tab Bảng Kanban (UC-MGT-02).
+     */
+    public void openDashboardTab() {
+        try {
+            Tab newTab = viewManager.openViewInNewTab(
+                    "/com/rms/app/view/DashboardView.fxml", "Dashboard"
+            );
+            this.mainTabPane.getTabs().add(newTab);
+            mainTabPane.getSelectionModel().select(newTab);
+        } catch (IOException e) {
+            logger.error("Không thể tải DashboardView", e);
         }
     }
 

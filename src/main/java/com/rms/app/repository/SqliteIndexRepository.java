@@ -125,10 +125,6 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
         }
     }
 
-    /**
-     * [CẬP NHẬT NGÀY 21] Triển khai logic query
-     * Tìm kiếm ID hoặc Name
-     */
     @Override
     public List<Artifact> queryArtifacts(String query) throws SQLException {
         List<Artifact> results = new ArrayList<>();
@@ -161,6 +157,46 @@ public class SqliteIndexRepository implements ISqliteIndexRepository {
 
         try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, artifactId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Artifact artifact = new Artifact();
+                artifact.setId(rs.getString("id"));
+                artifact.setName(rs.getString("name"));
+                artifact.setArtifactType(rs.getString("type"));
+                results.add(artifact);
+            }
+        }
+        return results;
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 28] Triển khai logic query
+     */
+    @Override
+    public List<String> getDefinedStatuses() throws SQLException {
+        List<String> results = new ArrayList<>();
+        String sql = "SELECT DISTINCT status FROM artifacts WHERE status IS NOT NULL ORDER BY status;";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                results.add(rs.getString("status"));
+            }
+        }
+        return results;
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 28] Triển khai logic query
+     */
+    @Override
+    public List<Artifact> getArtifactsByStatus(String status) throws SQLException {
+        List<Artifact> results = new ArrayList<>();
+        String sql = "SELECT id, name, type FROM artifacts WHERE status = ?;";
+
+        try (Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, status);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {

@@ -45,7 +45,7 @@ public interface ISqliteIndexRepository {
     void insertLink(String fromId, String toId) throws SQLException;
 
     /**
-     * [THÊM MỚI NGÀY 20] Xóa một artifact khỏi bảng 'artifacts'.
+     * Xóa một artifact khỏi bảng 'artifacts'.
      *
      * @param artifactId ID của artifact cần xóa
      * @throws SQLException Nếu lỗi CSDL
@@ -53,7 +53,7 @@ public interface ISqliteIndexRepository {
     void deleteArtifact(String artifactId) throws SQLException;
 
     /**
-     * [THÊM MỚI NGÀY 20] Xóa tất cả các liên kết (links) TỪ một artifact.
+     * Xóa tất cả các liên kết (links) TỪ một artifact.
      *
      * @param artifactId ID của artifact (nguồn link)
      * @throws SQLException Nếu lỗi CSDL
@@ -77,4 +77,25 @@ public interface ISqliteIndexRepository {
      * @throws SQLException Nếu lỗi CSDL
      */
     List<Artifact> queryBacklinks(String artifactId) throws SQLException;
+
+    /**
+     * [THÊM MỚI NGÀY 28]
+     * Lấy danh sách các Trạng thái (Status) duy nhất (distinct)
+     * từ CSDL Chỉ mục (dùng cho Kanban).
+     *
+     * @return Danh sách các tên Trạng thái (ví dụ: "Draft", "Approved")
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    List<String> getDefinedStatuses() throws SQLException;
+
+    /**
+     * [THÊM MỚI NGÀY 28]
+     * Lấy tất cả các artifact (chỉ ID, Name)
+     * khớp với một Trạng thái (Status) cụ thể (dùng cho Kanban).
+     *
+     * @param status Tên Trạng thái (ví dụ: "Draft")
+     * @return Danh sách các Artifact
+     * @throws SQLException Nếu lỗi CSDL
+     */
+    List<Artifact> getArtifactsByStatus(String status) throws SQLException;
 }

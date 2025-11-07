@@ -10,14 +10,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * [TÁI CẤU TRÚC NGÀY 21 & 22]
  * Triển khai ISearchService.
- * Dịch vụ này hiện truy vấn trực tiếp CSDL Chỉ mục (SQLite) thay vì
- * duy trì một cache riêng trong bộ nhớ.
- * Tham chiếu Kế hoạch [vinhtt95/baworkbench/BAWorkbench-b81f6c2eab10596eeb739d9111f5ef0610b2666e/Requirement/ImplementPlan.md]
+ * Dịch vụ này hiện truy vấn trực tiếp CSDL Chỉ mục (SQLite).
  */
 public class SearchServiceImpl implements ISearchService {
 
@@ -41,7 +41,7 @@ public class SearchServiceImpl implements ISearchService {
     /**
      * [TÁI CẤU TRÚC NGÀY 21]
      * Tìm kiếm CSDL chỉ mục (SQLite) cho autocomplete.
-     * Tham chiếu (F-DEV-06) [vinhtt95/baworkbench/BAWorkbench-b81f6c2eab10596eeb739d9111f5ef0610b2666e/Requirement/Functional Requirements Document.md]
+     * Tham chiếu (F-DEV-06)
      */
     @Override
     public List<Artifact> search(String query) {
@@ -56,7 +56,7 @@ public class SearchServiceImpl implements ISearchService {
     /**
      * [TÁI CẤU TRÚC NGÀY 22]
      * Tìm kiếm CSDL chỉ mục (SQLite) cho backlinks.
-     * Tham chiếu (F-MOD-03) [vinhtt95/baworkbench/BAWorkbench-b81f6c2eab10596eeb739d9111f5ef0610b2666e/Requirement/Functional Requirements Document.md]
+     * Tham chiếu (F-MOD-03)
      */
     @Override
     public List<Artifact> getBacklinks(String artifactId) {
@@ -69,5 +69,31 @@ public class SearchServiceImpl implements ISearchService {
             logger.error("Lỗi SQL khi truy vấn backlinks cho '{}': {}", artifactId, e.getMessage());
             return new ArrayList<>();
         }
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 28]
+     * Triển khai logic nghiệp vụ cho Kanban (UC-MGT-02).
+     */
+    @Override
+    public Map<String, List<Artifact>> getArtifactsGroupedByStatus() {
+        Map<String, List<Artifact>> resultMap = new HashMap<>();
+        try {
+            /**
+             * 1. Lấy tất cả các cột (Status)
+             */
+            List<String> statuses = indexRepository.getDefinedStatuses();
+
+            /**
+             * 2. Với mỗi cột, lấy các artifact (thẻ)
+             */
+            for (String status : statuses) {
+                List<Artifact> artifacts = indexRepository.getArtifactsByStatus(status);
+                resultMap.put(status, artifacts);
+            }
+        } catch (SQLException e) {
+            logger.error("Lỗi SQL khi nhóm (grouping) artifacts cho Kanban: {}", e.getMessage());
+        }
+        return resultMap;
     }
 }

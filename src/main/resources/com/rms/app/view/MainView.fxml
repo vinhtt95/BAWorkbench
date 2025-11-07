@@ -26,6 +26,11 @@
                     </items>
                 </Menu>
                 <Menu text="Edit"/>
+                <Menu text="View">
+                    <items>
+                        <MenuItem onAction="#handleOpenDashboard" text="Planning Dashboard"/>
+                    </items>
+                </Menu>
                 <Menu text="Settings">
                     <items>
                         <MenuItem onAction="#handleOpenFormBuilder" text="Artifact Types (Form Builder)"/>

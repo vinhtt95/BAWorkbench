@@ -294,13 +294,22 @@ public class MainView {
     }
 
     /**
-     * [THÊM MỚI NGÀY 27]
      * Xử lý sự kiện nhấn "Settings > Releases Management...".
      * Tuân thủ UC-CFG-02.
      */
     @FXML
     private void handleOpenReleasesConfig() {
         viewModel.openReleasesConfigTab();
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 28]
+     * Xử lý sự kiện nhấn "View > Planning Dashboard".
+     * Tuân thủ UC-MGT-02.
+     */
+    @FXML
+    private void handleOpenDashboard() {
+        viewModel.openDashboardTab();
     }
 
     /**
