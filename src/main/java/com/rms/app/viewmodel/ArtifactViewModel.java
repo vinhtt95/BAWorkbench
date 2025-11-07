@@ -10,10 +10,7 @@ import com.rms.app.service.IArtifactRepository;
 import com.rms.app.service.IDiagramRenderService;
 import com.rms.app.service.IProjectStateService;
 import javafx.animation.PauseTransition;
-import javafx.beans.property.Property;
-import javafx.beans.property.SimpleListProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
@@ -23,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +74,9 @@ public class ArtifactViewModel {
         this.diagramRenderService = diagramRenderService;
         this.objectMapper = new ObjectMapper();
 
+        // [SỬA LỖI NGÀY 27] Hỗ trợ ObjectMapper cho Java 8 Time (LocalDate)
+        this.objectMapper.findAndRegisterModules();
+
         this.id = new SimpleStringProperty("Đang chờ lưu...");
         this.name = new SimpleStringProperty();
 
@@ -105,18 +106,10 @@ public class ArtifactViewModel {
             this.id.set(artifact.getId());
             this.name.set(artifact.getName());
 
-            if (artifact.getFields() != null) {
-                for (Map.Entry<String, Object> entry : artifact.getFields().entrySet()) {
-                    String key = entry.getKey();
-                    Object value = entry.getValue();
+            // [SỬA LỖI NGÀY 27] Không bind ở đây,
+            // để getFieldProperty/getFlowStepProperty tự động nạp
+            // khi RenderService gọi chúng.
 
-                    if (value instanceof List) {
-                        getFlowStepProperty(key);
-                    } else {
-                        getFieldProperty(key);
-                    }
-                }
-            }
         } else {
             this.artifact = new Artifact();
             this.artifact.setFields(new HashMap<>());
@@ -133,13 +126,52 @@ public class ArtifactViewModel {
      * @return Property (javafx) tương ứng
      */
     public Property<?> getFieldProperty(String fieldName) {
-        return dynamicFields.computeIfAbsent(fieldName, key -> {
+        // [SỬA LỖI NGÀY 27] Đổi tên thành "getStringProperty"
+        // để rõ ràng nó chỉ xử lý String
+        return getStringProperty(fieldName);
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 27] Cung cấp StringProperty (dùng cho TextField, TextArea, Dropdown, Linker)
+     */
+    public StringProperty getStringProperty(String fieldName) {
+        return (StringProperty) dynamicFields.computeIfAbsent(fieldName, key -> {
             Object initialValue = artifact.getFields().get(key);
             StringProperty property = new SimpleStringProperty((String) initialValue);
             property.addListener((obs, oldV, newV) -> triggerAutoSave());
             return property;
         });
     }
+
+    /**
+     * [THÊM MỚI NGÀY 27] Cung cấp ObjectProperty<LocalDate> (dùng cho DatePicker)
+     */
+    public ObjectProperty<LocalDate> getLocalDateProperty(String fieldName) {
+        return (ObjectProperty<LocalDate>) dynamicFields.computeIfAbsent(fieldName, key -> {
+            Object initialValueRaw = artifact.getFields().get(key);
+            LocalDate initialValue = null;
+
+            if (initialValueRaw instanceof String) {
+                try {
+                    initialValue = LocalDate.parse((String) initialValueRaw);
+                } catch (Exception e) {
+                    logger.warn("Giá trị ngày không hợp lệ trong JSON: {}", initialValueRaw);
+                }
+            } else if (initialValueRaw != null) {
+                try {
+                    // Thử convert (ví dụ: nếu Jackson đọc nó thành mảng [2025, 11, 7])
+                    initialValue = objectMapper.convertValue(initialValueRaw, LocalDate.class);
+                } catch (Exception e) {
+                    logger.error("Không thể convert giá trị ngày: {}", initialValueRaw, e);
+                }
+            }
+
+            ObjectProperty<LocalDate> property = new SimpleObjectProperty<>(initialValue);
+            property.addListener((obs, oldV, newV) -> triggerAutoSave());
+            return property;
+        });
+    }
+
 
     /**
      * Hàm này được gọi bởi RenderService để tạo binding cho Flow Builder.
@@ -169,8 +201,15 @@ public class ArtifactViewModel {
         }
 
         ObservableList<FlowStep> list = FXCollections.observableArrayList(initialSteps);
+        // [SỬA LỖI NGÀY 27] Cần lắng nghe sự thay đổi sâu (deep change)
+        list.addListener((javafx.collections.ListChangeListener.Change<? extends FlowStep> c) -> {
+            while (c.next()) {
+                // Chỉ cần biết có thay đổi, không cần biết chi tiết
+            }
+            triggerAutoSave();
+        });
+
         SimpleListProperty<FlowStep> property = new SimpleListProperty<>(list);
-        list.addListener((javafx.collections.ListChangeListener.Change<? extends FlowStep> c) -> triggerAutoSave());
         dynamicFields.put(fieldName, property);
         return list;
     }
@@ -189,7 +228,8 @@ public class ArtifactViewModel {
         logger.debug("Kích hoạt Auto-save...");
         try {
             if (artifact.getId() == null) {
-                String newId = this.templatePrefix + "-" + System.currentTimeMillis();
+                // [SỬA LỖI NGÀY 27] Cần ID ngẫu nhiên hơn
+                String newId = this.templatePrefix + "-" + (System.currentTimeMillis() % 100000);
                 artifact.setId(newId);
                 artifact.setArtifactType(this.templatePrefix);
                 id.set(newId);
@@ -197,10 +237,18 @@ public class ArtifactViewModel {
 
             artifact.setName(name.get());
 
+            // [SỬA LỖI NGÀY 27] Cần lấy giá trị (value) đúng từ các loại Property
             for (Map.Entry<String, Property<?>> entry : dynamicFields.entrySet()) {
                 if (entry.getValue() instanceof SimpleListProperty) {
+                    // Xử lý FlowStep
                     artifact.getFields().put(entry.getKey(), new ArrayList<>(((SimpleListProperty<?>) entry.getValue()).get()));
+                } else if (entry.getValue() instanceof SimpleObjectProperty) {
+                    // Xử lý DatePicker (LocalDate) hoặc các Object khác
+                    Object value = entry.getValue().getValue();
+                    // Lưu Date thành String ISO (ví dụ: "2025-11-07")
+                    artifact.getFields().put(entry.getKey(), (value != null) ? value.toString() : null);
                 } else {
+                    // Xử lý StringProperty (TextField, Dropdown, ...)
                     artifact.getFields().put(entry.getKey(), entry.getValue().getValue());
                 }
             }
@@ -217,24 +265,24 @@ public class ArtifactViewModel {
      * [THÊM MỚI NGÀY 26]
      * Logic nghiệp vụ để sinh sơ đồ (UC-MOD-01)
      *
-     * @return Một Image (JavaFX) của sơ đồ, hoặc null nếu lỗi
+     * @return Một Image (JavaFX) của sơ đồ
      */
     public Image generateDiagram() {
         try {
             List<FlowStep> flowSteps = new ArrayList<>();
 
-            for (Map.Entry<String, Object> entry : artifact.getFields().entrySet()) {
-                if (entry.getValue() instanceof List) {
-                    flowSteps = objectMapper.convertValue(
-                            entry.getValue(),
-                            new TypeReference<List<FlowStep>>() {}
-                    );
+            // [SỬA LỖI NGÀY 27] Lấy dữ liệu Flow từ dynamicFields (đã binding)
+            // thay vì từ artifact.getFields() (có thể đã cũ)
+            for (Map.Entry<String, Property<?>> entry : dynamicFields.entrySet()) {
+                if (entry.getValue() instanceof SimpleListProperty) {
+                    // Chỉ lấy Flow đầu tiên tìm thấy
+                    flowSteps = (List<FlowStep>) new ArrayList<>(((SimpleListProperty<?>) entry.getValue()).get());
                     break;
                 }
             }
 
             if (flowSteps.isEmpty()) {
-                logger.warn("Không tìm thấy dữ liệu Flow (FlowStep) trong artifact {}", (artifact != null ? artifact.getId() : "new"));
+                logger.warn("Không tìm thấy dữ liệu Flow (FlowStep) trong artifact {}", artifact.getId());
                 return null;
             }
 
@@ -244,12 +292,11 @@ public class ArtifactViewModel {
             return SwingFXUtils.toFXImage(awtImage, null);
 
         } catch (Exception e) {
-            logger.error("Không thể sinh sơ đồ cho {}: {}", (artifact != null ? artifact.getId() : "new"), e.getMessage());
+            logger.error("Không thể sinh sơ đồ cho {}: {}", artifact.getId(), e.getMessage());
             projectStateService.setStatusMessage("Lỗi render sơ đồ: " + e.getMessage());
             return null;
         }
     }
-
 
     /**
      * Getter cho ID (dùng bởi RenderService).

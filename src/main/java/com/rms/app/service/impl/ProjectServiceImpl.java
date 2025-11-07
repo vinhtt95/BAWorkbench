@@ -25,6 +25,11 @@ public class ProjectServiceImpl implements IProjectService {
     public static final String ARTIFACTS_DIR = "Artifacts";
     public static final String CONFIG_FILE = "project.json";
 
+    /**
+     * [THÊM MỚI NGÀY 27] Lưu trữ config hiện tại
+     */
+    private ProjectConfig currentProjectConfig;
+
     @Inject
     public ProjectServiceImpl(IIndexService indexService) {
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -50,6 +55,9 @@ public class ProjectServiceImpl implements IProjectService {
 
         createGitIgnore(directory.toPath());
 
+        // [THÊM MỚI NGÀY 27] Đặt config khi tạo mới
+        this.currentProjectConfig = config;
+
         return true;
     }
 
@@ -65,7 +73,20 @@ public class ProjectServiceImpl implements IProjectService {
 
         ProjectConfig config = objectMapper.readValue(configFile, ProjectConfig.class);
 
+        // [THÊM MỚI NGÀY 27] Lưu trữ config đã tải
+        this.currentProjectConfig = config;
+
         return config;
+    }
+
+    /**
+     * [THÊM MỚI NGÀY 27]
+     * Helper để các service khác lấy cấu hình dự án đang mở.
+     * Dùng cho UC-MGT-03 (Dropdown động).
+     */
+    @Override
+    public ProjectConfig getCurrentProjectConfig() {
+        return this.currentProjectConfig;
     }
 
     @Override

@@ -23,6 +23,13 @@ public interface IProjectService {
     ProjectConfig openProject(File directory) throws IOException;
 
     /**
+     * [THÊM MỚI NGÀY 27]
+     * Lấy cấu hình của dự án hiện tại đang mở.
+     * @return ProjectConfig (có thể null nếu chưa mở dự án)
+     */
+    ProjectConfig getCurrentProjectConfig();
+
+    /**
      * Quét cấu trúc thư mục dự án và tạo TreeView.
      */
     TreeItem<String> buildProjectTree(File projectRoot);

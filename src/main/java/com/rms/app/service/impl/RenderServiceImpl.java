@@ -5,11 +5,15 @@ import com.google.inject.Injector;
 import com.rms.app.model.Artifact;
 import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.FlowStep;
+import com.rms.app.model.ProjectConfig;
 import com.rms.app.service.IRenderService;
+import com.rms.app.service.IProjectService;
 import com.rms.app.service.ISearchService;
 import com.rms.app.view.FlowBuilderControl;
 import com.rms.app.viewmodel.ArtifactViewModel;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -23,8 +27,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Triển khai logic render Form động (UC-DEV-01)
@@ -37,10 +44,16 @@ public class RenderServiceImpl implements IRenderService {
     private final ISearchService searchService;
     private final ContextMenu autocompletePopup;
 
+    /**
+     * [THÊM MỚI NGÀY 27] Inject IProjectService để lấy danh sách Release
+     */
+    private final IProjectService projectService;
+
     @Inject
-    public RenderServiceImpl(Injector injector) {
+    public RenderServiceImpl(Injector injector, IProjectService projectService) {
         this.injector = injector;
         this.searchService = injector.getInstance(ISearchService.class);
+        this.projectService = projectService; // [THÊM MỚI NGÀY 27]
         this.autocompletePopup = new ContextMenu();
     }
 
@@ -84,41 +97,85 @@ public class RenderServiceImpl implements IRenderService {
             }
         }
 
-        var fieldProperty = viewModel.getFieldProperty(field.getName());
+        // [SỬA LỖI NGÀY 27] Không gọi getFieldProperty ở đây,
+        // gọi các hàm cụ thể (getStringProperty, getLocalDateProperty)
+        // bên trong các case.
 
         switch (field.getType()) {
             case "Text (Single-line)":
                 TextField textField = new TextField();
-                textField.textProperty().bindBidirectional((StringProperty) fieldProperty);
+                textField.textProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
                 return textField;
 
             case "Text Area (Multi-line)":
                 TextArea textArea = new TextArea();
                 textArea.setPrefRowCount(5);
-                textArea.textProperty().bindBidirectional((StringProperty) fieldProperty);
+                textArea.textProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
                 setupAutocomplete(textArea);
                 return textArea;
 
             case "Dropdown":
-                var stringPropDrop = (StringProperty) viewModel.getFieldProperty(field.getName());
+                // [CẬP NHẬT NGÀY 27] Hỗ trợ Dropdown động
                 ComboBox<String> comboBox = new ComboBox<>();
-                comboBox.getItems().addAll("Option 1", "Option 2");
-                comboBox.valueProperty().bindBidirectional(stringPropDrop);
+                comboBox.setItems(getDropdownOptions(field)); // Lấy options động
+                comboBox.valueProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
                 return comboBox;
 
             case "Linker (@ID)":
-                var stringPropLink = (StringProperty) viewModel.getFieldProperty(field.getName());
                 TextField linkerField = new TextField();
-                linkerField.textProperty().bindBidirectional((StringProperty) stringPropLink);
+                linkerField.textProperty().bindBidirectional(viewModel.getStringProperty(field.getName()));
                 linkerField.setPromptText("Gõ @ để tìm kiếm...");
                 setupAutocomplete(linkerField);
                 return linkerField;
+
+            case "DatePicker":
+                // [THÊM MỚI NGÀY 27] Hỗ trợ UC-MGT-01
+                DatePicker datePicker = new DatePicker();
+                ObjectProperty<LocalDate> dateProperty = viewModel.getLocalDateProperty(field.getName());
+                datePicker.valueProperty().bindBidirectional(dateProperty);
+                return datePicker;
 
             default:
                 logger.warn("Loại field không xác định: {}", field.getType());
                 return null;
         }
     }
+
+    /**
+     * [THÊM MỚI NGÀY 27]
+     * Lấy các tùy chọn (options) cho ComboBox (Dropdown).
+     * Hỗ trợ nguồn động (ví dụ: @Releases) cho UC-MGT-03.
+     */
+    private ObservableList<String> getDropdownOptions(ArtifactTemplate.FieldTemplate field) {
+        ObservableList<String> options = FXCollections.observableArrayList();
+
+        // Hiện tại, chúng ta làm cứng (hardcode) logic cho "@Releases"
+
+        // Tạm thời hardcode, nếu tên field là "Target Release"
+        // (Đây là cách làm nhanh, không phải là cách tốt nhất)
+        if ("Target Release".equalsIgnoreCase(field.getName())) {
+            try {
+                ProjectConfig config = projectService.getCurrentProjectConfig();
+                if (config != null && config.getReleases() != null) {
+                    List<String> releaseNames = config.getReleases().stream()
+                            .map(rel -> rel.get("id") + ": " + rel.get("name"))
+                            .collect(Collectors.toList());
+                    options.addAll(releaseNames);
+                } else {
+                    options.add("(Chưa có Release nào được cấu hình)");
+                }
+            } catch (Exception e) {
+                logger.error("Không thể tải danh sách Release động", e);
+                options.add("(Lỗi tải Release)");
+            }
+        } else {
+            // Nguồn tĩnh (ví dụ: "Status")
+            options.addAll("Draft", "In Review", "Approved");
+        }
+
+        return options;
+    }
+
 
     /**
      * Thêm logic Autocomplete (gợi ý @ID) vào một control (TextField hoặc TextArea).

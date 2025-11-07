@@ -26,7 +26,12 @@ public class FormBuilderViewModel {
     public final StringProperty prefixId = new SimpleStringProperty("NEW");
     public final ObservableList<String> toolboxItems = FXCollections.observableArrayList(
             // Các loại trường F-CFG-02
-            "Text (Single-line)", "Text Area (Multi-line)", "Dropdown", "Linker (@ID)", "Flow Builder"
+            "Text (Single-line)",
+            "Text Area (Multi-line)",
+            "Dropdown",
+            "Linker (@ID)",
+            "Flow Builder",
+            "DatePicker" // [THÊM MỚI NGÀY 27] Hỗ trợ UC-MGT-01
     );
     public final ObservableList<ArtifactTemplate.FieldTemplate> currentFields = FXCollections.observableArrayList();
 
