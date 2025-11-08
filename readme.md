@@ -53,11 +53,12 @@ Bạn **phải** cài đặt các công cụ sau và thêm chúng vào `PATH` h�
     echo 'export PATH="/Library/TeX/texbin:$PATH"' >> ~/.zshrc
     source ~/.zshrc
     ```
-  * (Lệnh này tạo một file mới tên là TeX trong thư mục /etc/paths.d/ và đặt đường dẫn /Library/TeX/texbin vào đó. Đây là cách chuẩn của macOS để thêm PATH cho mọi ứng dụng).
-    ```bash
-    echo "/Library/TeX/texbin" | sudo tee /etc/paths.d/TeX
-    ```
-  * (BasicTeX là bản cài đặt nhỏ. Nếu gặp lỗi thiếu gói (package), bạn có thể cài bản đầy đủ: `brew install --cask mactex`)*.
+* (Lệnh này tạo một file mới tên là TeX trong thư mục /etc/paths.d/ và đặt đường dẫn /Library/TeX/texbin vào đó. Đây là cách chuẩn của macOS để thêm PATH cho mọi ứng dụng).
+  ```bash
+  echo "/Library/TeX/texbin" | sudo tee /etc/paths.d/TeX
+  ```
+* (BasicTeX là bản cài đặt nhỏ. Nếu gặp lỗi thiếu gói (package), bạn có thể cài bản đầy đủ: `brew install --cask mactex`)*.
+* Reload lại IDE để nhận cài đặt môi trường mới.
 * **Linux (Ubuntu/Debian):**
     ```bash
     sudo apt-get update
