@@ -15,10 +15,10 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
-import javafx.scene.Node; // [ĐÃ SỬA] Thêm import
+import javafx.scene.Node;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane; // [ĐÃ SỬA] Thêm import
-import javafx.scene.control.TextField; // [ĐÃ SỬA] Thêm import
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.util.Duration;
 import org.slf4j.Logger;
@@ -35,8 +35,8 @@ import java.util.Map;
 
 /**
  * "Brain" cho ArtifactView.
- * [CẬP NHẬT] Tái cấu trúc (refactor)
- * để nhận dữ liệu khởi tạo (init data) từ Map (UserData).
+ * [CẬP NHẬT] Sửa lỗi mất folderId khi lưu,
+ * và thêm logic "Save on Close" (Lưu khi Đóng tab).
  */
 public class ArtifactViewModel {
     private static final Logger logger = LoggerFactory.getLogger(ArtifactViewModel.class);
@@ -52,11 +52,12 @@ public class ArtifactViewModel {
      * Model (dữ liệu)
      */
     private Artifact artifact;
-    private ArtifactTemplate template; // [MỚI] Lưu template
+    private ArtifactTemplate template;
 
     /**
-     * [MỚI] Các trường (field) này
-     * chỉ dùng khi tạo artifact MỚI
+     * [SỬA LỖI] Các trường (field) này
+     * giờ đây được dùng
+     * để lưu trữ vị trí của artifact.
      */
     private String parentRelativePath;
     private String parentFolderId;
@@ -70,16 +71,7 @@ public class ArtifactViewModel {
     public final Map<String, Property<?>> dynamicFields = new HashMap<>();
     private final PauseTransition autoSaveTimer;
 
-    /**
-     * [MỚI] Cờ (flag)
-     * để ngăn chặn việc khởi tạo (initialize) hai lần
-     */
     private boolean isInitialized = false;
-
-    /**
-     * [MỚI] Tham chiếu đến Tab (JavaFX)
-     * mà ViewModel này quản lý
-     */
     private Tab myTab;
 
 
@@ -108,7 +100,7 @@ public class ArtifactViewModel {
     }
 
     /**
-     * [MỚI] Cung cấp cờ (flag)
+     * Cung cấp cờ (flag)
      * cho ArtifactView.
      */
     public boolean isNotInitialized() {
@@ -124,13 +116,12 @@ public class ArtifactViewModel {
      */
     public void initializeData(Tab tab) {
         this.isInitialized = true;
-        this.myTab = tab; // [MỚI] Lưu tham chiếu đến Tab
+        this.myTab = tab;
         Object userData = tab.getUserData();
 
         if (userData instanceof Map) {
             /**
              * TRƯỜNG HỢP 1: TẠO ARTIFACT MỚI
-             * (UserData là một Map từ MainViewModel)
              */
             Map<String, Object> creationData = (Map<String, Object>) userData;
             this.template = (ArtifactTemplate) creationData.get("template");
@@ -141,9 +132,18 @@ public class ArtifactViewModel {
             this.artifact.setFields(new HashMap<>());
             this.artifact.setArtifactType(template.getPrefixId());
             this.artifact.setTemplateId(template.getTemplateId());
-            // artifact.relativePath SẼ ĐƯỢC SET KHI LƯU LẦN ĐẦU
 
             tab.setText("New " + template.getPrefixId());
+
+            /**
+             * [SỬA LỖI 2] Gắn (Attach) listener (trình lắng nghe)
+             * Lưu-khi-Đóng (Save-on-Close) cho tab MỚI.
+             */
+            this.myTab.setOnCloseRequest(event -> {
+                logger.debug("Đóng tab MỚI. Đang kích hoạt lưu (save)...");
+                autoSaveTimer.stop();
+                saveArtifact();
+            });
 
         } else {
             logger.error("Không thể khởi tạo ArtifactViewModel: UserData không phải là Map.");
@@ -151,13 +151,12 @@ public class ArtifactViewModel {
     }
 
     /**
-     * [CŨ] Hàm này giờ chỉ được gọi khi MỞ (OPEN) file.
-     * Hàm initializeData(Tab tab) sẽ được gọi khi TẠO MỚI (NEW).
+     * Hàm này giờ chỉ được gọi khi MỞ (OPEN) file.
      */
     public void initializeData(ArtifactTemplate template, Artifact loadedArtifact, Tab tab) {
-        if (this.isInitialized) return; // Chỉ cho phép chạy 1 lần
+        if (this.isInitialized) return;
         this.isInitialized = true;
-        this.myTab = tab; // [MỚI] Lưu tham chiếu đến Tab
+        this.myTab = tab;
 
         if (loadedArtifact != null) {
             // --- MỞ ARTIFACT ĐÃ TỒN TẠI ---
@@ -165,6 +164,33 @@ public class ArtifactViewModel {
             this.template = template;
             this.id.set(artifact.getId());
             this.name.set(artifact.getName());
+
+            /**
+             * [SỬA LỖI 1] Phải lưu lại folderId
+             * và đường dẫn (path) của artifact
+             * đã tải (load),
+             * nếu không, saveArtifact() sẽ set chúng thành null.
+             */
+            this.parentFolderId = loadedArtifact.getFolderId();
+            String loadedPath = loadedArtifact.getRelativePath();
+            if (loadedPath != null && !loadedPath.isEmpty()) {
+                File f = new File(loadedPath);
+                String parentDir = f.getParent();
+                this.parentRelativePath = (parentDir != null) ? parentDir : "";
+            } else {
+                this.parentRelativePath = "";
+            }
+
+            /**
+             * [SỬA LỖI 2] Gắn (Attach) listener (trình lắng nghe)
+             * Lưu-khi-Đóng (Save-on-Close) cho tab CŨ.
+             */
+            this.myTab.setOnCloseRequest(event -> {
+                logger.debug("Đóng tab CŨ ({}). Đang kích hoạt lưu (save)...", loadedArtifact.getId());
+                autoSaveTimer.stop();
+                saveArtifact();
+            });
+
         } else {
             // --- (Dự phòng) TẠO ARTIFACT MỚI ---
             this.template = template;
@@ -173,6 +199,17 @@ public class ArtifactViewModel {
             this.artifact.setArtifactType(template.getPrefixId());
             this.artifact.setTemplateId(template.getTemplateId());
             logger.warn("ArtifactViewModel được khởi tạo (MỚI) mà không có dữ liệu Tab. RelativePath sẽ là null.");
+
+            /**
+             * [SỬA LỖI 2] Gắn (Attach) listener (trình lắng nghe)
+             * Lưu-khi-Đóng (Save-on-Close) cho tab MỚI
+             * (trường hợp dự phòng).
+             */
+            this.myTab.setOnCloseRequest(event -> {
+                logger.debug("Đóng tab MỚI (Dự phòng). Đang kích hoạt lưu (save)...");
+                autoSaveTimer.stop();
+                saveArtifact();
+            });
         }
     }
 
@@ -184,11 +221,6 @@ public class ArtifactViewModel {
      * @return Property (javafx) tương ứng
      */
     public Property<?> getFieldProperty(String fieldName) {
-        /**
-         * [SỬA LỖI] Trường (Field) "ID"
-         * là một trường (field) đặc biệt,
-         * nó bind (liên kết) với property 'id'
-         */
         if ("ID".equalsIgnoreCase(fieldName)) {
             return this.id;
         }
@@ -300,10 +332,6 @@ public class ArtifactViewModel {
                 artifact.setId(newId);
                 id.set(newId);
 
-                /**
-                 * [FIX] Xây dựng (Build) và gán (set) relativePath
-                 * (parentRelativePath được gán trong initializeData)
-                 */
                 if (this.parentRelativePath == null) {
                     logger.error("parentRelativePath là null khi lưu artifact mới. Auto-save thất bại.");
                     throw new IOException("Không thể lưu artifact: relativePath là null hoặc rỗng.");
@@ -311,7 +339,15 @@ public class ArtifactViewModel {
 
                 String newPath = Path.of(this.parentRelativePath, newId + ".json").toString();
                 artifact.setRelativePath(newPath);
-                artifact.setFolderId(this.parentFolderId); // [ĐÃ SỬA] Gán (Set) folderId
+                artifact.setFolderId(this.parentFolderId);
+            } else {
+                /**
+                 * [SỬA LỖI 1] LƯU FILE ĐÃ CÓ
+                 * Đảm bảo folderId (đã được nạp
+                 * trong initializeData)
+                 * được gán lại vào artifact trước khi lưu.
+                 */
+                artifact.setFolderId(this.parentFolderId);
             }
 
             artifact.setName(name.get());
@@ -323,10 +359,6 @@ public class ArtifactViewModel {
                     Object value = entry.getValue().getValue();
                     artifact.getFields().put(entry.getKey(), (value != null) ? value.toString() : null);
                 } else {
-                    /**
-                     * Bỏ qua (Skip) các trường (field) cố định
-                     * (ID và Name đã được xử lý)
-                     */
                     if (!entry.getKey().equalsIgnoreCase("ID") && !entry.getKey().equalsIgnoreCase("Name")) {
                         artifact.getFields().put(entry.getKey(), entry.getValue().getValue());
                     }
@@ -335,11 +367,6 @@ public class ArtifactViewModel {
 
             artifactRepository.save(artifact);
 
-            /**
-             * [SỬA LỖI] Cập nhật UserData của Tab
-             * thành String ID
-             * (sau khi lưu lần đầu)
-             */
             if (myTab != null && myTab.getUserData() instanceof Map) {
                 myTab.setText(artifact.getId());
                 myTab.setUserData(artifact.getId());
@@ -353,21 +380,15 @@ public class ArtifactViewModel {
     }
 
     /**
-     * [ĐÃ SỬA] Helper (hàm phụ)
+     * Helper (hàm phụ)
      * để tìm (find) Tab (JavaFX)
      * mà ViewModel này đang quản lý.
-     * (Logic cũ bị lỗi vì ID field chưa được render)
      */
     private Tab findMyTab() {
         if (myTab != null) {
             return myTab;
         }
 
-        /**
-         * Fallback (Phương án dự phòng)
-         * (Logic này không đáng tin cậy
-         * và chỉ được gọi nếu 'myTab' là null)
-         */
         try {
             Property<?> nameProp = dynamicFields.get("Name");
             if (nameProp != null && nameProp.getValue() instanceof TextField) {
@@ -377,7 +398,7 @@ public class ArtifactViewModel {
                     if (tabPane != null) {
                         for (Tab tab : tabPane.getTabs()) {
                             if (tab.getContent() != null && tab.getContent().equals(nameFieldNode.getParent().getParent().getParent())) {
-                                this.myTab = tab; // Cache (Lưu) lại
+                                this.myTab = tab;
                                 return tab;
                             }
                         }
@@ -408,7 +429,6 @@ public class ArtifactViewModel {
             }
 
             if (flowSteps.isEmpty()) {
-                // [SỬA LỖI] Không log lỗi nếu artifact là null (đang tạo mới)
                 if (artifact != null && artifact.getId() != null) {
                     logger.warn("Không tìm thấy dữ liệu Flow (FlowStep) trong artifact {}", artifact.getId());
                 }
@@ -431,13 +451,10 @@ public class ArtifactViewModel {
      * Logic nghiệp vụ cho "Gemini: Đề xuất" (UC-DEV-03).
      */
     public void generateFlowFromGemini() {
-        /**
-         * 1. Lấy (Get) Tên và Mô tả (Description)
-         */
         String artifactName = name.get();
         String artifactDescription = getStringProperty("Description").get();
         if (artifactDescription == null) {
-            artifactDescription = getStringProperty("Mô tả").get(); // Thử tên tiếng Việt
+            artifactDescription = getStringProperty("Mô tả").get();
         }
 
         if (artifactName == null || artifactName.isEmpty() || artifactDescription == null || artifactDescription.isEmpty()) {
@@ -445,9 +462,6 @@ public class ArtifactViewModel {
             return;
         }
 
-        /**
-         * 2. Lấy (Get) API Key
-         */
         ProjectConfig config = projectService.getCurrentProjectConfig();
         if (config == null || config.getGeminiApiKey() == null || config.getGeminiApiKey().isEmpty()) {
             projectStateService.setStatusMessage("Lỗi: Gemini API Key chưa được cấu hình (Settings > API Keys).");
@@ -455,9 +469,6 @@ public class ArtifactViewModel {
         }
         String apiKey = config.getGeminiApiKey();
 
-        /**
-         * 3. Lấy (Get) danh sách (list) Flow để cập nhật
-         */
         ObservableList<FlowStep> flowStepList = null;
         for (Map.Entry<String, Property<?>> entry : dynamicFields.entrySet()) {
             if (entry.getValue() instanceof SimpleListProperty) {
@@ -472,9 +483,6 @@ public class ArtifactViewModel {
         }
         final ObservableList<FlowStep> targetList = flowStepList;
 
-        /**
-         * 4. Chạy Tác vụ (Task) trên luồng nền (background thread)
-         */
         String finalArtifactDescription = artifactDescription;
         Task<List<FlowStep>> geminiTask = new Task<>() {
             @Override
@@ -485,9 +493,6 @@ public class ArtifactViewModel {
             @Override
             protected void succeeded() {
                 List<FlowStep> suggestedSteps = getValue();
-                /**
-                 * 5. Cập nhật UI trên luồng FX
-                 */
                 Platform.runLater(() -> {
                     targetList.clear();
                     targetList.addAll(suggestedSteps);
@@ -519,7 +524,7 @@ public class ArtifactViewModel {
     public StringProperty nameProperty() { return name; }
 
     /**
-     * [MỚI] Getter cho Template
+     * Getter cho Template
      * (dùng bởi RenderService)
      */
     public ArtifactTemplate getTemplate() {

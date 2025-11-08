@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.web.WebView?>
 
-<BorderPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.rms.app.view.ProjectGraphView"
-            prefHeight="600" prefWidth="800">
-    <center>
-        <WebView fx:id="webView" BorderPane.alignment="CENTER"/>
-    </center>
-</BorderPane>
+<StackPane xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.rms.app.view.ProjectGraphView"
+           prefHeight="600" prefWidth="800"
+           fx:id="rootPane">
+
+    <WebView fx:id="webView"/>
+
+    <Label fx:id="loadingLabel" text="Đang tải dữ liệu Sơ đồ Quan hệ..."
+           style="-fx-font-size: 1.5em; -fx-text-fill: #AEAEAE;"/>
+</StackPane>

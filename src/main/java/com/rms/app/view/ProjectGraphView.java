@@ -6,6 +6,8 @@ import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import netscape.javascript.JSObject;
@@ -19,28 +21,24 @@ import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
 /**
- * "Dumb" View Controller cho ProjectGraphView.fxml (UC-MOD-02).
- * Thêm JavaBridge để hỗ trợ double-click (drill-down).
+ * View Controller cho ProjectGraphView.fxml (UC-MOD-02).
+ * Hỗ trợ JavaBridge để cho phép double-click (drill-down).
+ * Chứa Label loading và nền tối để tránh flash trắng.
  */
 public class ProjectGraphView {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectGraphView.class);
     @FXML private WebView webView;
+    @FXML private StackPane rootPane;
+    @FXML private Label loadingLabel;
+
     private final ProjectGraphViewModel viewModel;
     private WebEngine engine;
-
-    /**
-     * [SỬA LỖI] Thêm một tham chiếu mạnh (strong reference)
-     * đến đối tượng JavaBridge để ngăn Bộ dọn rác (GC)
-     * xóa nó.
-     */
     private JavaBridge bridgeInstance;
-
     private String htmlTemplate = "";
 
     /**
-     * Lớp (class) lồng nhau (nested)
-     * làm cầu nối (bridge) JavaScript-to-Java.
+     * Lớp lồng nhau làm cầu nối JavaScript-to-Java.
      */
     public class JavaBridge {
         /**
@@ -51,10 +49,6 @@ public class ProjectGraphView {
          */
         public void onNodeDoubleClick(String nodeId) {
             if (nodeId != null && !nodeId.isEmpty()) {
-                /**
-                 * [SỬA LỖI 1] Phải chạy trên luồng JavaFX chính
-                 * vì nó sẽ sửa đổi Scene Graph (mở cửa sổ mới).
-                 */
                 Platform.runLater(() -> {
                     viewModel.openArtifact(nodeId);
                 });
@@ -70,8 +64,7 @@ public class ProjectGraphView {
     }
 
     /**
-     * Tải (load) file HTML template (mẫu) vào bộ nhớ (memory)
-     * chỉ một lần.
+     * Tải file HTML template vào bộ nhớ.
      */
     private void loadTemplate() {
         try (InputStream is = getClass().getResourceAsStream("graph-template.html")) {
@@ -91,44 +84,45 @@ public class ProjectGraphView {
 
     @FXML
     public void initialize() {
+        if (rootPane != null) {
+            rootPane.setStyle("-fx-background-color: -fx-base;");
+        }
+
+        /**
+         * [SỬA LỖI] Ép WebView phải trong suốt
+         * để hiển thị màu -fx-base của rootPane
+         * trong khi chờ tải,
+         * loại bỏ hoàn toàn flash trắng.
+         */
+        if (webView != null) {
+            webView.setStyle("-fx-background-color: transparent;");
+        }
+
         engine = webView.getEngine();
         engine.setJavaScriptEnabled(true);
 
-        /**
-         * Thiết lập cầu nối (bridge) JS-to-Java
-         */
         engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
             if (newState == Worker.State.SUCCEEDED) {
                 JSObject window = (JSObject) engine.executeScript("window");
 
-                /**
-                 * [SỬA LỖI] Tạo và lưu trữ một tham chiếu mạnh
-                 * (strong reference) đến cầu nối (bridge)
-                 * để ngăn GC dọn dẹp nó.
-                 */
                 this.bridgeInstance = new JavaBridge();
                 window.setMember("javaBridge", this.bridgeInstance);
+
+                if (loadingLabel != null) {
+                    loadingLabel.setVisible(false);
+                }
             }
         });
 
-
-        /**
-         * Tạo các listener (trình lắng nghe)
-         * để inject (tiêm) JSON khi nó sẵn sàng.
-         */
         ChangeListener<String> dataListener = (obs, oldV, newV) -> renderGraph();
         viewModel.nodesJson.addListener(dataListener);
         viewModel.edgesJson.addListener(dataListener);
 
-        /**
-         * Kích hoạt (Trigger) tải (load) dữ liệu (data)
-         */
         viewModel.loadGraphData();
     }
 
     /**
-     * Inject (Tiêm) dữ liệu (data) JSON vào HTML
-     * và tải (load) nó vào WebEngine.
+     * Inject dữ liệu JSON vào HTML và tải nó vào WebEngine.
      */
     private void renderGraph() {
         String nodes = viewModel.nodesJson.get();
@@ -138,7 +132,7 @@ public class ProjectGraphView {
             return;
         }
 
-        logger.info("Đang render (vẽ) Sơ đồ Quan hệ (Graph) vào WebView...");
+        logger.info("Đang render Sơ đồ Quan hệ (Graph) vào WebView...");
         String finalHtml = htmlTemplate
                 .replace("%%NODES_JSON%%", nodes)
                 .replace("%%EDGES_JSON%%", edges);

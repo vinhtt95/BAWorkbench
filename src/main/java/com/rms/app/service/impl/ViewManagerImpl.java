@@ -205,24 +205,12 @@ public class ViewManagerImpl implements IViewManager {
         newStage.setScene(scene);
 
         /**
-         * Logic "Re-dock" (Gắn lại)
+         * [ĐÃ THAY ĐỔI] Đã loại bỏ logic "Re-dock".
+         * Khi cửa sổ mới bị đóng, tab sẽ bị đóng vĩnh viễn.
          */
         newStage.setOnCloseRequest(event -> {
-            logger.debug("Đang re-dock (gắn lại) tab...");
-
-            /**
-             * Gỡ (remove) content khỏi StackPane
-             */
-            newRoot.getChildren().remove(content);
-            tab.setContent(content);
-
-            /**
-             * [SỬA LỖI 1] Thêm (add) tab
-             * trở lại vào vị trí đầu tiên (index 0)
-             * của TabPane chính.
-             */
-            mainTabPane.getTabs().add(0, tab);
-            mainTabPane.getSelectionModel().select(tab);
+            logger.debug("Cửa sổ tab nổi đã đóng. Không re-dock.");
+            // Không làm gì cả, cửa sổ cứ thế đóng.
         });
 
         newStage.show();
