@@ -37,6 +37,9 @@ import java.util.Map;
  * "Brain" cho ArtifactView.
  * [CẬP NHẬT] Sửa lỗi mất folderId khi lưu,
  * và thêm logic "Save on Close" (Lưu khi Đóng tab).
+ * [SỬA LỖI 2] Gửi tin nhắn trạng thái (status message)
+ * phân biệt giữa TẠO MỚI (NEW) và LƯU (SAVE)
+ * để ngăn chặn việc làm mới (refresh) TreeView không cần thiết.
  */
 public class ArtifactViewModel {
     private static final Logger logger = LoggerFactory.getLogger(ArtifactViewModel.class);
@@ -102,6 +105,7 @@ public class ArtifactViewModel {
     /**
      * Cung cấp cờ (flag)
      * cho ArtifactView.
+     * @return boolean true nếu ViewModel chưa được khởi tạo.
      */
     public boolean isNotInitialized() {
         return !this.isInitialized;
@@ -152,6 +156,9 @@ public class ArtifactViewModel {
 
     /**
      * Hàm này giờ chỉ được gọi khi MỞ (OPEN) file.
+     * @param template Template của artifact
+     * @param loadedArtifact Artifact đã được tải từ đĩa
+     * @param tab Tab JavaFX chứa view này
      */
     public void initializeData(ArtifactTemplate template, Artifact loadedArtifact, Tab tab) {
         if (this.isInitialized) return;
@@ -233,6 +240,8 @@ public class ArtifactViewModel {
 
     /**
      * Cung cấp StringProperty (dùng cho TextField, TextArea, Dropdown, Linker)
+     * @param fieldName Tên của trường (field)
+     * @return StringProperty cho trường đó
      */
     public StringProperty getStringProperty(String fieldName) {
         return (StringProperty) dynamicFields.computeIfAbsent(fieldName, key -> {
@@ -245,6 +254,8 @@ public class ArtifactViewModel {
 
     /**
      * Cung cấp ObjectProperty<LocalDate> (dùng cho DatePicker)
+     * @param fieldName Tên của trường (field)
+     * @return ObjectProperty cho trường đó
      */
     public ObjectProperty<LocalDate> getLocalDateProperty(String fieldName) {
         return (ObjectProperty<LocalDate>) dynamicFields.computeIfAbsent(fieldName, key -> {
@@ -324,7 +335,9 @@ public class ArtifactViewModel {
     private void saveArtifact() {
         logger.debug("Kích hoạt Auto-save...");
         try {
-            if (artifact.getId() == null) {
+            boolean isNewArtifact = (artifact.getId() == null);
+
+            if (isNewArtifact) {
                 /**
                  * LƯU LẦN ĐẦU (Tạo mới)
                  */
@@ -372,12 +385,35 @@ public class ArtifactViewModel {
                 myTab.setUserData(artifact.getId());
             }
 
-            projectStateService.setStatusMessage("Đã lưu " + artifact.getId());
+            /**
+             * [SỬA LỖI] Gửi (Fire) một tin nhắn
+             * (message) trạng thái (status)
+             * khác nhau cho TẠO MỚI (NEW)
+             * và CẬP NHẬT (UPDATE).
+             */
+            if (isNewArtifact) {
+                projectStateService.setStatusMessage("Đã TẠO MỚI " + artifact.getId());
+            } else {
+                projectStateService.setStatusMessage("Đã lưu " + artifact.getId());
+            }
+
         } catch (IOException e) {
             logger.error("Lỗi Auto-save", e);
             projectStateService.setStatusMessage("Lỗi Auto-save: " + e.getMessage());
         }
     }
+
+    /**
+     * [THÊM MỚI] Kích hoạt (trigger) lưu (save)
+     * một cách thủ công (manually)
+     * khi cửa sổ "undocked" (tháo) bị đóng.
+     */
+    public void triggerSaveOnClose() {
+        logger.debug("Đóng cửa sổ (undocked). Đang kích hoạt lưu (save)...");
+        autoSaveTimer.stop();
+        saveArtifact();
+    }
+
 
     /**
      * Helper (hàm phụ)
@@ -526,6 +562,7 @@ public class ArtifactViewModel {
     /**
      * Getter cho Template
      * (dùng bởi RenderService)
+     * @return Template của artifact
      */
     public ArtifactTemplate getTemplate() {
         return this.template;

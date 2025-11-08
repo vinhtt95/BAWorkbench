@@ -38,6 +38,9 @@ import java.util.UUID;
  * Quản lý trạng thái chung của ứng dụng.
  * [CẬP NHẬT] Tái cấu trúc (refactor) để hỗ trợ
  * tạo/xóa/điều hướng cây thư mục đa cấp.
+ * [SỬA LỖI] Ngăn chặn việc làm mới (refresh)
+ * TreeView khi "Lưu" (Save)
+ * để tránh làm thu gọn (collapse) cây.
  */
 public class MainViewModel {
 
@@ -88,12 +91,18 @@ public class MainViewModel {
          * để tự động làm mới (refresh) cây.
          */
         projectStateService.statusMessageProperty().addListener((obs, oldMsg, newMsg) -> {
+            /**
+             * [SỬA LỖI] CHỈ refresh (làm mới)
+             * cây (tree) khi có thay đổi
+             * cấu trúc (structure),
+             * KHÔNG refresh (làm mới) khi "Đã lưu" (save).
+             */
             if (newMsg != null && (
-                    newMsg.startsWith("Đã lưu") ||
-                            newMsg.startsWith("Import hoàn tất") ||
+                    newMsg.startsWith("Import hoàn tất") ||
                             newMsg.startsWith("Hoàn tất.") ||
                             newMsg.startsWith("Đã xóa") ||
-                            newMsg.startsWith("Đã tạo thư mục")
+                            newMsg.startsWith("Đã tạo thư mục") ||
+                            newMsg.startsWith("Đã TẠO MỚI")
             )) {
                 refreshProjectTree();
             }
@@ -947,10 +956,18 @@ public class MainViewModel {
     }
 
 
+    /**
+     * Cung cấp Property của ProjectRoot (cho TreeView).
+     * @return ObjectProperty chứa TreeItem gốc
+     */
     public ObjectProperty<TreeItem<String>> projectRootProperty() {
         return projectRoot;
     }
 
+    /**
+     * Cho phép MainView inject (tiêm) TabPane chính vào ViewModel.
+     * @param mainTabPane TabPane chính của ứng dụng
+     */
     public void setMainTabPane(TabPane mainTabPane) {
         this.mainTabPane = mainTabPane;
     }
