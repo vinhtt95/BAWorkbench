@@ -29,6 +29,13 @@ public class ProjectGraphView {
     private final ProjectGraphViewModel viewModel;
     private WebEngine engine;
 
+    /**
+     * [SỬA LỖI] Thêm một tham chiếu mạnh (strong reference)
+     * đến đối tượng JavaBridge để ngăn Bộ dọn rác (GC)
+     * xóa nó.
+     */
+    private JavaBridge bridgeInstance;
+
     private String htmlTemplate = "";
 
     /**
@@ -93,7 +100,14 @@ public class ProjectGraphView {
         engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
             if (newState == Worker.State.SUCCEEDED) {
                 JSObject window = (JSObject) engine.executeScript("window");
-                window.setMember("javaBridge", new JavaBridge());
+
+                /**
+                 * [SỬA LỖI] Tạo và lưu trữ một tham chiếu mạnh
+                 * (strong reference) đến cầu nối (bridge)
+                 * để ngăn GC dọn dẹp nó.
+                 */
+                this.bridgeInstance = new JavaBridge();
+                window.setMember("javaBridge", this.bridgeInstance);
             }
         });
 
