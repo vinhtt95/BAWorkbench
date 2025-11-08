@@ -629,15 +629,16 @@ public class MainViewModel {
         try {
             if (mainTabPane != null) {
                 mainTabPane.getTabs().clear();
-                Tab welcomeTab = new Tab("Welcome");
-                welcomeTab.setContent(new Label("Chào mừng đến với RMS v1.0"));
-                mainTabPane.getTabs().add(welcomeTab);
-                mainTabPane.getSelectionModel().select(welcomeTab);
+                /** [ĐÃ SỬA] Xóa logic tab "Welcome" theo yêu cầu */
             }
             ProjectConfig config = projectService.openProject(directory);
             currentProject.set(config);
             projectStateService.setCurrentProjectDirectory(directory);
             indexService.validateAndRebuildIndex(); // Kích hoạt quét (scan) đệ quy
+
+            /** [ĐÃ THÊM] Tự động mở Graph View sau khi mở dự án */
+            openGraphViewTab();
+
             /**
              * refreshProjectTree() sẽ được gọi tự động
              * bởi listener khi indexService.validateAndRebuildIndex()
