@@ -15,10 +15,13 @@
                 <VBox fx:id="formContainer" spacing="15"/>
             </ScrollPane>
         </Tab>
+
         <Tab text="Diagram View" fx:id="diagramTab">
-            <StackPane style="-fx-background-color: -fx-control-inner-background;">
-                <ImageView fx:id="diagramImageView" preserveRatio="true"/>
-            </StackPane>
+            <ScrollPane fitToWidth="true" fitToHeight="true">
+                <StackPane style="-fx-background-color: -fx-control-inner-background;">
+                    <ImageView fx:id="diagramImageView" preserveRatio="true"/>
+                </StackPane>
+            </ScrollPane>
         </Tab>
     </tabs>
 </TabPane>
