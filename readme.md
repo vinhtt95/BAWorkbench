@@ -13,30 +13,54 @@ Nó thay thế quy trình làm việc thủ công (Word + Excel + Visio) bằng 
 * **Quản lý (F-MGT):** Theo dõi tiến độ với bảng Kanban (kéo-thả) và quản lý phiên bản (Releases).
 * **Xuất bản (F-PUB):** Xuất (Export) dữ liệu ra Excel hoặc tạo tài liệu PDF/DOCX tùy chỉnh bằng Trình thiết kế Template Xuất bản.
 
-## Yêu cầu Hệ thống (Bắt buộc)
+## Cài đặt Môi trường (Bắt buộc)
 
 Bạn **phải** cài đặt các công cụ sau và thêm chúng vào `PATH` hệ thống để ứng dụng hoạt động đầy đủ.
 
-1.  **Java JDK 21+:** Cần thiết để chạy ứng dụng.
-2.  **Pandoc:** Cần thiết cho chức năng "Export to Document (PDF/DOCX)" (UC-PUB-01).
-3.  **XeLaTeX (Khuyến nghị: BasicTeX hoặc MiKTeX):** Cần thiết cho Pandoc để tạo file PDF hỗ trợ Unicode (Tiếng Việt).
+### 1. Java JDK 21+
+* **Mục đích:** Cần thiết để chạy ứng dụng.
+* **Tải về:** Bạn có thể tải **OpenJDK** (khuyến nghị) hoặc Oracle JDK từ trang chủ chính thức.
 
-## Cách Chạy (Development)
-
-1.  Clone (Sao chép) repository.
-2.  Mở dự án trong IntelliJ IDEA hoặc IDE Java bất kỳ.
-3.  Chạy lệnh Maven:
+### 2. Pandoc
+* **Mục đích:** Cần thiết cho chức năng "Export to Document (PDF/DOCX)" (UC-PUB-01).
+* **Windows (Khuyến nghị: dùng Chocolatey):**
     ```bash
-    mvn clean javafx:run
+    choco install pandoc
+    ```
+  (Hoặc tải file `.msi` từ [trang chủ Pandoc](https://pandoc.org/installing.html))
+* **macOS (Khuyến nghị: dùng Homebrew):**
+    ```bash
+    brew install pandoc
+    ```
+* **Linux (Ubuntu/Debian):**
+    ```bash
+    sudo apt-get update
+    sudo apt-get install pandoc
     ```
 
-## Cách Đóng gói (Tạo file cài đặt)
-
-Ứng dụng này sử dụng `jpackage` (thông qua Maven) để tạo file cài đặt gốc (`.exe`, `.dmg`, `.deb`).
-
-1.  Đảm bảo các yêu cầu hệ thống (Java, Pandoc, XeLaTeX) đã được cài đặt.
-2.  Chạy lệnh Maven sau:
+### 3. XeLaTeX (MiKTeX / BasicTeX)
+* **Mục đích:** Cần thiết cho Pandoc để tạo file PDF hỗ trợ Unicode (Tiếng Việt).
+* **Windows (Khuyến nghị: MiKTeX):**
     ```bash
-    mvn clean package
+    choco install miktex
     ```
-3.  Tìm file cài đặt của bạn trong thư mục `target/jpackage/`.
+  *(Lưu ý: Sau khi cài, bạn có thể cần chạy MiKTeX Console một lần để nó hoàn tất cài đặt và tự động tải các gói (package) khi cần).*
+* **macOS (Khuyến nghị: BasicTeX):**
+    ```bash
+    brew install --cask basictex
+    ```
+  *(BasicTeX là bản cài đặt nhỏ. Nếu gặp lỗi thiếu gói (package), bạn có thể cài bản đầy đủ: `brew install --cask mactex`)*.
+* **Linux (Ubuntu/Debian):**
+    ```bash
+    sudo apt-get update
+    sudo apt-get install texlive-xetex
+    ```
+  *(Bạn cũng có thể cần `texlive-lang-vietnamese` để hỗ trợ Tiếng Việt đầy đủ).*
+
+### 4. Kiểm tra Cài đặt
+Sau khi cài đặt, **khởi động lại** Terminal (hoặc Command Prompt/PowerShell) và chạy các lệnh sau để xác nhận:
+
+```bash
+java --version
+pandoc --version
+xelatex --version
