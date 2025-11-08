@@ -7,7 +7,6 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # Chuyển đến thư mục đó (thư mục gốc của dự án)
 cd "$SCRIPT_DIR"
 
-echo "Đang khởi chạy ứng dụng Emby SDK Helper..."
 echo "Vị trí dự án: $SCRIPT_DIR"
 
 # Cấp quyền thực thi cho mvnw (nếu chưa có)
