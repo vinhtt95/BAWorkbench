@@ -110,6 +110,27 @@
 
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>com.rms.app.MainApplication</mainClass>
+                    <launcher>BAWorkbench</launcher>
+                    <jpackageDir>${project.build.directory}/jpackage</jpackageDir>
+                    <options>
+                        <option>--name</option>
+                        <option>BAWorkbench</option>
+                        <option>--app-version</option>
+                        <option>${project.version}</option>
+                        <option>--vendor</option>
+                        <option>RMS Corp</option>
+                        <option>--copyright</option>
+                        <option>Copyright 2025</option>
+                        <option>--icon</option>
+                        <option>${project.basedir}/src/main/resources/com/rms/app/icon.icns</option> </options>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
