@@ -4,9 +4,9 @@ import com.google.inject.Inject;
 import com.rms.app.model.Artifact;
 import com.rms.app.model.ArtifactTemplate;
 import com.rms.app.model.ProjectConfig;
-import com.rms.app.model.ProjectFolder; // [MỚI] Import model thư mục
+import com.rms.app.model.ProjectFolder;
 import com.rms.app.service.*;
-import com.rms.app.service.impl.ProjectServiceImpl; // [MỚI] Import các lớp TreeItem
+import com.rms.app.service.impl.ProjectServiceImpl;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -31,7 +31,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID; // [MỚI] Import UUID
+import java.util.UUID;
 
 /**
  * "Brain" - Logic UI cho MainView.
@@ -50,7 +50,7 @@ public class MainViewModel {
     private final ISearchService searchService;
     private final IIndexService indexService;
     private final IExportService exportService;
-    private final ISqliteIndexRepository sqliteIndexRepository; // [MỚI]
+    private final ISqliteIndexRepository sqliteIndexRepository;
 
     private final ObjectProperty<TreeItem<String>> projectRoot;
     private final ObjectProperty<ProjectConfig> currentProject;
@@ -68,7 +68,7 @@ public class MainViewModel {
                          ISearchService searchService,
                          IIndexService indexService,
                          IExportService exportService,
-                         ISqliteIndexRepository sqliteIndexRepository) { // [MỚI]
+                         ISqliteIndexRepository sqliteIndexRepository) {
         this.projectService = projectService;
         this.templateService = templateService;
         this.viewManager = viewManager;
@@ -77,7 +77,7 @@ public class MainViewModel {
         this.searchService = searchService;
         this.indexService = indexService;
         this.exportService = exportService;
-        this.sqliteIndexRepository = sqliteIndexRepository; // [MỚI]
+        this.sqliteIndexRepository = sqliteIndexRepository;
 
         this.projectRoot = new SimpleObjectProperty<>(new TreeItem<>("Chưa mở dự án"));
         this.currentProject = new SimpleObjectProperty<>(null);
@@ -180,7 +180,7 @@ public class MainViewModel {
     }
 
     /**
-     * [MỚI] Logic tạo một Thư mục con (Sub-folder) mới
+     * Logic tạo một Thư mục con (Sub-folder) mới
      *
      * @param selectedItem Mục (Item) TreeView (Thư mục)
      * @param folderName Tên thư mục mới
@@ -261,7 +261,7 @@ public class MainViewModel {
 
 
     /**
-     * [CẬP NHẬT] Logic tạo Artifact MỚI
+     * Logic tạo Artifact MỚI
      *
      * @param templateName Tên template (ví dụ: "Use Case")
      * @param selectedItem Mục (Item) TreeView (Thư mục)
@@ -279,7 +279,7 @@ public class MainViewModel {
             }
 
             /**
-             * [MỚI] Xác định thư mục đích (destination folder) và kiểm tra scope
+             * Xác định thư mục đích (destination folder) và kiểm tra scope
              */
             ProjectServiceImpl.FolderTreeItem targetFolder = null;
             String targetFolderPath = "";
@@ -309,8 +309,7 @@ public class MainViewModel {
             }
 
             /**
-             * [MỚI] Kiểm tra Scope
-             * (Chỉ các thư mục gốc (root folder) mới có scope)
+             * Kiểm tra Scope
              */
             if (artifactTypeScope != null && !artifactTypeScope.equals(template.getPrefixId())) {
                 throw new IOException("Không thể tạo '" + template.getTemplateName() + "' (" + template.getPrefixId() +
@@ -319,13 +318,12 @@ public class MainViewModel {
             }
 
             /**
-             * Mở tab (Tab) (sử dụng implementation cũ)
+             * Mở tab (Tab)
              */
             Tab newTab = viewManager.openArtifactTab(template);
 
             /**
-             * [MỚI] Truyền thông tin đường dẫn (path) và scope vào tab
-             * để ArtifactViewModel (File 11) có thể lấy
+             * Truyền thông tin đường dẫn (path) và scope vào tab
              */
             newTab.setUserData(Map.of(
                     "isNew", true,
@@ -343,32 +341,27 @@ public class MainViewModel {
     }
 
     /**
-     * Logic mở Artifact đã tồn tại
+     * [TÁI CẤU TRÚC] Helper (hàm phụ)
+     * tìm tab artifact đã mở hoặc tạo tab mới.
      *
-     * @param relativePath Đường dẫn tương đối (ví dụ: "UC/Tài Khoản/UC001.json")
+     * @param relativePath Đường dẫn tương đối
+     * @return Tab (mới hoặc đã có)
      */
-    public void openArtifact(String relativePath) {
-        if (relativePath == null || !relativePath.endsWith(".json")) {
-            logger.warn("Bỏ qua mở file không hợp lệ: {}", relativePath);
-            return;
-        }
+    private Tab findOrCreateArtifactTab(String relativePath) {
         String id = new File(relativePath).getName().replace(".json", "");
 
         /**
-         * Kiểm tra tab đã mở (dựa trên ID)
+         * 1. Kiểm tra tab đã mở (trong main pane)
          */
         for (Tab tab : mainTabPane.getTabs()) {
-            /**
-             * [SỬA LỖI] Phải kiểm tra kiểu (type) của UserData
-             * vì "New Artifact" giờ đây cũng dùng UserData (nhưng là Map)
-             */
             if (tab.getUserData() instanceof String && id.equals(tab.getUserData())) {
-                mainTabPane.getSelectionModel().select(tab);
-                logger.info("Tab cho {} đã mở, chuyển sang tab này.", id);
-                return;
+                return tab; // Trả về tab đã có
             }
         }
 
+        /**
+         * 2. Nếu không tìm thấy, tạo tab mới
+         */
         try {
             Artifact artifact = artifactRepository.load(relativePath);
             if (artifact == null) {
@@ -390,16 +383,75 @@ public class MainViewModel {
                         "cho loại: " + artifact.getArtifactType());
             }
             Tab newTab = viewManager.openArtifactTab(artifact, template);
-            this.mainTabPane.getTabs().add(newTab);
-            mainTabPane.getSelectionModel().select(newTab);
+            return newTab; // Trả về tab mới
+
         } catch (IOException e) {
             logger.error("Lỗi mở artifact: " + relativePath, e);
             showErrorAlert("Lỗi Mở File", e.getMessage());
+            return null;
         }
     }
 
+
     /**
-     * [CẬP NHẬT] Mở một artifact bằng ID của nó.
+     * Logic mở Artifact đã tồn tại (trong Tab)
+     *
+     * @param relativePath Đường dẫn tương đối (ví dụ: "UC/Tài Khoản/UC001.json")
+     */
+    public void openArtifact(String relativePath) {
+        if (relativePath == null || !relativePath.endsWith(".json")) {
+            logger.warn("Bỏ qua mở file không hợp lệ: {}", relativePath);
+            return;
+        }
+
+        Tab tabToOpen = findOrCreateArtifactTab(relativePath);
+        if (tabToOpen == null) {
+            return; // Lỗi đã được hiển thị
+        }
+
+        /**
+         * Logic cũ (mở trong tab)
+         */
+        if (!mainTabPane.getTabs().contains(tabToOpen)) {
+            this.mainTabPane.getTabs().add(tabToOpen);
+        }
+        mainTabPane.getSelectionModel().select(tabToOpen);
+    }
+
+    /**
+     * Mở một artifact trong một CỬA SỔ MỚI (Stage)
+     * (Dùng cho GraphView, BPMNView drill-down)
+     *
+     * @param relativePath Đường dẫn tương đối
+     */
+    public void openArtifactInNewWindow(String relativePath) {
+        if (relativePath == null || !relativePath.endsWith(".json")) {
+            logger.warn("Bỏ qua mở file không hợp lệ: {}", relativePath);
+            return;
+        }
+
+        Tab tabToOpen = findOrCreateArtifactTab(relativePath);
+        if (tabToOpen == null) {
+            return; // Lỗi đã được hiển thị
+        }
+
+        /**
+         * Logic mở cửa sổ mới (UI-02)
+         */
+        if (!mainTabPane.getTabs().contains(tabToOpen)) {
+            mainTabPane.getTabs().add(tabToOpen);
+        }
+        mainTabPane.getSelectionModel().select(tabToOpen); // Chọn nó trước
+
+        /**
+         * Gọi ViewManager để "undock" nó
+         */
+        viewManager.openNewWindowForTab(tabToOpen, mainTabPane);
+    }
+
+
+    /**
+     * Mở một artifact bằng ID của nó (mở trong tab)
      *
      * @param artifactId ID của artifact (ví dụ: "UC001")
      */
@@ -409,7 +461,7 @@ public class MainViewModel {
         }
         try {
             /**
-             * [ĐÃ SỬA] Dùng SearchService để tìm artifact
+             * Dùng SearchService để tìm artifact
              */
             List<Artifact> results = searchService.search(artifactId);
             Artifact foundArtifact = null;
@@ -436,9 +488,43 @@ public class MainViewModel {
         }
     }
 
+    /**
+     * Mở một artifact bằng ID trong CỬA SỔ MỚI.
+     *
+     * @param artifactId ID của artifact
+     */
+    public void openArtifactByIdInNewWindow(String artifactId) {
+        if (artifactId == null || artifactId.isEmpty()) {
+            return;
+        }
+        try {
+            List<Artifact> results = searchService.search(artifactId);
+            Artifact foundArtifact = null;
+            for(Artifact a : results) {
+                if(a.getId().equalsIgnoreCase(artifactId)) {
+                    foundArtifact = a;
+                    break;
+                }
+            }
+
+            if (foundArtifact == null || foundArtifact.getRelativePath() == null) {
+                throw new IOException("Không tìm thấy artifact (hoặc relativePath) cho ID: " + artifactId);
+            }
+
+            /**
+             * Gọi hàm mở cửa sổ mới
+             */
+            openArtifactInNewWindow(foundArtifact.getRelativePath());
+
+        } catch (Exception e) {
+            logger.error("Không thể drill-down đến {}: {}", artifactId, e.getMessage());
+            showErrorAlert("Lỗi Điều hướng", e.getMessage());
+        }
+    }
+
 
     /**
-     * [MỚI] Logic nghiệp vụ Xóa Thư mục hoặc Artifact
+     * Logic nghiệp vụ Xóa Thư mục hoặc Artifact
      *
      * @param selectedItem Mục (Item) TreeView cần xóa
      * @throws IOException Nếu xóa thất bại
@@ -480,12 +566,6 @@ public class MainViewModel {
             Path folderPath = projectRoot.toPath().resolve(relativePath);
 
             /**
-             * [TODO] Cần logic kiểm tra backlink
-             * cho TẤT CẢ artifact con bên trong
-             * (Hiện tại bỏ qua để đơn giản hóa)
-             */
-
-            /**
              * 2a. Xóa khỏi CSDL Chỉ mục (Index DB)
              */
             try {
@@ -524,7 +604,7 @@ public class MainViewModel {
     }
 
     /**
-     * [MỚI] Helper (hàm phụ) đóng (close) một tab (nếu đang mở) bằng ID.
+     * Helper (hàm phụ) đóng (close) một tab (nếu đang mở) bằng ID.
      */
     private void closeTabById(String artifactId) {
         Tab tabToClose = null;

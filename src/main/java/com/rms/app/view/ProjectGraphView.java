@@ -2,10 +2,13 @@ package com.rms.app.view;
 
 import com.google.inject.Inject;
 import com.rms.app.viewmodel.ProjectGraphViewModel;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
+import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
+import netscape.javascript.JSObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +20,7 @@ import java.util.stream.Collectors;
 
 /**
  * "Dumb" View Controller cho ProjectGraphView.fxml (UC-MOD-02).
+ * Thêm JavaBridge để hỗ trợ double-click (drill-down).
  */
 public class ProjectGraphView {
 
@@ -26,6 +30,31 @@ public class ProjectGraphView {
     private WebEngine engine;
 
     private String htmlTemplate = "";
+
+    /**
+     * Lớp (class) lồng nhau (nested)
+     * làm cầu nối (bridge) JavaScript-to-Java.
+     */
+    public class JavaBridge {
+        /**
+         * Được gọi bởi JavaScript (từ graph-template.html)
+         * khi người dùng double-click vào một node.
+         *
+         * @param nodeId ID của node (ví dụ: "UC001")
+         */
+        public void onNodeDoubleClick(String nodeId) {
+            if (nodeId != null && !nodeId.isEmpty()) {
+                /**
+                 * [SỬA LỖI 1] Phải chạy trên luồng JavaFX chính
+                 * vì nó sẽ sửa đổi Scene Graph (mở cửa sổ mới).
+                 */
+                Platform.runLater(() -> {
+                    viewModel.openArtifact(nodeId);
+                });
+            }
+        }
+    }
+
 
     @Inject
     public ProjectGraphView(ProjectGraphViewModel viewModel) {
@@ -56,6 +85,18 @@ public class ProjectGraphView {
     @FXML
     public void initialize() {
         engine = webView.getEngine();
+        engine.setJavaScriptEnabled(true);
+
+        /**
+         * Thiết lập cầu nối (bridge) JS-to-Java
+         */
+        engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+            if (newState == Worker.State.SUCCEEDED) {
+                JSObject window = (JSObject) engine.executeScript("window");
+                window.setMember("javaBridge", new JavaBridge());
+            }
+        });
+
 
         /**
          * Tạo các listener (trình lắng nghe)

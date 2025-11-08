@@ -15,6 +15,8 @@ import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -22,9 +24,11 @@ import java.util.Map;
 /**
  * "Dumb" View Controller cho ArtifactView.fxml.
  * [CẬP NHẬT] Khởi tạo (initialize) ViewModel
- * bằng cách sử dụng UserData từ Tab.
+ * bằng cách sử dụng UserData từ Tab (được ViewManager inject).
  */
 public class ArtifactView {
+
+    private static final Logger logger = LoggerFactory.getLogger(ArtifactView.class);
 
     @FXML private VBox formContainer;
     @FXML private TabPane artifactTabPane;
@@ -34,14 +38,16 @@ public class ArtifactView {
     private final ArtifactViewModel viewModel;
     private final IRenderService renderService;
 
-    /**
-     * [THAY ĐỔI] Các trường (field) này
-     * giờ chỉ dùng khi MỞ (OPEN) artifact
-     */
     private ArtifactTemplate templateToRender;
     private Artifact artifactToLoad;
-
+    private Tab myTab;
     private boolean diagramRendered = false;
+
+    /**
+     * [SỬA LỖI 2] Cờ (flag)
+     * để đảm bảo form chỉ được render (vẽ) một lần.
+     */
+    private boolean formRendered = false;
 
     @Inject
     public ArtifactView(ArtifactViewModel viewModel, IRenderService renderService) {
@@ -68,79 +74,75 @@ public class ArtifactView {
         this.artifactToLoad = artifact;
     }
 
-    @FXML
-    public void initialize() {
+    /**
+     * [SỬA LỖI 2] Hàm này được IViewManager gọi
+     * SAU KHI FXML được load và Tab được tạo.
+     * Đây là tín hiệu (signal)
+     * an toàn để bắt đầu khởi tạo (initialize)
+     *
+     * @param tab Tab (JavaFX) mà View này thuộc về
+     */
+    public void setMyTab(Tab tab) {
+        this.myTab = tab;
 
         /**
-         * [ĐÃ SỬA] Logic khởi tạo (Initialization logic)
-         * được chuyển sang 'sceneProperty' listener.
-         * Listener này chỉ kích hoạt (fire) khi 'Scene'
-         * đã tồn tại, tránh lỗi NullPointerException.
+         * [SỬA LỖI 2] Di chuyển (move) toàn bộ logic
+         * khởi tạo (initialization) vào đây.
+         * Nó chỉ chạy MỘT LẦN khi tab được tạo.
          */
-        formContainer.sceneProperty().addListener((obs, oldScene, newScene) -> {
-            if (newScene != null && viewModel.isNotInitialized()) {
+        if (viewModel.isNotInitialized()) {
+            Tab thisTab = this.myTab;
+            if (thisTab == null) {
+                logger.error("CRITICAL: Không thể khởi tạo ArtifactView, myTab là null.");
+                return;
+            }
+
+            Object userData = thisTab.getUserData();
+
+            if (userData instanceof Map) {
                 /**
-                 * Tìm (Find) Tab (Pane) cha
+                 * TRƯỜNG HỢP 1: TẠO MỚI (NEW)
                  */
-                Node tabPaneNode = formContainer.getScene().lookup("#mainTabPane");
-                if (tabPaneNode instanceof TabPane) {
-                    TabPane tabPane = (TabPane) tabPaneNode;
-                    Tab thisTab = tabPane.getSelectionModel().getSelectedItem();
-
-                    /**
-                     * ========================================================================
-                     * ĐÃ SỬA LỖI (DÒNG NÀY)
-                     * ========================================================================
-                     * So sánh content của Tab (thisTab.getContent()) với
-                     * root FXML của view này (artifactTabPane).
-                     *
-                     * Lỗi cũ là: thisTab.getContent() == formContainer.getParent().getParent()
-                     * (vốn so sánh artifactTabPane với Tab "Form View", luôn false)
-                     */
-                    if (thisTab != null && thisTab.getContent() == this.artifactTabPane) {
-                        Object userData = thisTab.getUserData();
-
-                        if (userData instanceof Map) {
-                            /**
-                             * TRƯỜNG HỢP 1: TẠO MỚI (NEW)
-                             */
-                            viewModel.initializeData(thisTab);
-                        } else {
-                            /**
-                             * TRƯỜNG HỢP 2: MỞ (OPEN)
-                             * [ĐÃ SỬA] Truyền (Pass) 'thisTab' vào VM
-                             */
-                            viewModel.initializeData(templateToRender, artifactToLoad, thisTab);
-                            if (artifactToLoad != null) {
-                                thisTab.setUserData(artifactToLoad.getId());
-                            }
-                        }
-
-                        /**
-                         * Sau khi ViewModel được khởi tạo,
-                         * render (vẽ) form
-                         */
-                        renderFormContent();
-                    }
-                    /**
-                     * ========================================================================
-                     * HẾT PHẦN SỬA LỖI
-                     * ========================================================================
-                     */
+                viewModel.initializeData(thisTab);
+            } else {
+                /**
+                 * TRƯỜNG HỢP 2: MỞ (OPEN)
+                 */
+                viewModel.initializeData(templateToRender, artifactToLoad, thisTab);
+                if (artifactToLoad != null) {
+                    thisTab.setUserData(artifactToLoad.getId());
                 }
             }
-        });
+        }
 
+        /**
+         * [SỬA LỖI 2] Render (vẽ) form
+         * NẾU nó chưa được render (vẽ).
+         */
+        if (!formRendered) {
+            renderFormContent();
+            formRendered = true;
+        }
+    }
+
+    @FXML
+    public void initialize() {
+        /**
+         * [SỬA LỖI 2] Xóa (Remove)
+         * listener 'sceneProperty' không đáng tin cậy.
+         * Logic khởi tạo (init logic)
+         * đã được chuyển (move) sang setMyTab().
+         */
         setupDiagramTabLogic();
     }
 
     /**
-     * [MỚI] Tách (Refactor)
+     * Tách (Refactor)
      * logic render (vẽ) form
      * và binding (liên kết)
      */
     private void renderFormContent() {
-        ArtifactTemplate template = viewModel.getTemplate(); // Lấy (Get) template từ VM
+        ArtifactTemplate template = viewModel.getTemplate(); /** Lấy (Get) template từ VM */
 
         if (template != null) {
             List<Node> formNodes = renderService.renderForm(template, viewModel);
@@ -170,7 +172,7 @@ public class ArtifactView {
     }
 
     /**
-     * [MỚI] Tách (Refactor) logic
+     * Tách (Refactor) logic
      * cài đặt (setup) Tab Sơ đồ (Diagram)
      */
     private void setupDiagramTabLogic() {

@@ -16,12 +16,14 @@ import java.util.Map;
 /**
  * "Brain" - Logic UI cho ProjectGraphView (UC-MOD-02).
  * Tuân thủ Kế hoạch Ngày 36.
+ * Inject MainViewModel để hỗ trợ drill-down (double-click).
  */
 public class ProjectGraphViewModel {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectGraphViewModel.class);
     private final ISearchService searchService;
     private final IProjectStateService projectStateService;
+    private final MainViewModel mainViewModel;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -31,10 +33,32 @@ public class ProjectGraphViewModel {
     public final StringProperty edgesJson = new SimpleStringProperty("[]");
 
     @Inject
-    public ProjectGraphViewModel(ISearchService searchService, IProjectStateService projectStateService) {
+    public ProjectGraphViewModel(ISearchService searchService,
+                                 IProjectStateService projectStateService,
+                                 MainViewModel mainViewModel) {
         this.searchService = searchService;
         this.projectStateService = projectStateService;
+        this.mainViewModel = mainViewModel;
     }
+
+    /**
+     * Được gọi bởi JavaBridge từ ProjectGraphView
+     * để thực hiện UC-MOD-02, 1.0.A1, 6.5
+     *
+     * @param artifactId ID của artifact (ví dụ: "UC001")
+     */
+    public void openArtifact(String artifactId) {
+        if (mainViewModel != null) {
+            logger.info("Yêu cầu mở artifact (cửa sổ mới) từ Graph View: {}", artifactId);
+            /**
+             * [ĐÃ THAY ĐỔI] Gọi phương thức mở cửa sổ mới
+             */
+            mainViewModel.openArtifactByIdInNewWindow(artifactId);
+        } else {
+            logger.error("Không thể mở artifact: MainViewModel là null.");
+        }
+    }
+
 
     /**
      * Tải (load) dữ liệu (data) Node (Nút) và Edge (Cạnh)

@@ -94,7 +94,7 @@ public class ViewManagerImpl implements IViewManager {
 
             loader.setController(controller);
 
-            Parent viewRoot = loader.load();
+            Parent viewRoot = loader.load(); /** Dòng này gọi initialize() */
 
             /**
              * Đặt tên Tab dựa trên artifact (nếu có) hoặc template (nếu mới)
@@ -104,11 +104,12 @@ public class ViewManagerImpl implements IViewManager {
             newTab.setContent(viewRoot);
 
             /**
-             * [ĐÃ XÓA] Xóa bỏ (Remove)
-             * `newTab.setUserData(artifact.getId());`
-             * ArtifactView/ViewModel giờ đây
-             * tự quản lý UserData của chính nó.
+             * [SỬA LỖI 2] Truyền (pass) tham chiếu Tab
+             * vào controller của nó.
+             * Hàm này giờ sẽ kích hoạt logic khởi tạo
+             * (init logic) trong ArtifactView.
              */
+            controller.setMyTab(newTab);
 
             return newTab;
 
@@ -133,11 +134,22 @@ public class ViewManagerImpl implements IViewManager {
         }
 
         Parent content = (Parent) tab.getContent();
-        if (content == null) return;
+        if (content == null) {
+            logger.error("Không thể undock: Nội dung tab (tab content) bị null.");
+            return;
+        }
+
+        /**
+         * [SỬA LỖI 1] Gỡ bỏ (remove) tab
+         * khỏi TabPane cha (parent)
+         * TRƯỚC KHI hiển thị (show) cửa sổ mới.
+         * Đây là hành động khắc phục lỗi IndexOutOfBoundsException.
+         */
+        mainTabPane.getTabs().remove(tab);
 
         /**
          * Gỡ bỏ (remove) nội dung (content)
-         * khỏi tab TRƯỚC KHI thêm nó vào Scene mới.
+         * khỏi tab TRƯỚKHI thêm nó vào Scene mới.
          */
         tab.setContent(null);
 
@@ -203,7 +215,13 @@ public class ViewManagerImpl implements IViewManager {
              */
             newRoot.getChildren().remove(content);
             tab.setContent(content);
-            mainTabPane.getTabs().add(tab);
+
+            /**
+             * [SỬA LỖI 1] Thêm (add) tab
+             * trở lại vào vị trí đầu tiên (index 0)
+             * của TabPane chính.
+             */
+            mainTabPane.getTabs().add(0, tab);
             mainTabPane.getSelectionModel().select(tab);
         });
 
