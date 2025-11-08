@@ -49,7 +49,15 @@ Bạn **phải** cài đặt các công cụ sau và thêm chúng vào `PATH` h�
     ```bash
     brew install --cask basictex
     ```
-  *(BasicTeX là bản cài đặt nhỏ. Nếu gặp lỗi thiếu gói (package), bạn có thể cài bản đầy đủ: `brew install --cask mactex`)*.
+    ```bash
+    echo 'export PATH="/Library/TeX/texbin:$PATH"' >> ~/.zshrc
+    source ~/.zshrc
+    ```
+  * (Lệnh này tạo một file mới tên là TeX trong thư mục /etc/paths.d/ và đặt đường dẫn /Library/TeX/texbin vào đó. Đây là cách chuẩn của macOS để thêm PATH cho mọi ứng dụng).
+    ```bash
+    echo "/Library/TeX/texbin" | sudo tee /etc/paths.d/TeX
+    ```
+  * (BasicTeX là bản cài đặt nhỏ. Nếu gặp lỗi thiếu gói (package), bạn có thể cài bản đầy đủ: `brew install --cask mactex`)*.
 * **Linux (Ubuntu/Debian):**
     ```bash
     sudo apt-get update
@@ -63,4 +71,4 @@ Sau khi cài đặt, **khởi động lại** Terminal (hoặc Command Prompt/Po
 ```bash
 java --version
 pandoc --version
-xelatex --version
+pdflatex --version
