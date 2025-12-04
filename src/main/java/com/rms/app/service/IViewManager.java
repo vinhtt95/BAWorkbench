@@ -38,4 +38,7 @@ public interface IViewManager {
      * @param mainTabPane TabPane gốc để "re-dock" (gắn lại) khi đóng
      */
     void openNewWindowForTab(Tab tab, TabPane mainTabPane);
+
+    void showWelcomeView() throws IOException;
+    void showMainView(Stage stage) throws IOException;
 }

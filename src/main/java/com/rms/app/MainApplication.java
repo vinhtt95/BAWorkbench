@@ -25,37 +25,11 @@ public class MainApplication extends Application {
     @Override
     public void start(Stage primaryStage) throws IOException {
 
-        // Khởi tạo ViewManager (service cần Stage chính)
         IViewManager viewManager = injector.getInstance(IViewManager.class);
         viewManager.initialize(primaryStage);
 
-        FXMLLoader loader = new FXMLLoader();
-
-        // SỬA LỖI: (Theo góp ý của bạn)
-        // Thay đổi đường dẫn FXML từ tuyệt đối sang tương đối (relative)
-        // để nạp từ "com/rms/app" (vị trí của class này)
-        URL fxmlLocation = getClass().getResource("view/MainView.fxml");
-        loader.setLocation(fxmlLocation);
-
-        loader.setControllerFactory(injector::getInstance);
-
-        Parent root = loader.load();
-
-        primaryStage.setTitle("Requirements Management System (RMS) v1.0");
-
-        Scene scene = new Scene(root, 1680, 1200);
-
-        // SỬA LỖI: (Theo góp ý của bạn)
-        // Thay đổi đường dẫn CSS sang tương đối
-        URL cssLocation = getClass().getResource("view/dark-theme.css");
-        if (cssLocation != null) {
-            scene.getStylesheets().add(cssLocation.toExternalForm());
-        } else {
-            System.err.println("Không tìm thấy file dark-theme.css");
-        }
-
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        // Mở màn hình Welcome thay vì MainView
+        viewManager.showWelcomeView();
     }
 
     public static void main(String[] args) {

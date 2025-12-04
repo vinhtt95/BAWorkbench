@@ -215,4 +215,35 @@ public class ViewManagerImpl implements IViewManager {
 
         newStage.show();
     }
+
+    @Override
+    public void showWelcomeView() throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/rms/app/view/WelcomeView.fxml"));
+        loader.setControllerFactory(injector::getInstance);
+        Parent root = loader.load();
+
+        // Welcome screen nhỏ hơn main screen chút
+        Scene scene = new Scene(root, 900, 600);
+        // Áp dụng CSS nếu cần
+        primaryStage.setScene(scene);
+        primaryStage.centerOnScreen();
+        primaryStage.show();
+    }
+
+    @Override
+    public void showMainView(Stage stage) throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/rms/app/view/MainView.fxml"));
+        loader.setControllerFactory(injector::getInstance);
+        Parent root = loader.load();
+
+        Scene scene = new Scene(root, 1680, 1000);
+        URL cssLocation = getClass().getResource("/com/rms/app/view/dark-theme.css");
+        if (cssLocation != null) {
+            scene.getStylesheets().add(cssLocation.toExternalForm());
+        }
+
+        stage.setScene(scene);
+        stage.centerOnScreen();
+        stage.setMaximized(true); // Main view nên full màn hình
+    }
 }

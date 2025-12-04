@@ -62,5 +62,7 @@ public class GuiceModule extends AbstractModule {
          */
         bind(IArtifactRepository.class).to(JsonFileRepository.class).in(Singleton.class);
         bind(ISqliteIndexRepository.class).to(SqliteIndexRepository.class).in(Singleton.class);
+
+        bind(IGlobalConfigService.class).to(GlobalConfigServiceImpl.class).in(Singleton.class);
     }
 }
